@@ -1,0 +1,263 @@
+{
+  "app": {
+    "name": "LlamaDesk",
+    "tagline": "I tuoi link, i tuoi strumenti, i tuoi contesti — in ordine."
+  },
+  "common": {
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "save": "Salva",
+    "delete": "Elimina",
+    "duplicate": "Duplica",
+    "edit": "Modifica",
+    "rename": "Rinomina",
+    "close": "Chiudi",
+    "search": "Cerca",
+    "clear": "Pulisci",
+    "loading": "Caricamento…",
+    "copyUrl": "Copia URL",
+    "copied": "Copiato",
+    "openAll": "Apri tutto",
+    "back": "Indietro",
+    "add": "Aggiungi",
+    "none": "Nessuno",
+    "copySuffix": "(copia)"
+  },
+  "onboarding": {
+    "welcome": "Benvenuto in LlamaDesk",
+    "subtitle": "Un launcher local-first per i tuoi link, strumenti e contesti di progetto. Nessun account, nessun cloud, nessuna telemetria — i tuoi dati non lasciano mai questo computer.",
+    "getStarted": "Inizia",
+    "pillars": {
+      "local": "100% locale",
+      "localDesc": "Un file SQLite nella tua cartella utente. Nient'altro.",
+      "private": "Zero telemetria",
+      "privateDesc": "Nessun tracciamento, nessuna analitica, nessuna chiamata di rete.",
+      "yours": "Interamente tuo",
+      "yoursDesc": "Vuoto il primo giorno. La struttura la costruisci tu."
+    },
+    "profileReady": "Il profilo \"{{name}}\" è pronto."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Progetti",
+    "workspaces": "Workspace",
+    "quickWorkspaces": "Workspace rapidi",
+    "settings": "Impostazioni",
+    "search": "Cerca…",
+    "newProject": "Nuovo progetto",
+    "newWorkspace": "Nuovo workspace",
+    "profile": "Profilo"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "greeting": "Bentornato",
+    "empty": {
+      "title": "Il tuo workspace è vuoto",
+      "description": "Inizia creando il tuo primo progetto, oppure aggiungi un'applicazione con i suoi link.",
+      "createProject": "Crea progetto",
+      "addApplication": "Aggiungi applicazione"
+    },
+    "widgets": {
+      "favorites": "Preferiti",
+      "recents": "Recenti",
+      "quickWorkspaces": "Workspace rapidi",
+      "calendars": "Calendari",
+      "projects": "Progetti",
+      "notes": "Note",
+      "tags": "Tag",
+      "noFavorites": "Segna un'applicazione come preferita per ritrovarla qui.",
+      "noRecents": "Quello che apri comparirà qui."
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "tabs": {
+      "general": "Generale",
+      "appearance": "Aspetto",
+      "shortcuts": "Scorciatoie",
+      "danger": "Danger Zone",
+      "data": "Dati",
+      "about": "Info"
+    },
+    "language": "Lingua",
+    "languageDesc": "Lingua dell'interfaccia.",
+    "theme": "Tema",
+    "themeDesc": "Segui il sistema o forza una modalità.",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "themeSystem": "Sistema",
+    "startMinimized": "Avvia minimizzato",
+    "startMinimizedDesc": "Parte nella system tray senza aprire la finestra.",
+    "closeToTray": "Chiudi nella tray",
+    "closeToTrayDesc": "Chiudendo la finestra, LlamaDesk resta attivo nella tray.",
+    "autostart": "Avvia con Windows",
+    "autostartDesc": "Lancia LlamaDesk automaticamente all'accesso.",
+    "globalShortcut": "Scorciatoia globale",
+    "globalShortcutDesc": "Apre la command palette da qualsiasi applicazione.",
+    "shortcutFailed": "Questa scorciatoia è già occupata da un'altra applicazione. Scegline un'altra.",
+    "openDelay": "Ritardo fra le aperture",
+    "openDelayDesc": "Millisecondi fra una scheda e l'altra quando apri un intero workspace.",
+    "overlayOpacity": "Overlay dello sfondo",
+    "overlayOpacityDesc": "Scurisce il wallpaper per mantenere il testo perfettamente leggibile.",
+    "dbPath": "Posizione del database",
+    "version": "Versione",
+    "privacyTitle": "Zero telemetria",
+    "privacyBody": "LlamaDesk non effettua alcuna richiesta di rete. Nessuna analitica, nessun crash report, nessun controllo aggiornamenti. Link, tag e note restano in un singolo file SQLite locale.",
+    "license": "Licenza",
+    "pressKeys": "premi i tasti…",
+    "resetShortcuts": "Ripristina i default",
+    "shortcutHint": "Le scorciatoie globali funzionano anche a finestra nascosta nella tray. Se una non si registra, è già occupata da un'altra applicazione — quella a livello di finestra continua comunque a funzionare."
+  },
+  "palette": {
+    "placeholder": "Cerca applicazioni, workspace, progetti…",
+    "empty": "Nessun risultato",
+    "hintOpen": "apri",
+    "hintNavigate": "naviga",
+    "hintClose": "chiudi",
+    "groups": {
+      "applications": "Applicazioni",
+      "workspaces": "Workspace",
+      "projects": "Progetti",
+      "commands": "Comandi"
+    },
+    "hint": "Scrivi per cercare fra applicazioni, link e progetti."
+  },
+  "danger": {
+    "badge": "DANGER",
+    "protected": "Elemento protetto",
+    "inheritedFrom": "Livello ereditato da {{name}}",
+    "levels": {
+      "normal": "Normale",
+      "warning": "Attenzione",
+      "danger": "Pericolo",
+      "critical": "Critico",
+      "inherit": "Eredita"
+    },
+    "typeToConfirm": "Digita {{word}} per continuare",
+    "bulk": {
+      "title": "Elementi protetti in questo workspace",
+      "message": "Questa selezione contiene {{count}} elementi protetti su {{total}}. Vuoi procedere?",
+      "confirm": "Apri tutto",
+      "skip": "Apri solo i {{count}} sicuri"
+    },
+    "builtin": "predefinito",
+    "protection": "Protezione",
+    "confirmWord": "PROSEGUI",
+    "promptsTitle": "Dialoghi di conferma",
+    "promptsHint": "I dialoghi predefiniti seguono la lingua dell'interfaccia. Modificane uno per ottenerne una copia modificabile.",
+    "builtinLocked": "I dialoghi predefiniti non si modificano: modificarne uno ne crea una copia.",
+    "duplicateToEdit": "Duplica",
+    "promptTitle": "Titolo",
+    "promptMessage": "Messaggio",
+    "confirmLabel": "Bottone di conferma",
+    "cancelLabel": "Bottone di annullamento",
+    "wordLabel": "Parola da digitare",
+    "preview": "Anteprima"
+  },
+  "tray": {
+    "open": "Apri LlamaDesk",
+    "quickSearch": "Ricerca rapida",
+    "settings": "Impostazioni",
+    "quit": "Esci"
+  },
+  "errors": {
+    "bootstrap": "LlamaDesk non è riuscito ad avviarsi",
+    "retry": "Riprova",
+    "invalidUrl": "Questo indirizzo non può essere aperto: sono ammessi solo link http, https e mailto."
+  },
+  "kinds": {
+    "project": "progetto",
+    "workspace": "workspace",
+    "environment": "ambiente",
+    "context": "contesto",
+    "group": "gruppo"
+  },
+  "navigator": {
+    "switchEnvironment": "Cambia ambiente",
+    "addApplication": "Aggiungi applicazione",
+    "noApplications": "Qui non c'è ancora nessuna applicazione",
+    "noApplicationsHint": "Un'applicazione è uno strumento con uno o più link — per esempio Camunda con i suoi indirizzi Admin, Tasklist e Operate.",
+    "emptyBranch": "Ancora niente qui",
+    "new": {
+      "project": "Nuovo progetto",
+      "workspace": "Nuovo workspace",
+      "environment": "Nuovo ambiente",
+      "context": "Nuovo contesto",
+      "group": "Nuovo gruppo"
+    }
+  },
+  "editor": {
+    "name": "Nome",
+    "icon": "Icona",
+    "favorite": "Preferito",
+    "links": "Link",
+    "linkName": "Nome link",
+    "setDefault": "Apri questo per primo",
+    "linkKinds": {
+      "web": "Web",
+      "calendar": "Calendario",
+      "mail": "Mail",
+      "doc": "Documento",
+      "other": "Altro"
+    }
+  },
+  "health": {
+    "title": "Link dormienti",
+    "summary_one": "{{count}} link non viene aperto da molto tempo.",
+    "summary_other": "{{count}} link non vengono aperti da molto tempo.",
+    "dormant": "dormiente",
+    "dormantHint": "Calcolato solo dalla cronologia locale — LlamaDesk non contatta mai questi indirizzi.",
+    "threshold": "Dormiente dopo",
+    "thresholdDesc": "Giorni senza aperture prima che un link venga segnalato."
+  },
+  "tags": {
+    "add": "tag…"
+  },
+  "notes": {
+    "title": "Nota",
+    "placeholder": "Una nota locale per questo elemento. Si salva da sola.",
+    "saved": "Salvata"
+  },
+  "workspaces": {
+    "subtitle": "Insiemi di link che si aprono insieme, attraverso progetti e ambienti.",
+    "new": "Nuovo workspace",
+    "newTemporary": "Temporaneo",
+    "temporary": "scade oggi",
+    "namePlaceholder": "Standup del lunedì",
+    "emptyTitle": "Nessun workspace rapido",
+    "emptyHint": "Creane uno e aggiungi i link che apri sempre insieme — possono venire da progetti diversi.",
+    "findLink": "Cerca un link da aggiungere…"
+  },
+  "capture": {
+    "title": "Cattura rapida",
+    "subtitle": "L'URL arriva dagli appunti, letti solo quando premi la scorciatoia.",
+    "url": "Indirizzo",
+    "namePlaceholder": "Board Jira",
+    "destination": "Dove finisce?",
+    "noUrl": "Gli appunti non contengono un indirizzo http, https o mailto valido. Incollalo qui sotto.",
+    "noDestination": "Nessuna destinazione trovata. Crea prima un ambiente o un gruppo.",
+    "save": "Salva link",
+    "shortcut": "Cattura rapida",
+    "shortcutDesc": "Legge un URL dagli appunti e apre il dialogo di cattura."
+  },
+  "appearance": {
+    "wallpaper": "Sfondo",
+    "wallpaperHint": "Lo strato che ogni pannello in vetro campiona. Su Windows la sfocatura non può raggiungere il desktop dietro la finestra: è questo che dà colore all'interfaccia.",
+    "importImage": "Importa immagine",
+    "defaultMesh": "Default animato"
+  },
+  "data": {
+    "title": "Backup e ripristino",
+    "description": "Un file JSON con tutta la configurazione: profili, gerarchia, link, tag, note e workspace. Nessuna credenziale — non ne esistono — e nessuna cronologia d'uso.",
+    "export": "Esporta",
+    "import": "Importa",
+    "exported": "Esportato ({{size}} KB).",
+    "importTitle": "Importa backup",
+    "merge": "Aggiungi a quello che ho",
+    "mergeHint": "Tutto viene importato con id nuovi, accanto ai dati attuali.",
+    "replace": "Sostituisci tutto",
+    "replaceHint": "Cancella i dati attuali e ripristina il backup. Prima viene salvata una copia del database.",
+    "importDone": "Importazione completata",
+    "importSummary": "Importati {{containers}} contenitori, {{applications}} applicazioni e {{links}} link."
+  }
+}

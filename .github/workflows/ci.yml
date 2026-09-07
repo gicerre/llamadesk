@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run test
+      - run: npm run build:vite
+
+      # Valida ogni query SQL del backend contro lo schema reale: gira anche
+      # senza toolchain Rust, e fallisce prima che l'errore arrivi all'utente.
+      - run: npm run check:sql
+
+  backend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+      - name: Formatting
+        working-directory: src-tauri
+        run: cargo fmt --check
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Tests
+        working-directory: src-tauri
+        run: cargo test --locked
+
+  # Guardia sulla promessa "zero telemetria": nessun client HTTP puo' entrare
+  # nell'albero delle dipendenze Rust senza che questo job fallisca.
+  privacy-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No network crates
+        run: |
+          if grep -Eiq '^(reqwest|ureq|hyper|isahc|surf|curl|attohttpc)\b' src-tauri/Cargo.toml; then
+            echo "::error::Trovata una dipendenza di rete in src-tauri/Cargo.toml"
+            exit 1
+          fi
+          echo "Nessun client HTTP dichiarato."

@@ -1,0 +1,174 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+   LlamaDesk — Design System
+   Ispirazione: macOS / visionOS / iOS. Vetro, superellissi, fisica.
+   Regola d'oro: nessuno sfondo piatto e opaco, nessun angolo "Bootstrap".
+   ========================================================================== */
+
+/* Dark mode pilotata da classe (.dark sull'<html>), non solo da media query:
+   l'utente può forzare Light/Dark/System dalle Impostazioni. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* --- Tipografia: Segoe UI Variable su Win11 è il parente più prossimo di SF Pro --- */
+  --font-sans:
+    'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', Inter, system-ui, -apple-system,
+    sans-serif;
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* --- Raggi: generosi, mai spigolosi --- */
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+
+  /* --- Colori d'ambiente: usati SOLO per segnalare contesto o azione --- */
+  --color-env-dev: oklch(0.72 0.14 235);
+  --color-env-test: oklch(0.75 0.16 62);
+  --color-env-prod: oklch(0.64 0.22 25);
+
+  /* --- Ombre: morbide, diffuse, mai nere e dure --- */
+  --shadow-glass: 0 8px 32px -8px rgb(0 0 0 / 0.35), 0 2px 8px -2px rgb(0 0 0 / 0.2);
+  --shadow-glass-lg: 0 24px 64px -16px rgb(0 0 0 / 0.45), 0 8px 24px -8px rgb(0 0 0 / 0.25);
+  --shadow-spotlight: 0 32px 96px -24px rgb(0 0 0 / 0.6), 0 12px 32px -12px rgb(0 0 0 / 0.35);
+  --shadow-danger-glow: 0 0 40px rgb(239 68 68 / 0.2), 0 24px 64px -16px rgb(0 0 0 / 0.5);
+
+  /* --- Timing per le sole transizioni CSS non fisiche (colori, opacità) --- */
+  --ease-glass: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ============================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  * {
+    /* Nessun outline blu di sistema: usiamo anelli in vetro coerenti col tema. */
+    outline: none;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden; /* la shell gestisce il proprio scroll, la finestra no */
+  }
+
+  body {
+    @apply font-sans text-zinc-900 antialiased dark:text-zinc-100;
+    background: transparent;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* L'app è un desktop, non un sito: niente selezione accidentale del testo. */
+    user-select: none;
+    cursor: default;
+  }
+
+  /* La selezione resta attiva dove serve davvero. */
+  input,
+  textarea,
+  [contenteditable],
+  .selectable {
+    user-select: text;
+    cursor: text;
+  }
+
+  ::selection {
+    @apply bg-white/25 text-white;
+  }
+
+  /* Scrollbar sottile e in vetro. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full border-[3px] border-transparent bg-black/15 bg-clip-content dark:bg-white/15;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-black/25 dark:bg-white/25;
+  }
+
+  /* Rispetto delle preferenze di accessibilità del sistema. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ============================================================================
+   Utility del Design System
+   ========================================================================== */
+
+/* Il "materiale" base: vetro traslucido con riflesso sul bordo superiore.
+   È lo strato che campiona il wallpaper sottostante. */
+@utility glass-panel {
+  @apply border border-black/[0.06] bg-white/60 backdrop-blur-xl;
+  @apply dark:border-white/10 dark:bg-white/[0.06];
+  box-shadow: var(--shadow-glass);
+}
+
+/* Variante più densa, per modali e Command Palette. */
+@utility glass-panel-strong {
+  @apply border border-black/[0.08] bg-white/80 backdrop-blur-2xl;
+  @apply dark:border-white/[0.12] dark:bg-white/[0.09];
+  box-shadow: var(--shadow-glass-lg);
+}
+
+/* Variante leggerissima, per card in griglia. */
+@utility glass-panel-subtle {
+  @apply border border-black/[0.05] bg-white/45 backdrop-blur-md;
+  @apply dark:border-white/[0.08] dark:bg-white/[0.04];
+}
+
+/* Il riflesso di luce sul bordo superiore: 1px che cambia tutto.
+   Classe di componente (non utility) perche' agisce su uno pseudo-elemento. */
+@layer components {
+  .glass-hairline {
+    position: relative;
+  }
+  .glass-hairline::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-3 top-0 h-px;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.4), transparent);
+  }
+}
+
+/* Regione trascinabile della barra titolo custom. */
+@utility drag-region {
+  -webkit-app-region: drag;
+}
+@utility no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Forza il rendering su GPU per gli elementi animati di frequente. */
+@utility gpu {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Il pulsare del badge PRODUZIONE: lento, non ansiogeno. */
+@utility pulse-danger {
+  animation: pulse-danger 2s var(--ease-glass) infinite;
+}
+
+@keyframes pulse-danger {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.4);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 0 6px rgb(239 68 68 / 0);
+  }
+}

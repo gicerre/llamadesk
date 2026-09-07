@@ -1,0 +1,23 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permessi minimi della finestra principale. L'apertura degli URL, la lettura degli appunti, la scorciatoia globale e l'accesso al database restano lato Rust: il frontend non li puo' invocare direttamente. Al frontend serve solo poter scegliere un file da disco.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-unminimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:event:default",
+    "dialog:allow-open",
+    "dialog:allow-save"
+  ]
+}

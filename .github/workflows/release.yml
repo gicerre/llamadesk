@@ -1,0 +1,68 @@
+name: Release
+
+# Un tag `v*` produce gli installer Windows e li pubblica in GitHub Releases.
+# Nessun altro trigger: le build di verifica vivono in ci.yml.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint and typecheck
+        run: |
+          npm run lint
+          npm run typecheck
+
+      - name: Frontend tests
+        run: npm run test
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test --locked
+
+      - name: Build installers and publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'LlamaDesk ${{ github.ref_name }}'
+          releaseBody: |
+            Installer per Windows 10/11.
+
+            - `LlamaDesk_x.y.z_x64-setup.exe` — installer NSIS (consigliato, non richiede privilegi di amministratore)
+            - `LlamaDesk_x.y.z_x64_en-US.msi` — pacchetto MSI per distribuzione aziendale
+
+            **Local-first**: nessun account, nessun cloud, nessuna telemetria.
+            I dati restano in `%APPDATA%\com.llamadesk.app\llamadesk.db`.
+          releaseDraft: true
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc
