@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Ellipsis, Link2, Lock, Pin, PinOff, Plus, SlidersHorizontal, Star } from 'lucide-react';
+import { Cover } from '@/components/Cover';
 import { NodeIcon } from '@/components/NodeIcon';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/feedback';
@@ -204,8 +205,15 @@ function ProjectCard({
       <button
         type="button"
         onClick={() => navigate(routeForChain(workspaceId, [...view.breadcrumb, node]))}
-        className="bg-surface shadow-1 hover:shadow-2 flex min-h-[116px] w-full flex-col rounded-lg p-3.5 text-left transition-shadow duration-120"
+        className="bg-surface shadow-1 hover:shadow-2 relative flex min-h-[116px] w-full flex-col overflow-hidden rounded-lg p-3.5 text-left transition-shadow duration-120"
       >
+        {node.coverAssetId && !node.isProtected && (
+          <Cover
+            node={node}
+            fade={false}
+            className="-mx-3.5 -mt-3.5 mb-3 h-16 [mask-image:linear-gradient(to_bottom,black_40%,transparent)]"
+          />
+        )}
         <span className="flex items-start gap-3">
           <NodeIcon
             kind="project"

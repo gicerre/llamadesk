@@ -15,6 +15,7 @@ import type { NodeView } from '@/types/generated/NodeView';
 import { NodeMenu } from '../library/NodeMenu';
 import { Chip, HeaderSkeleton, MissingNode, NodeHeader, PageFrame } from '../library/parts';
 import { LockedPanel } from '../protection/parts';
+import { LaunchButton } from '../launch/LaunchButton';
 import { ScopeContent } from './ScopeContent';
 
 /**
@@ -41,7 +42,10 @@ export function ProjectPage() {
           workspaceId={workspaceId}
           actions={
             project.data.locked ? undefined : (
-              <NodeMenu view={project.data} workspaceId={workspaceId} />
+              <>
+                <LaunchButton owner={project.data.node} workspaceId={workspaceId} />
+                <NodeMenu view={project.data} workspaceId={workspaceId} />
+              </>
             )
           }
         />
@@ -183,6 +187,7 @@ function ScopeBar({ view, workspaceId }: { view: NodeView; workspaceId: string }
         </Chip>
       )}
       <div className="ml-auto flex items-center gap-1.5">
+        <LaunchButton owner={node} workspaceId={workspaceId} />
         {add}
         <NodeMenu view={view} workspaceId={workspaceId} />
       </div>

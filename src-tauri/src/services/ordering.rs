@@ -56,6 +56,13 @@ pub const PROFILE_WORKSPACES: OrderedList = OrderedList {
     item_column: "workspace_id",
 };
 
+/// I passi dell'Avvio di un contenitore.
+pub const LAUNCH_STEPS: OrderedList = OrderedList {
+    table: "launch_steps",
+    scope_column: "owner_id",
+    item_column: "id",
+};
+
 impl OrderedList {
     fn read(&self, conn: &Connection, scope: &str, item: Option<&str>) -> Result<Option<f64>> {
         let Some(item) = item else { return Ok(None) };

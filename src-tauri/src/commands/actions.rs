@@ -215,7 +215,7 @@ pub async fn execute_action(
     })
 }
 
-fn run_steps(app: &AppHandle, steps: &[Step], delay: Duration) -> Result<(), String> {
+pub(crate) fn run_steps(app: &AppHandle, steps: &[Step], delay: Duration) -> Result<(), String> {
     for (index, step) in steps.iter().enumerate() {
         // Molte schede tutte insieme: il browser le perde o le riordina.
         if index > 0 && matches!(step, Step::Url(_)) {

@@ -4,6 +4,7 @@ import { Clock, House, Plus, Star } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Tip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
+import { useNarrowWindow } from '@/lib/viewport';
 import { paths } from '@/lib/routes';
 import { useDialogs } from '@/stores/dialogs';
 import { useUi } from '@/stores/ui';
@@ -20,7 +21,9 @@ import { WorkspaceSwitcher } from './WorkspaceSwitcher';
  */
 export function Sidebar() {
   const { t } = useTranslation();
-  const collapsed = useUi((state) => state.sidebarCollapsed);
+  // Sotto i 900 px la sidebar si riduce da sola, senza cambiare la scelta salvata.
+  const narrow = useNarrowWindow();
+  const collapsed = useUi((state) => state.sidebarCollapsed) || narrow;
   const { workspace, workspaceId } = useLocationContext();
   const openCreate = useDialogs((state) => state.openCreate);
 

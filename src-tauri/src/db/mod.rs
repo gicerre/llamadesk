@@ -36,6 +36,12 @@ pub fn database_path(app: &AppHandle) -> Result<PathBuf> {
 pub fn initialize(app: &AppHandle) -> Result<(Connection, PathBuf)> {
     let path = database_path(app)?;
 
+    // Un ripristino chiesto nella sessione precedente si applica ora, prima
+    // di aprire il file. Se il backup non e' valido si prosegue con il database attuale.
+    if let Err(error) = crate::services::backup::apply_staged_restore(&path) {
+        eprintln!("[llamadesk] ripristino non applicato: {error}");
+    }
+
     let mut conn = Connection::open(&path)
         .with_context(|| format!("impossibile aprire il database {}", path.display()))?;
 

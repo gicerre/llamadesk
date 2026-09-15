@@ -9,9 +9,9 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/Menu';
 import { Skeleton } from '@/components/ui/feedback';
 import { Tip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
-import { ICON_LIBRARY } from '@/lib/icons';
 import { api } from '@/lib/ipc';
 import { duration, easeOut } from '@/lib/motion';
+import { useCompactWindow } from '@/lib/viewport';
 import { canPickPaths, pickPaths } from '@/lib/pickers';
 import {
   invalidateLibrary,
@@ -33,7 +33,10 @@ import type { NodeView } from '@/types/generated/NodeView';
 import { ResourceQuickActions } from '../actions/ActionMenu';
 import { isExecutable, primaryAction } from '../actions/registry';
 import { runAction } from '../actions/run';
+import { CoverField } from './CoverField';
 import { InlineField, PanelSection } from './fields';
+import { IconPicker } from './IconPicker';
+import { LaunchSection } from '../launch/LaunchSection';
 import { UnlockForm } from '../protection/UnlockForm';
 import { ProtectionSection } from './ProtectionSection';
 import { OpeningSection, ToolPreferencesSection } from './ToolSections';
@@ -46,19 +49,27 @@ const INSPECTOR_WIDTH = 360;
  * serve per usare: nome, indirizzo, colori, icona, tag, conferma, workspace.
  */
 export function InspectorPanel() {
+  const { t } = useTranslation();
   const nodeId = useInspector((state) => state.nodeId);
   const workspaceId = useInspector((state) => state.workspaceId);
+  // In una finestra stretta il pannello si appoggia sopra la pagina invece di stringerla.
+  const overlay = useCompactWindow();
 
   return (
     <AnimatePresence initial={false}>
       {nodeId && workspaceId && (
         <motion.aside
-          key="inspector"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: INSPECTOR_WIDTH, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
+          key={overlay ? 'inspector-overlay' : 'inspector'}
+          aria-label={t('inspector.title')}
+          initial={overlay ? { x: INSPECTOR_WIDTH, opacity: 0 } : { width: 0, opacity: 0 }}
+          animate={overlay ? { x: 0, opacity: 1 } : { width: INSPECTOR_WIDTH, opacity: 1 }}
+          exit={overlay ? { x: INSPECTOR_WIDTH, opacity: 0 } : { width: 0, opacity: 0 }}
           transition={{ duration: duration.sidebar, ease: easeOut }}
-          className="border-line bg-surface h-full shrink-0 overflow-hidden border-l"
+          className={
+            overlay
+              ? 'border-line bg-surface shadow-3 absolute inset-y-0 right-0 z-30 max-w-full overflow-hidden border-l'
+              : 'border-line bg-surface h-full shrink-0 overflow-hidden border-l'
+          }
         >
           <div className="h-full overflow-y-auto" style={{ width: INSPECTOR_WIDTH }}>
             <InspectorContent key={nodeId} nodeId={nodeId} workspaceId={workspaceId} />
@@ -209,6 +220,8 @@ function Editor({ view, workspaceId }: { view: NodeView; workspaceId: string }) 
       <PanelSection title={t('inspector.tags')}>
         <TagEditor view={view} />
       </PanelSection>
+
+      {['project', 'subproject', 'section'].includes(node.kind) && <LaunchSection view={view} />}
 
       <ProtectionSection view={view} />
 
@@ -479,69 +492,9 @@ function Appearance({
           )}
         </>
       )}
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-ink-2 mb-1.5 text-xs font-semibold">{t('inspector.icon')}</legend>
-        <div className="flex flex-wrap gap-1.5">
-          <IconChoice
-            selected={!node.icon}
-            label={t('inspector.iconDefault')}
-            onSelect={() => apply({ icon: null })}
-          >
-            <NodeIcon
-              kind={node.kind}
-              name={node.name}
-              icon={null}
-              color={node.colorMain}
-              size="sm"
-            />
-          </IconChoice>
-          {Object.keys(ICON_LIBRARY).map((name) => (
-            <IconChoice
-              key={name}
-              selected={node.icon === `lucide:${name}`}
-              label={name}
-              onSelect={() => apply({ icon: `lucide:${name}` })}
-            >
-              <NodeIcon
-                kind={node.kind}
-                name={node.name}
-                icon={`lucide:${name}`}
-                color={node.colorMain}
-                size="sm"
-              />
-            </IconChoice>
-          ))}
-        </div>
-      </fieldset>
+      <IconPicker node={node} onChange={(icon) => apply({ icon })} />
+      {colored && <CoverField view={view} onSave={onSave} />}
     </PanelSection>
-  );
-}
-
-function IconChoice({
-  selected,
-  label,
-  onSelect,
-  children,
-}: {
-  selected: boolean;
-  label: string;
-  onSelect: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      aria-label={label}
-      title={label}
-      onClick={onSelect}
-      className={cn(
-        'hover:bg-hover flex size-8 items-center justify-center rounded-md transition-colors duration-120',
-        selected && 'bg-accent-soft shadow-[0_0_0_1.5px_var(--ld-accent)]',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 

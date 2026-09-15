@@ -69,7 +69,14 @@ pub fn run() {
             //    d'uso per 90 giorni. Costa millisecondi e tiene pulito un
             //    database che vive per anni.
             let _ = services::hierarchy::empty_trash(&connection);
+            // Le cover dei nodi appena usciti dal cestino non servono piu'.
+            if let Some(data_dir) = db_path.parent() {
+                let _ = services::assets::collect_garbage(&connection, data_dir);
+            }
             let _ = db::repo::library::prune_usage(&connection);
+            // Backup automatico: uno al giorno, gli ultimi sette.
+            let _ =
+                services::backup::automatic(&connection, &db_path, std::time::SystemTime::now());
 
             // Il materiale va deciso prima di mostrare la finestra: il frontend
             // lo legge al bootstrap per sapere se dipingere tinte solide.
@@ -219,8 +226,23 @@ pub fn run() {
             commands::actions::tool_preferences,
             commands::actions::prepare_action,
             commands::actions::execute_action,
+            // avvio
+            commands::launch::list_launch_steps,
+            commands::launch::add_launch_step,
+            commands::launch::remove_launch_step,
+            commands::launch::move_launch_step,
+            commands::launch::prepare_launch,
+            commands::launch::run_launch,
             // command palette
             commands::search::search_library,
+            // cover
+            commands::assets::set_node_cover,
+            commands::assets::asset_path,
+            // backup
+            commands::backup::list_backups,
+            commands::backup::create_backup,
+            commands::backup::restore_backup,
+            commands::backup::reveal_backups,
             // protezione
             commands::protection::lock_status,
             commands::protection::unlock_profile,

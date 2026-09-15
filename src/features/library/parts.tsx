@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, CircleAlert, Link2, Lock, ShieldAlert, Star } from 'lucide-react';
+import { Cover } from '@/components/Cover';
 import { NodeIcon } from '@/components/NodeIcon';
 import { Button } from '@/components/ui/Button';
 import { ErrorPanel, Skeleton } from '@/components/ui/feedback';
@@ -48,79 +49,86 @@ export function NodeHeader({ view, workspaceId, actions }: NodeHeaderProps) {
   const otherWorkspaces = view.workspaces.filter((crumb) => crumb.id !== workspaceId);
   const large = node.kind === 'workspace' || node.kind === 'project';
 
+  const cover = !view.locked && node.coverAssetId && (
+    <Cover node={node} className="-mx-7 -mt-6 mb-5 h-44 rounded-b-xl" />
+  );
+
   return (
-    <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
-      <NodeIcon
-        kind={node.kind}
-        name={node.name}
-        icon={node.icon}
-        color={node.colorMain}
-        size="lg"
-      />
-      <div className="min-w-0 flex-1">
-        <h1
-          className={cn(
-            'font-display text-ink truncate font-semibold tracking-[-0.015em]',
-            large ? 'text-2xl' : 'text-xl',
-          )}
-        >
-          {node.name}
-        </h1>
-        <div className="text-ink-3 mt-1 flex flex-wrap items-center gap-2 text-sm">
-          {node.description && <span className="selectable truncate">{node.description}</span>}
-          {node.kind === 'project' && otherWorkspaces.length > 0 && (
-            <Chip icon={<Link2 />}>
-              {t('states.alsoIn')}
-              {otherWorkspaces.map((crumb, index) => (
-                <button
-                  key={crumb.id}
-                  type="button"
-                  // Stesso progetto, visto dall'altro workspace.
-                  onClick={() => navigate(routeForChain(crumb.id, view.breadcrumb))}
-                  className="text-ink-2 hover:text-ink font-semibold hover:underline"
-                >
-                  {index > 0 ? `, ${crumb.name}` : crumb.name}
-                </button>
-              ))}
-            </Chip>
-          )}
-          {protection.isProtected && (
-            <Chip icon={<Lock />}>
-              {protection.isOwn
-                ? t('states.protected')
-                : t('states.protectedBy', { name: protection.inheritedFrom?.name ?? '' })}
-            </Chip>
-          )}
-          {caution.level !== 'none' && (
-            <Chip icon={<ShieldAlert />} tone="danger">
-              {caution.isOwn
-                ? t('states.caution')
-                : t('states.cautionBy', { name: caution.inheritedFrom?.name ?? '' })}
-            </Chip>
-          )}
+    <>
+      {cover}
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <NodeIcon
+          kind={node.kind}
+          name={node.name}
+          icon={node.icon}
+          color={node.colorMain}
+          size="lg"
+        />
+        <div className="min-w-0 flex-1">
+          <h1
+            className={cn(
+              'font-display text-ink truncate font-semibold tracking-[-0.015em]',
+              large ? 'text-2xl' : 'text-xl',
+            )}
+          >
+            {node.name}
+          </h1>
+          <div className="text-ink-3 mt-1 flex flex-wrap items-center gap-2 text-sm">
+            {node.description && <span className="selectable truncate">{node.description}</span>}
+            {node.kind === 'project' && otherWorkspaces.length > 0 && (
+              <Chip icon={<Link2 />}>
+                {t('states.alsoIn')}
+                {otherWorkspaces.map((crumb, index) => (
+                  <button
+                    key={crumb.id}
+                    type="button"
+                    // Stesso progetto, visto dall'altro workspace.
+                    onClick={() => navigate(routeForChain(crumb.id, view.breadcrumb))}
+                    className="text-ink-2 hover:text-ink font-semibold hover:underline"
+                  >
+                    {index > 0 ? `, ${crumb.name}` : crumb.name}
+                  </button>
+                ))}
+              </Chip>
+            )}
+            {protection.isProtected && (
+              <Chip icon={<Lock />}>
+                {protection.isOwn
+                  ? t('states.protected')
+                  : t('states.protectedBy', { name: protection.inheritedFrom?.name ?? '' })}
+              </Chip>
+            )}
+            {caution.level !== 'none' && (
+              <Chip icon={<ShieldAlert />} tone="danger">
+                {caution.isOwn
+                  ? t('states.caution')
+                  : t('states.cautionBy', { name: caution.inheritedFrom?.name ?? '' })}
+              </Chip>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {!view.locked && (
-          <Tip label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}>
-            <Button
-              variant="ghost"
-              iconOnly
-              aria-pressed={view.isFavorite}
-              aria-label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}
-              onClick={() =>
-                toggleFavorite.mutate(node.id, {
-                  onError: (error) => toastError(t('actions.favoriteFailed'), error),
-                })
-              }
-            >
-              <Star className={cn(view.isFavorite && 'fill-caution text-caution')} />
-            </Button>
-          </Tip>
-        )}
-        {actions}
-      </div>
-    </header>
+        <div className="flex items-center gap-1.5">
+          {!view.locked && (
+            <Tip label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}>
+              <Button
+                variant="ghost"
+                iconOnly
+                aria-pressed={view.isFavorite}
+                aria-label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}
+                onClick={() =>
+                  toggleFavorite.mutate(node.id, {
+                    onError: (error) => toastError(t('actions.favoriteFailed'), error),
+                  })
+                }
+              >
+                <Star className={cn(view.isFavorite && 'fill-caution text-caution')} />
+              </Button>
+            </Tip>
+          )}
+          {actions}
+        </div>
+      </header>
+    </>
   );
 }
 

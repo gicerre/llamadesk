@@ -1,21 +1,37 @@
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { ContextMenu, DropdownMenu } from 'radix-ui';
-import { ChevronRight, Ellipsis, SlidersHorizontal, Star, StarOff, Trash2 } from 'lucide-react';
+import {
+  ChevronRight,
+  Ellipsis,
+  Play,
+  SlidersHorizontal,
+  Star,
+  StarOff,
+  Trash2,
+} from 'lucide-react';
 import { createElement } from 'react';
 import { Button } from '@/components/ui/Button';
 import { menuItem, menuSurface } from '@/components/ui/Menu';
 import { Tip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
-import { useFavorites, useToggleFavorite, useToolPreferences, useTools } from '@/lib/queries';
+import { api } from '@/lib/ipc';
+import {
+  invalidateLaunch,
+  useFavorites,
+  useToggleFavorite,
+  useToolPreferences,
+  useTools,
+} from '@/lib/queries';
 import { useDialogs } from '@/stores/dialogs';
 import { useInspector } from '@/stores/inspector';
-import { toastError } from '@/stores/toasts';
+import { toast, toastError } from '@/stores/toasts';
 import type { Node } from '@/types/generated/Node';
 import type { PathInfo } from '@/types/generated/PathInfo';
 import type { Tool } from '@/types/generated/Tool';
 import type { ToolKind } from '@/types/generated/ToolKind';
 import { actionsFor, type ActionDef } from './registry';
+import { useLaunchOwner } from '../launch/context';
 import { runAction } from './run';
 
 /* ============================================================================
@@ -116,6 +132,7 @@ function MenuItems({ kit: K, node, pathInfo, workspaceId }: ResourceMenuProps & 
   const preferences = useToolPreferences(node.id, workspaceId);
   const favorites = useFavorites();
   const toggleFavorite = useToggleFavorite();
+  const launchOwner = useLaunchOwner();
 
   const actions = actionsFor({ node, pathInfo });
   const runnable = actions.filter((action) => action.id !== 'copy');
@@ -192,6 +209,41 @@ function MenuItems({ kit: K, node, pathInfo, workspaceId }: ResourceMenuProps & 
       })}
 
       <K.Separator className="bg-line mx-1 my-1 h-px" />
+      {launchOwner && runnable.length > 0 && (
+        <K.Sub>
+          <K.SubTrigger className={cn(menuItem, 'data-[state=open]:bg-hover')}>
+            <Play />
+            <span className="min-w-0 flex-1 truncate">
+              {t('launch.addTo', { name: launchOwner.name })}
+            </span>
+            <ChevronRight className="size-3.5!" aria-hidden />
+          </K.SubTrigger>
+          <K.Portal>
+            <K.SubContent collisionPadding={8} sideOffset={4} className={menuSurface}>
+              {runnable.map((action) => (
+                <K.Item
+                  key={`${action.id}-${action.label}`}
+                  className={menuItem}
+                  onSelect={() =>
+                    void api
+                      .addLaunchStep(launchOwner.id, node.id, action.id)
+                      .then(async () => {
+                        await invalidateLaunch();
+                        toast({ title: t('launch.added', { name: launchOwner.name }) });
+                      })
+                      .catch((error) => toastError(t('launch.changeFailed'), error))
+                  }
+                >
+                  {createElement(action.icon)}
+                  <span className="min-w-0 flex-1 truncate">
+                    {t(`actions.run.${action.label}`)}
+                  </span>
+                </K.Item>
+              ))}
+            </K.SubContent>
+          </K.Portal>
+        </K.Sub>
+      )}
       {copy && item(copy, t(`actions.run.${copy.label}`))}
       <K.Item className={menuItem} onSelect={() => openInspector(node.id, workspaceId)}>
         <SlidersHorizontal />

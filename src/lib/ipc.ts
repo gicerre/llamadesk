@@ -2,10 +2,13 @@ import { invoke } from '@tauri-apps/api/core';
 import type { ActionOutcome } from '@/types/generated/ActionOutcome';
 import type { ActionPlan } from '@/types/generated/ActionPlan';
 import type { AppSettings } from '@/types/generated/AppSettings';
+import type { BackupInfo } from '@/types/generated/BackupInfo';
 import type { BrowserProfile } from '@/types/generated/BrowserProfile';
 import type { BootstrapPayload } from '@/types/generated/BootstrapPayload';
 import type { DeleteImpact } from '@/types/generated/DeleteImpact';
 import type { Favorite } from '@/types/generated/Favorite';
+import type { LaunchOutcome } from '@/types/generated/LaunchOutcome';
+import type { LaunchStep } from '@/types/generated/LaunchStep';
 import type { LockStatus } from '@/types/generated/LockStatus';
 import type { NewNode } from '@/types/generated/NewNode';
 import type { Node } from '@/types/generated/Node';
@@ -168,6 +171,33 @@ export interface Commands {
     result: SearchHit[];
   };
 
+  list_launch_steps: { args: { ownerId: Id }; result: LaunchStep[] };
+  add_launch_step: {
+    args: { ownerId: Id; targetId: Id; actionId: string; toolId: Maybe<Id> };
+    result: LaunchStep;
+  };
+  remove_launch_step: { args: { stepId: Id }; result: null };
+  move_launch_step: {
+    args: { stepId: Id; previousId: Maybe<Id>; nextId: Maybe<Id> };
+    result: null;
+  };
+  prepare_launch: {
+    args: { profileId: Id; ownerId: Id; viaWorkspaceId: Maybe<Id> };
+    result: ActionPlan;
+  };
+  run_launch: {
+    args: { profileId: Id; ownerId: Id; viaWorkspaceId: Maybe<Id>; confirmation: Maybe<string> };
+    result: LaunchOutcome;
+  };
+
+  set_node_cover: { args: { nodeId: Id; sourcePath: Maybe<string> }; result: Node };
+  asset_path: { args: { assetId: Id }; result: string };
+
+  list_backups: { args: Record<string, never>; result: BackupInfo[] };
+  create_backup: { args: { destination: Maybe<string> }; result: BackupInfo };
+  restore_backup: { args: { path: string }; result: null };
+  reveal_backups: { args: Record<string, never>; result: null };
+
   lock_status: { args: { profileId: Id }; result: LockStatus };
   unlock_profile: { args: { profileId: Id; password: string }; result: UnlockOutcome };
   set_lock_password: {
@@ -244,6 +274,9 @@ export const api = {
   profileOverrides: (profileId: Id) => call('get_profile_overrides', { profileId }),
   profileScopedKeys: () => call('profile_scoped_keys', none),
   activateProfile: (profileId: Id) => call('activate_profile', { profileId }),
+  shortcutStatus: (kind: 'palette' | 'capture') => call('get_shortcut_status', { kind }),
+  applyGlobalShortcut: (kind: 'palette' | 'capture', accelerator: string) =>
+    call('apply_global_shortcut', { kind, accelerator }),
   listProfiles: () => call('list_profiles', none),
   createProfile: (name: string) => call('create_profile', { name }),
   updateProfile: (id: Id, patch: ProfilePatch) => call('update_profile', { id, patch }),
@@ -312,6 +345,30 @@ export const api = {
 
   search: (profileId: Id, text: string, workspaceId: Maybe<Id>, contextId: Maybe<Id>, limit = 30) =>
     call('search_library', { profileId, text, workspaceId, contextId, limit }),
+
+  launchSteps: (ownerId: Id) => call('list_launch_steps', { ownerId }),
+  addLaunchStep: (ownerId: Id, targetId: Id, actionId: string, toolId: Maybe<Id> = null) =>
+    call('add_launch_step', { ownerId, targetId, actionId, toolId }),
+  removeLaunchStep: (stepId: Id) => call('remove_launch_step', { stepId }),
+  moveLaunchStep: (stepId: Id, previousId: Maybe<Id>, nextId: Maybe<Id>) =>
+    call('move_launch_step', { stepId, previousId, nextId }),
+  prepareLaunch: (profileId: Id, ownerId: Id, viaWorkspaceId: Maybe<Id>) =>
+    call('prepare_launch', { profileId, ownerId, viaWorkspaceId }),
+  runLaunch: (
+    profileId: Id,
+    ownerId: Id,
+    viaWorkspaceId: Maybe<Id>,
+    confirmation: Maybe<string> = null,
+  ) => call('run_launch', { profileId, ownerId, viaWorkspaceId, confirmation }),
+
+  setNodeCover: (nodeId: Id, sourcePath: Maybe<string>) =>
+    call('set_node_cover', { nodeId, sourcePath }),
+  assetPath: (assetId: Id) => call('asset_path', { assetId }),
+
+  listBackups: () => call('list_backups', none),
+  createBackup: (destination: Maybe<string> = null) => call('create_backup', { destination }),
+  restoreBackup: (path: string) => call('restore_backup', { path }),
+  revealBackups: () => call('reveal_backups', none),
 
   lockStatus: (profileId: Id) => call('lock_status', { profileId }),
   unlock: (profileId: Id, password: string) => call('unlock_profile', { profileId, password }),

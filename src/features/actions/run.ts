@@ -7,6 +7,7 @@ import { useSession } from '@/stores/session';
 import { toast, toastError } from '@/stores/toasts';
 import type { ActionOutcome } from '@/types/generated/ActionOutcome';
 import type { ActionPlan } from '@/types/generated/ActionPlan';
+import type { LaunchOutcome } from '@/types/generated/LaunchOutcome';
 import type { Node } from '@/types/generated/Node';
 import { copyText, type ActionId } from './registry';
 
@@ -88,8 +89,73 @@ export async function runAction(request: RunRequest): Promise<void> {
   }
 }
 
+/** Identificativo dell'Avvio, anche fra le azioni recenti. */
+export const LAUNCH = 'launch';
+
+/** Avvio (D7): i passi di un contenitore in sequenza, con la stessa conferma. */
+export async function runLaunch(request: {
+  owner: Pick<Node, 'id' | 'name'>;
+  workspaceId?: string | null;
+}): Promise<void> {
+  const { t } = i18n;
+  const args: ActionArgs = {
+    profileId: useSession.getState().activeProfileId ?? '',
+    nodeId: request.owner.id,
+    actionId: LAUNCH,
+    toolId: null,
+    viaWorkspaceId: request.workspaceId ?? null,
+  };
+  try {
+    const outcome = await api.runLaunch(args.profileId, args.nodeId, args.viaWorkspaceId);
+    announceLaunch(request.owner.name, outcome);
+  } catch (error) {
+    if (isBackendCode(error, LOCKED)) {
+      useLockDialogs.getState().openUnlock();
+    } else if (isConfirmationRequired(error)) {
+      try {
+        const plan = await api.prepareLaunch(args.profileId, args.nodeId, args.viaWorkspaceId);
+        useActionConfirm.getState().ask({ args, plan });
+      } catch (failure) {
+        toastError(t('launch.failed', { name: request.owner.name }), failure);
+      }
+    } else {
+      toastError(t('launch.failed', { name: request.owner.name }), error);
+    }
+  }
+}
+
+function announceLaunch(name: string, outcome: LaunchOutcome) {
+  const { t } = i18n;
+  void queryClient.invalidateQueries({ queryKey: ['recents'] });
+  const problems = outcome.failures
+    .map((failure) => `${failure.stepName}: ${failure.error}`)
+    .join(' · ');
+  if (outcome.opened === 0 && outcome.failures.length > 0) {
+    toastError(t('launch.failed', { name }), new Error(problems));
+    return;
+  }
+  toast({
+    title: t('launch.done', { name, count: outcome.steps - outcome.failures.length }),
+    description: problems
+      ? t('launch.partial', { count: outcome.failures.length, problems })
+      : undefined,
+    duration: problems ? 8000 : undefined,
+  });
+}
+
 /** Seconda meta' del giro: l'utente ha confermato nel dialogo. */
 export async function confirmAction(pending: PendingConfirmation, confirmation: string) {
+  if (pending.args.actionId === LAUNCH) {
+    const { args } = pending;
+    const outcome = await api.runLaunch(
+      args.profileId,
+      args.nodeId,
+      args.viaWorkspaceId,
+      confirmation,
+    );
+    announceLaunch(pending.plan.nodeName, outcome);
+    return;
+  }
   const outcome = await api.executeAction(pending.args, confirmation);
   announce(pending.args.actionId as ActionId, pending.plan.nodeName, outcome);
 }

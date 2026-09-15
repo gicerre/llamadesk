@@ -38,9 +38,11 @@ import type { PathInfo } from '@/types/generated/PathInfo';
 import { ResourceRow } from '../resources/ResourceRow';
 import { rowGrid, SectionTitle } from '../library/parts';
 import { useFileDropTarget } from '../resources/fileDrop';
+import { moveRowFocus, NAV_ATTRIBUTE } from '@/lib/focusNavigation';
 import { ResourceContextMenu, ResourceQuickActions } from '../actions/ActionMenu';
 import { primaryAction } from '../actions/registry';
 import { runAction } from '../actions/run';
+import { LAUNCH_OWNER_KINDS, LaunchOwnerContext } from '../launch/context';
 
 interface ScopeContentProps {
   view: NodeView;
@@ -150,66 +152,68 @@ export function ScopeContent({ view, workspaceId, exclude = [] }: ScopeContentPr
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragCancel={() => setDragging(null)}
-    >
-      <div className="flex flex-col gap-7">
-        {subprojects.length > 0 && (
-          <section>
-            <SectionTitle count={subprojects.length}>{t('scope.subprojects')}</SectionTitle>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-              {subprojects.map((entry) => (
-                <SubprojectCard
-                  key={entry.node.id}
-                  entry={entry}
-                  chain={breadcrumb}
-                  workspaceId={workspaceId}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+    <LaunchOwnerContext.Provider value={LAUNCH_OWNER_KINDS.has(node.kind) ? node : null}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => setDragging(null)}
+      >
+        <div className="flex flex-col gap-7">
+          {subprojects.length > 0 && (
+            <section>
+              <SectionTitle count={subprojects.length}>{t('scope.subprojects')}</SectionTitle>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+                {subprojects.map((entry) => (
+                  <SubprojectCard
+                    key={entry.node.id}
+                    entry={entry}
+                    chain={breadcrumb}
+                    workspaceId={workspaceId}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-        <div
-          {...drop.targetProps}
-          className={cn(
-            'rounded-lg transition-shadow duration-120',
-            drop.active && 'shadow-[0_0_0_2px_var(--ld-accent)]',
-          )}
-        >
-          <SortableList
-            parentId={node.id}
-            entries={resources}
-            chain={breadcrumb}
-            workspaceId={workspaceId}
-            pathInfos={pathInfos.data}
-          />
-          {resources.length === 0 && (
-            <AddStrip onAdd={() => openAdd({ parentId: node.id, workspaceId })} />
-          )}
+          <div
+            {...drop.targetProps}
+            className={cn(
+              'rounded-lg transition-shadow duration-120',
+              drop.active && 'shadow-[0_0_0_2px_var(--ld-accent)]',
+            )}
+          >
+            <SortableList
+              parentId={node.id}
+              entries={resources}
+              chain={breadcrumb}
+              workspaceId={workspaceId}
+              pathInfos={pathInfos.data}
+            />
+            {resources.length === 0 && (
+              <AddStrip onAdd={() => openAdd({ parentId: node.id, workspaceId })} />
+            )}
+          </div>
+
+          {sections.map((entry) => (
+            <SectionBlock
+              key={entry.node.id}
+              entry={entry}
+              chain={breadcrumb}
+              workspaceId={workspaceId}
+            />
+          ))}
         </div>
 
-        {sections.map((entry) => (
-          <SectionBlock
-            key={entry.node.id}
-            entry={entry}
-            chain={breadcrumb}
-            workspaceId={workspaceId}
-          />
-        ))}
-      </div>
-
-      {createPortal(
-        <DragOverlay dropAnimation={null}>
-          {dragging && <ResourceRow entry={dragging} className="shadow-3! w-[min(420px,40vw)]" />}
-        </DragOverlay>,
-        document.body,
-      )}
-    </DndContext>
+        {createPortal(
+          <DragOverlay dropAnimation={null}>
+            {dragging && <ResourceRow entry={dragging} className="shadow-3! w-[min(420px,40vw)]" />}
+          </DragOverlay>,
+          document.body,
+        )}
+      </DndContext>
+    </LaunchOwnerContext.Provider>
   );
 }
 
@@ -343,6 +347,12 @@ function SortableRow({
     } else if (event.altKey && event.key === 'ArrowDown' && nextId) {
       event.preventDefault();
       void move(node.id, parentId, parentId, nextId, afterNextId);
+    } else if (
+      !event.altKey &&
+      !event.ctrlKey &&
+      moveRowFocus(event.currentTarget as HTMLElement, event.key)
+    ) {
+      event.preventDefault();
     }
   };
 
@@ -355,6 +365,7 @@ function SortableRow({
           type="button"
           {...attributes}
           {...listeners}
+          {...{ [NAV_ATTRIBUTE]: '' }}
           onClick={activate}
           onKeyDown={keyboard}
           className="h-row bg-surface shadow-1 hover:shadow-2 flex w-full min-w-0 items-center gap-3 rounded-md px-2.5 text-left transition-shadow duration-120"
@@ -393,6 +404,7 @@ function SortableRow({
         className={cn(isDragging && 'opacity-40')}
         {...attributes}
         {...listeners}
+        {...{ [NAV_ATTRIBUTE]: '' }}
         onClick={activate}
         onKeyDown={keyboard}
         aria-label={`${node.name}, ${t(`kinds.one.${node.kind}`)}`}

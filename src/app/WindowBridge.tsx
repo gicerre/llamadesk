@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
 import { api, isTauri } from '@/lib/ipc';
@@ -17,6 +17,8 @@ import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
 const OPEN_SETTINGS_EVENT = 'llamadesk://open-settings';
 /** Scorciatoia globale: la finestra e' gia' davanti, si apre la palette. */
 const TOGGLE_PALETTE_EVENT = 'llamadesk://toggle-palette';
+/** Cattura rapida: l'indirizzo trovato negli appunti, o nulla. */
+const QUICK_CAPTURE_EVENT = 'llamadesk://quick-capture';
 
 /** Il bersaglio di un tasto e' un campo di testo? Allora le scorciatoie tacciono. */
 function isTyping(target: EventTarget | null) {
@@ -132,6 +134,30 @@ export function WindowBridge() {
     };
   }, [navigate, pathname, profileId, toggleSidebar, workspaces.data]);
 
+  // Cattura rapida (scorciatoia globale): l'indirizzo copiato finisce in
+  // "Aggiungi", nel contenitore aperto o nella Home del workspace corrente.
+  const quickCapture = useCallback(
+    async (url: string | null) => {
+      const route = parseNodeRoute(window.location.hash.replace(/^#/, ''));
+      const workspace =
+        route.workspaceId ??
+        useUi.getState().lastWorkspaceId ??
+        workspaces.data?.find((entry) => entry.isDefault)?.node.id ??
+        workspaces.data?.[0]?.node.id;
+      if (!workspace) {
+        toast({ title: i18n.t('capture.noWorkspace') });
+        return;
+      }
+      if (!url) toast({ title: i18n.t('capture.noUrl') });
+      useDialogs.getState().openAdd({
+        parentId: currentNodeId(route) ?? workspace,
+        workspaceId: route.workspaceId ?? workspace,
+        initialText: url ?? '',
+      });
+    },
+    [workspaces.data],
+  );
+
   // Tray.
   useEffect(() => {
     if (!isTauri()) return;
@@ -139,9 +165,10 @@ export function WindowBridge() {
       listen(OPEN_SETTINGS_EVENT, () => navigate(paths.settings)),
       // Dalla scorciatoia globale si vuole cercare: apre sempre, non chiude.
       listen(TOGGLE_PALETTE_EVENT, () => usePalette.getState().show()),
+      listen<string | null>(QUICK_CAPTURE_EVENT, (event) => void quickCapture(event.payload)),
     ];
     return () => pending.forEach((listener) => void listener.then((unlisten) => unlisten()));
-  }, [navigate]);
+  }, [navigate, quickCapture]);
 
   // Ultima pagina per workspace: cambiando workspace si riparte da li'.
   const workspaceId = workspaceFromPath(pathname);

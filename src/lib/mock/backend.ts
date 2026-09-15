@@ -277,6 +277,40 @@ function visibleChildren(profileId: string | null, id: string, includeArchived =
 
 const active = () => state.settings.activeProfileId;
 
+const mockBackups = [
+  {
+    path: String.raw`C:\Users\me\AppData\Roaming\com.llamadesk.app\backups\llamadesk-auto-20260915-081204.db`,
+    fileName: 'llamadesk-auto-20260915-081204.db',
+    modifiedAt: Date.now() / 1000 - 3600 * 9,
+    sizeBytes: 408_000,
+    automatic: true,
+  },
+];
+
+/* Avvio: passi per contenitore. */
+const launch: {
+  id: string;
+  ownerId: string;
+  targetId: string;
+  actionId: string;
+  toolId: string | null;
+  sortOrder: number;
+}[] = [];
+
+function launchSteps(ownerId: string) {
+  return launch
+    .filter((step) => step.ownerId === ownerId && alive(step.targetId))
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((step) => ({
+      id: step.id,
+      target: get(step.targetId),
+      actionId: step.actionId,
+      toolId: step.toolId,
+      toolName: state.tools.find((tool) => tool.id === step.toolId)?.name ?? null,
+      sortOrder: step.sortOrder,
+    }));
+}
+
 /** Conferma effettiva: la piu' vicina, a parita' di distanza la piu' severa. */
 function resolvedCaution(id: string) {
   const node = get(id);
@@ -649,6 +683,26 @@ function seed() {
       toolId: null,
       via: work.id,
       at: ago(18),
+    },
+  );
+
+  // Avvio del Backend: IDE sul repository, poi il gruppo DEV.
+  launch.push(
+    {
+      id: 'launch-1',
+      ownerId: backend.id,
+      targetId: repo.id,
+      actionId: 'open_with',
+      toolId: 'ide:intellij',
+      sortOrder: 1000,
+    },
+    {
+      id: 'launch-2',
+      ownerId: backend.id,
+      targetId: devGroup.id,
+      actionId: 'open',
+      toolId: null,
+      sortOrder: 2000,
     },
   );
 }
@@ -1137,6 +1191,131 @@ const handlers: Handlers = {
       .sort((a, b) => b.score - a.score || a.node.name.localeCompare(b.node.name))
       .slice(0, limit ?? 30);
   },
+
+  list_launch_steps: ({ ownerId }) => launchSteps(ownerId),
+  add_launch_step: ({ ownerId, targetId, actionId, toolId }) => {
+    const descendants = new Set<string>();
+    const walk = (id: string) =>
+      childrenOf(id).forEach((entry) => {
+        descendants.add(entry.node.id);
+        walk(entry.node.id);
+      });
+    walk(ownerId);
+    if (!descendants.has(targetId)) throw new Error("l'elemento non sta dentro il contenitore");
+    const id = newId();
+    const mine = launch.filter((step) => step.ownerId === ownerId);
+    launch.push({
+      id,
+      ownerId,
+      targetId,
+      actionId,
+      toolId,
+      sortOrder: Math.max(0, ...mine.map((step) => step.sortOrder)) + 1000,
+    });
+    return launchSteps(ownerId).find((step) => step.id === id) as ReturnType<
+      typeof launchSteps
+    >[number];
+  },
+  remove_launch_step: ({ stepId }) => {
+    const index = launch.findIndex((step) => step.id === stepId);
+    if (index >= 0) launch.splice(index, 1);
+    return null;
+  },
+  move_launch_step: ({ stepId, previousId, nextId }) => {
+    const step = launch.find((candidate) => candidate.id === stepId);
+    if (!step) throw new Error('passo non trovato');
+    const order = (id: string | null) => launch.find((other) => other.id === id)?.sortOrder;
+    const before = order(previousId);
+    const after = order(nextId);
+    step.sortOrder =
+      before !== undefined && after !== undefined
+        ? (before + after) / 2
+        : before !== undefined
+          ? before + 1000
+          : after !== undefined
+            ? after - 1000
+            : step.sortOrder;
+    return null;
+  },
+  prepare_launch: ({ profileId, ownerId, viaWorkspaceId }) => {
+    const plans = launchSteps(ownerId).map((step) =>
+      planAction({
+        profileId,
+        nodeId: step.target.id,
+        actionId: step.actionId,
+        toolId: step.toolId,
+        viaWorkspaceId,
+      }),
+    );
+    const levels = [resolvedCaution(ownerId).level, ...plans.map((plan) => plan.caution)];
+    return {
+      actionId: 'launch',
+      nodeName: get(ownerId).name,
+      caution: levels.reduce<Caution>(
+        (max, level) => (SEVERITY[level] > SEVERITY[max] ? level : max),
+        'none',
+      ),
+      count: plans.reduce((total, plan) => total + plan.count, 0),
+      tool: null,
+      browserProfile: null,
+    };
+  },
+  run_launch: ({ profileId, ownerId, viaWorkspaceId, confirmation }) => {
+    const steps = launchSteps(ownerId);
+    if (steps.length === 0) throw new Error('nessun passo di Avvio');
+    const plan = handlers.prepare_launch({ profileId, ownerId, viaWorkspaceId });
+    const confirmed =
+      plan.caution === 'none' ||
+      (plan.caution === 'confirm' && confirmation !== null) ||
+      (plan.caution === 'type_name' &&
+        confirmation?.trim().toLowerCase() === plan.nodeName.trim().toLowerCase());
+    if (!confirmed) throw new Error('confirmation_required');
+    const failures = [];
+    let opened = 0;
+    for (const step of steps) {
+      try {
+        opened += planAction({
+          profileId,
+          nodeId: step.target.id,
+          actionId: step.actionId,
+          toolId: step.toolId,
+          viaWorkspaceId,
+        }).count;
+      } catch (error) {
+        failures.push({ stepName: step.target.name, error: String((error as Error).message) });
+      }
+    }
+    state.usage.push({
+      profileId,
+      nodeId: ownerId,
+      actionId: 'launch',
+      toolId: null,
+      via: viaWorkspaceId,
+      at: new Date().toISOString(),
+    });
+    return { steps: steps.length, opened, failures };
+  },
+
+  set_node_cover: () => {
+    throw new Error("le cover richiedono l'app installata");
+  },
+  asset_path: () => '',
+  list_backups: () => mockBackups,
+  create_backup: () => {
+    const backup = {
+      path: String.raw`C:\Users\me\AppData\Roaming\com.llamadesk.app\backups\llamadesk-anteprima.db`,
+      fileName: 'llamadesk-anteprima.db',
+      modifiedAt: Date.now() / 1000,
+      sizeBytes: 412_000,
+      automatic: false,
+    };
+    mockBackups.unshift(backup);
+    return backup;
+  },
+  restore_backup: () => {
+    throw new Error("il ripristino richiede l'app installata");
+  },
+  reveal_backups: () => null,
 
   lock_status: ({ profileId }) => {
     const failures = lock.failures.get(profileId) ?? 0;

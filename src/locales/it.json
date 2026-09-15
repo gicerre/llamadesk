@@ -29,7 +29,8 @@
     "minimize": "Riduci a icona",
     "maximize": "Ingrandisci",
     "restore": "Ripristina",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "skipToContent": "Vai al contenuto"
   },
   "switcher": {
     "label": "Workspace: {{name}}. Cambia workspace",
@@ -45,7 +46,21 @@
     "newDescription": "Un profilo sceglie quali workspace vedere e ha preferiti, recenti e aspetto propri.",
     "placeholder": "Presentazione",
     "created": "Profilo «{{name}}» creato",
-    "switchFailed": "Il profilo non è stato cambiato"
+    "switchFailed": "Il profilo non è stato cambiato",
+    "title": "Profili",
+    "name": "Nome del profilo",
+    "nameActive": "Nome del profilo (attivo)",
+    "delete": "Elimina profilo",
+    "deleteTitle": "Eliminare il profilo «{{name}}»?",
+    "deleteWith_one": "Si eliminano anche i workspace che vede solo lui ({{names}}): {{count}} elemento in tutto.",
+    "deleteWith_other": "Si eliminano anche i workspace che vede solo lui ({{names}}): {{count}} elementi in tutto.",
+    "deleteNothing": "I suoi workspace restano: li vedono anche altri profili. Si perdono preferiti, recenti e aspetto del profilo.",
+    "deleteKept_one": "{{count}} workspace resta perché lo vede anche un altro profilo.",
+    "deleteKept_other": "{{count}} workspace restano perché li vedono anche altri profili.",
+    "deleted": "Profilo «{{name}}» eliminato",
+    "deleteFailed": "Il profilo non è stato eliminato",
+    "workspacesOf": "Workspace visibili in {{name}}",
+    "workspacesHint": "La libreria è una sola: un workspace nascosto resta intatto e visibile agli altri profili."
   },
   "kinds": {
     "one": {
@@ -147,7 +162,8 @@
       "terminal": "Terminale",
       "reveal": "Mostrato in Esplora risorse",
       "open_remote": "Repository remoto",
-      "withTool": "Aperto in {{tool}}"
+      "withTool": "Aperto in {{tool}}",
+      "launch": "Avvio"
     },
     "space": "Spazio"
   },
@@ -531,5 +547,88 @@
     "autoMinutes_one": "Dopo {{count}} minuto",
     "autoMinutes_other": "Dopo {{count}} minuti",
     "privacyNote": "È un blocco di riservatezza, non una cifratura: evita che i contenuti protetti compaiano o si aprano per sbaglio. Chi può leggere i file del tuo account può leggere anche il database."
+  },
+  "launch": {
+    "run": "Avvia",
+    "tip_one": "Esegue {{count}} passo in ordine",
+    "tip_other": "Esegue {{count}} passi in ordine",
+    "section": "Avvio",
+    "empty": "Nessun passo. Aggiungili dal menu di un elemento: tasto destro › Aggiungi all'Avvio.",
+    "hint": "Si eseguono in quest'ordine con «Avvia». Un passo che non riesce non ferma gli altri.",
+    "addTo": "Aggiungi all'Avvio di «{{name}}»",
+    "added": "Aggiunto all'Avvio di «{{name}}»",
+    "remove": "Togli {{name}} dall'Avvio",
+    "changeFailed": "L'Avvio non è stato modificato",
+    "failed": "L'Avvio di «{{name}}» non è riuscito",
+    "done_one": "Avvio di «{{name}}»: {{count}} passo eseguito",
+    "done_other": "Avvio di «{{name}}»: {{count}} passi eseguiti",
+    "partial_one": "{{count}} passo non riuscito: {{problems}}",
+    "partial_other": "{{count}} passi non riusciti: {{problems}}"
+  },
+  "shortcuts": {
+    "title": "Scorciatoie",
+    "palette": "Cerca da qualunque app",
+    "paletteHint": "Porta LlamaDesk in primo piano con la ricerca aperta.",
+    "capture": "Cattura rapida",
+    "captureHint": "Aggiunge l'indirizzo che hai copiato. Gli appunti si leggono solo quando la premi.",
+    "change": "Cambia",
+    "recording": "Premi la combinazione…",
+    "saved": "Scorciatoia impostata: {{keys}}",
+    "failed": "La scorciatoia non è stata registrata",
+    "notRegistered": "Non attiva: {{error}}",
+    "inApp": "Dentro LlamaDesk",
+    "list": {
+      "search": "Cerca o esegui un'azione",
+      "add": "Aggiungi qui",
+      "inspector": "Pannello di dettaglio",
+      "favorite": "Preferito",
+      "sidebar": "Barra laterale",
+      "lock": "Blocca o sblocca",
+      "workspace": "Vai al workspace",
+      "history": "Indietro e avanti",
+      "open": "Apri l'elemento selezionato",
+      "details": "Dettagli dell'elemento",
+      "reorder": "Sposta l'elemento",
+      "recheck": "Ricontrolla i percorsi"
+    }
+  },
+  "capture": {
+    "noUrl": "Negli appunti non c'è un indirizzo web: scrivilo o incollalo qui.",
+    "noWorkspace": "Crea prima un workspace in cui salvare."
+  },
+  "data": {
+    "title": "Dati e backup",
+    "hint": "Tutto sta in un solo file su questo computer. Ogni giorno all'avvio LlamaDesk ne salva una copia e tiene le ultime sette.",
+    "backupNow": "Crea un backup ora",
+    "saveCopy": "Salva una copia in…",
+    "restoreFile": "Ripristina da file…",
+    "openFolder": "Apri la cartella dei backup",
+    "openFailed": "La cartella non si è aperta",
+    "list": "Backup recenti",
+    "none": "Ancora nessun backup.",
+    "automatic": "Automatico",
+    "manual": "Manuale",
+    "restore": "Ripristina…",
+    "created": "Backup creato: {{name}}",
+    "createFailed": "Il backup non è riuscito",
+    "restoreTitle": "Ripristinare questo backup?",
+    "restoreDescription": "LlamaDesk si riavvia e riparte dai dati del backup. Il database attuale resta accanto come llamadesk.before-restore.db.",
+    "restoreConfirm": "Ripristina e riavvia",
+    "restoreFailed": "Il ripristino non è stato preparato"
+  },
+  "cover": {
+    "label": "Cover",
+    "choose": "Scegli un'immagine…",
+    "change": "Cambia immagine…",
+    "remove": "Togli",
+    "focusHint": "Fai clic sull'anteprima per scegliere il punto da tenere sempre visibile.",
+    "failed": "La cover non è stata cambiata",
+    "appOnly": "Le cover si scelgono nell'app installata."
+  },
+  "icons": {
+    "choose": "Scegli un'icona",
+    "change": "Cambia icona",
+    "search": "Cerca: banca, viaggi, codice…",
+    "none": "Nessuna icona per questa parola."
   }
 }

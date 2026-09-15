@@ -711,3 +711,50 @@ pub struct UnlockOutcome {
     pub unlocked: bool,
     pub retry_after_seconds: u32,
 }
+
+/* ==================================================================== avvio */
+
+/// Un passo dell'Avvio (D7): un'azione su un elemento dentro il contenitore.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LaunchStep {
+    pub id: String,
+    pub target: Node,
+    pub action_id: String,
+    pub tool_id: Option<String>,
+    pub tool_name: Option<String>,
+    pub sort_order: f64,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LaunchFailure {
+    pub step_name: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LaunchOutcome {
+    pub steps: u32,
+    pub opened: u32,
+    pub failures: Vec<LaunchFailure>,
+}
+
+/* ================================================================== backup */
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct BackupInfo {
+    pub path: String,
+    pub file_name: String,
+    /// Secondi dal 1970 (ora del file).
+    pub modified_at: f64,
+    pub size_bytes: f64,
+    /// Creato da LlamaDesk all'avvio, non dall'utente.
+    pub automatic: bool,
+}

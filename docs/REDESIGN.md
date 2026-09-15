@@ -265,11 +265,11 @@ niente rimbalzi): hover 120ms · menu 140 · schede 160 · pagina 180 · dialogh
 | 1 · Modello dati ✅ | schema 2, `ts-rs`, repository generico nodi/relazioni, regole, ordinamento, spostamento, condivisione, eliminazione con impatto, archivio, preferiti, uso, ereditarietà (protezione, conferma, strumenti) | `cargo test` copre condivisione, annidamento, cicli, ereditarietà, cancellazione di workspace con progetti condivisi |
 | 2 · Design system e shell ✅ | token, kit, barra del titolo (verifica Snap Layouts), sidebar, switcher, percorso con fratelli, avanti/indietro, toast, Mica, simbolo provvisorio | navigazione fra workspace/progetti vuoti in entrambi i temi a 100/125/150% |
 | 3 · Contenuti ✅ | Home, pagina progetto con ambiti e sezioni, vista a fuoco, righe risorsa, pannello di dettaglio, creazione unica con riconoscimento, drag & drop interno e da Esplora risorse, stati vuoti ed errori | esempio SpecialHub ricostruibile a mano |
-| 4 · Azioni e strumenti | registro, `execute_action`, rilevamento, preferenze ereditate, menu contestuali, azioni rapide, apertura gruppi con browser/profilo/finestra | IntelliJ/terminale da un repository; gruppo aperto in un profilo Chrome |
-| 5 · Command palette | fuzzy, oggetto + verbo, pannello azioni, suggerimenti, rilancio recenti, scorciatoia globale | "camunda term" in due tasti |
-| 6 · Protezione e conferma | password, sessione, auto-lock, stati bloccati, filtro nelle query, dialoghi di conferma ereditata | contenuti bloccati assenti da ricerca/recenti/preferiti e rifiutati da Rust |
-| 7 · Brand e apertura | simbolo definitivo, set icone, wordmark, apertura con transizione, passata motion | icona riconoscibile a 16px; apertura < 1s |
-| 8 · Personalizzazione e rifinitura | selettori icona/colore/cover, densità, impostazioni, Avvio, backup v2, cattura rapida, accessibilità e tastiera, finestre piccole e ultrawide | flussi completi da tastiera; checklist manuale spuntata |
+| 4 · Azioni e strumenti ✅ | registro, `execute_action`, rilevamento, preferenze ereditate, menu contestuali, azioni rapide, apertura gruppi con browser/profilo/finestra | IntelliJ/terminale da un repository; gruppo aperto in un profilo Chrome |
+| 5 · Command palette ✅ | fuzzy, oggetto + verbo, pannello azioni, suggerimenti, rilancio recenti, scorciatoia globale | "camunda term" in due tasti |
+| 6 · Protezione e conferma ✅ | password, sessione, auto-lock, stati bloccati, filtro nelle query, dialoghi di conferma ereditata | contenuti bloccati assenti da ricerca/recenti/preferiti e rifiutati da Rust |
+| 7 · Brand e apertura ✅ | simbolo definitivo, set icone, wordmark, apertura con transizione, passata motion | icona riconoscibile a 16px; apertura < 1s |
+| 8 · Personalizzazione e rifinitura ✅ | selettori icona/colore/cover, densità, impostazioni, Avvio, backup v2, cattura rapida, accessibilità e tastiera, finestre piccole e ultrawide | flussi completi da tastiera; checklist manuale spuntata |
 
 Vincoli non negoziabili invariati (vedi `HANDOFF.md` § 6): nessuna rete, nessuna
 telemetria, app che nasce vuota, dati in `%APPDATA%`, appunti solo su richiesta.
@@ -503,3 +503,50 @@ Scelte e limiti:
 
 Da verificare nell'app reale: fotogrammi intermedi dell'apertura (una scheda di browser in
 background sospende le animazioni), icona nella barra delle applicazioni e nella tray.
+
+### Fase 8 — personalizzazione e rifinitura (15 settembre 2026) ✅
+
+- **Avvio** (D7, `services/launch.rs`): passi su progetto, sottoprogetto o sezione, ognuno
+  un'azione del registro su un elemento contenuto; ordine frazionario; pianificazione con la
+  conferma più severa fra contenitore e passi; esecuzione in sequenza distanziata, un passo
+  guasto non ferma gli altri e compare nell'esito; blocco rispettato su ogni passo; uso
+  registrato come azione `launch` (Continua e Recenti la ripetono). Interfaccia: "Avvia" nelle
+  intestazioni, sezione **Avvio** nel pannello (ordine, rimozione), tasto destro › Aggiungi
+  all'Avvio.
+- **Cattura rapida**: la scorciatoia globale legge gli appunti (solo in quel momento) e apre
+  "Aggiungi" già compilato nel contenitore aperto o nella Home del workspace.
+- **Impostazioni** complete: **Profili** (nome, colore, workspace visibili con l'ultimo non
+  nascondibile, eliminazione con impatto), **Scorciatoie** (registrazione della combinazione,
+  stato ed errore leggibile, promemoria di quelle interne), **Protezione**, **Strumenti**,
+  **Dati e backup**.
+- **Backup v2** (`services/backup.rs`): copia coerente con `VACUUM INTO`; automatico uno per
+  giorno di calendario all'avvio, ultimi sette in `<dati>/backups`; manuale nella cartella o
+  dove si sceglie; ripristino verificato (integrità, schema ≥ 3 e non più recente, tabelle
+  LlamaDesk), messo da parte e applicato al riavvio prima di aprire il database, conservando
+  `llamadesk.before-restore.db`. Le immagini delle cover non sono nel backup (stanno in
+  `<dati>/covers`).
+- **Cover** (`services/assets.rs`): immagine copiata in `<dati>/covers/<sha256>.<ext>`, tipo
+  riconosciuto dai byte (PNG, JPEG, WebP, GIF, ≤ 15 MB), stessa immagine salvata una volta,
+  file orfani cancellati (anche all'avvio dopo lo svuotamento del cestino); punto focale con un
+  clic sull'anteprima; banner nell'intestazione di workspace e progetto, miniatura nelle schede.
+  Nuova dipendenza `sha2` (pura, nessuna rete); scope `asset:` limitato a `$APPDATA/covers`.
+- **Icone**: 104 icone Lucide con parole chiave italiane e inglesi, selettore con ricerca.
+- **Tastiera e accessibilità**: frecce fra righe e schede scegliendo la più vicina sullo
+  schermo (anche su due colonne), link "Vai al contenuto", pannello di dettaglio etichettato.
+- **Finestre piccole e grandi**: sotto i 900 px la sidebar si riduce da sola (senza cambiare la
+  scelta salvata); sotto i 1200 px il pannello di dettaglio si appoggia sopra la pagina.
+- **Checklist manuale** in `docs/CHECKLIST.md`, con ciò che è già stato verificato e dove.
+- **Verifiche**: 127 test Rust, 45 test frontend, clippy/lint/typecheck/prettier/SQL puliti. Nel
+  browser: Avvio con esito e Recenti, tutte le sezioni delle Impostazioni, selettore di icone
+  con ricerca, sezioni Cover e Avvio nel pannello.
+
+**Snap Layouts** (valutazione): con la barra del titolo personalizzata Windows 11 mostra il
+menu dei layout solo se la finestra risponde `HTMAXBUTTON` a `WM_NCHITTEST` sopra il pulsante
+Ingrandisci. Tauri 2 senza decorazioni non lo fa. Strade: un plugin di terze parti che
+sostituisce i controlli della finestra, oppure una sottoclasse della finestra in Rust (crate
+`windows`) che riceve dal frontend il rettangolo del pulsante. La seconda è preferibile (nessun
+controllo estraneo al design system) ma è codice Win32 da provare su più DPI: rinviata.
+`Win+Z` e il trascinamento ai bordi funzionano.
+
+Da verificare nell'app reale: tutto ciò che la checklist segna **[ ]**.
+

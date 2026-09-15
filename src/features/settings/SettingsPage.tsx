@@ -6,7 +6,10 @@ import { toastError } from '@/stores/toasts';
 import type { AppSettings } from '@/types/generated/AppSettings';
 import { PageFrame } from '../library/parts';
 import { Group, Row } from './parts';
+import { DataSettings } from './DataSettings';
+import { ProfilesSettings } from './ProfilesSettings';
 import { ProtectionSettings } from './ProtectionSettings';
+import { ShortcutsSettings } from './ShortcutsSettings';
 import { ToolsSettings } from './ToolsSettings';
 
 /**
@@ -19,7 +22,6 @@ export function SettingsPage() {
   const overrides = useSession((state) => state.overrides);
   const updateSetting = useSession((state) => state.updateSetting);
   const appVersion = useSession((state) => state.appVersion);
-  const dbPath = useSession((state) => state.dbPath);
   const windowMaterial = useSession((state) => state.windowMaterial);
 
   if (!settings) return null;
@@ -111,16 +113,20 @@ export function SettingsPage() {
         ))}
       </Group>
 
+      <ProfilesSettings />
+
+      <ShortcutsSettings />
+
       <ProtectionSettings />
 
       <ToolsSettings />
+
+      <DataSettings />
 
       <Group title={t('settings.about')}>
         <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 px-4 py-3 text-sm">
           <dt className="text-ink-3">{t('settings.version')}</dt>
           <dd className="selectable text-ink tabular-nums">{appVersion}</dd>
-          <dt className="text-ink-3">{t('settings.database')}</dt>
-          <dd className="selectable text-ink font-mono text-xs break-all">{dbPath}</dd>
           <dt className="text-ink-3">{t('settings.material')}</dt>
           <dd className="text-ink">
             {windowMaterial === 'mica' ? t('settings.materialMica') : t('settings.materialSolid')}

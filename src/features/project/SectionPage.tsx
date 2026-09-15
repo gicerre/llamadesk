@@ -7,6 +7,7 @@ import { useDialogs } from '@/stores/dialogs';
 import { NodeMenu } from '../library/NodeMenu';
 import { HeaderSkeleton, MissingNode, NodeHeader, PageFrame } from '../library/parts';
 import { LockedPanel } from '../protection/parts';
+import { LaunchButton } from '../launch/LaunchButton';
 import { ScopeContent } from './ScopeContent';
 
 /** Sezione a fuoco che sta direttamente in un workspace (fuori dai progetti). */
@@ -36,6 +37,7 @@ export function SectionPage() {
         actions={
           view.data.locked ? undefined : (
             <>
+              <LaunchButton owner={view.data.node} workspaceId={workspaceId} />
               <Button
                 variant="primary"
                 onClick={() => openAdd({ parentId: sectionId, workspaceId })}

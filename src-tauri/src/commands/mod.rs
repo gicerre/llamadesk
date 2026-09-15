@@ -6,6 +6,9 @@
 
 pub mod actions;
 pub mod app;
+pub mod assets;
+pub mod backup;
+pub mod launch;
 pub mod library;
 pub mod nodes;
 pub mod paths;

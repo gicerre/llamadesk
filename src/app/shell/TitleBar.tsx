@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Kbd } from '@/components/ui/Kbd';
 import { Tip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
+import { useNarrowWindow } from '@/lib/viewport';
 import { LockButton } from '@/features/protection/parts';
 import { usePalette } from '@/stores/palette';
 import { useUi } from '@/stores/ui';
@@ -23,7 +24,8 @@ import { useHistoryAvailability } from './useHistoryAvailability';
 export function TitleBar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const collapsed = useUi((state) => state.sidebarCollapsed);
+  const narrow = useNarrowWindow();
+  const collapsed = useUi((state) => state.sidebarCollapsed) || narrow;
   const toggleSidebar = useUi((state) => state.toggleSidebar);
   const history = useHistoryAvailability();
 

@@ -36,6 +36,7 @@ export const keys = {
   paths: (paths: readonly string[]) => ['paths', ...[...paths].sort()] as const,
   tags: () => ['tags'] as const,
   lock: (profileId: string) => ['lock', profileId] as const,
+  launch: (ownerId: string) => ['launch', ownerId] as const,
   tools: (includeHidden: boolean) => ['tools', includeHidden] as const,
   browserProfiles: (toolId: string) => ['browser-profiles', toolId] as const,
   toolPreferences: (profileId: string, nodeId: string | null, via: string | null) =>
@@ -243,4 +244,18 @@ export function useLockStatus() {
 /** Dopo uno sblocco o un blocco cambia cosa si vede ovunque: si rilegge tutto. */
 export function invalidateEverything(client = queryClient) {
   return client.invalidateQueries();
+}
+
+/* ----------------------------------------------------------------- avvio */
+
+export function useLaunchSteps(ownerId: string | null | undefined) {
+  return useQuery({
+    queryKey: keys.launch(ownerId ?? ''),
+    queryFn: () => api.launchSteps(ownerId as string),
+    enabled: !!ownerId,
+  });
+}
+
+export function invalidateLaunch(client = queryClient) {
+  return client.invalidateQueries({ queryKey: ['launch'] });
 }

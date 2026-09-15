@@ -5,10 +5,11 @@
 > modello, UX e piano. Lo stato descritto qui sotto è la versione 1, congelata
 > nel commit `6f2a01d` con tag `legacy-v1`. Il lavoro nuovo avviene sul branch
 > `redesign`. **Fasi 1 (modello dati), 2 (design system e shell), 3
-> (contenuti), 4 (azioni e strumenti), 5 (command palette), 6 (protezione) e 7
-> (brand e apertura) completate**: vedi `docs/REDESIGN.md` § 13. `npm run dev` apre la nuova interfaccia;
+> (contenuti), 4 (azioni e strumenti), 5 (command palette), 6 (protezione), 7
+> (brand e apertura) e 8 (personalizzazione e rifinitura) completate**: il piano di
+> riprogettazione è chiuso: vedi `docs/REDESIGN.md` § 13. `npm run dev` apre la nuova interfaccia;
 > `npm run dev:vite` la mostra nel browser con dati d'esempio (password di blocco
-> dell'anteprima: `llama`). Prossimo passo: **Fase 8 — personalizzazione e rifinitura**.
+> dell'anteprima: `llama`). Prossimo passo: la checklist manuale `docs/CHECKLIST.md` nell'app installata, poi Snap Layouts.
 
 > Documento di ripresa lavori. Aggiornato all'**11 settembre 2026**, fine
 > sessione: Fase 4 quasi completa (vedi § 7).

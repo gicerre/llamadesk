@@ -29,7 +29,8 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
-    "close": "Close"
+    "close": "Close",
+    "skipToContent": "Skip to content"
   },
   "switcher": {
     "label": "Workspace: {{name}}. Switch workspace",
@@ -45,7 +46,21 @@
     "newDescription": "A profile chooses which workspaces to show and keeps its own favorites, recents and appearance.",
     "placeholder": "Presentation",
     "created": "Profile “{{name}}” created",
-    "switchFailed": "The profile was not switched"
+    "switchFailed": "The profile was not switched",
+    "title": "Profiles",
+    "name": "Profile name",
+    "nameActive": "Profile name (active)",
+    "delete": "Delete profile",
+    "deleteTitle": "Delete profile “{{name}}”?",
+    "deleteWith_one": "Workspaces only this profile sees are deleted too ({{names}}): {{count}} item in total.",
+    "deleteWith_other": "Workspaces only this profile sees are deleted too ({{names}}): {{count}} items in total.",
+    "deleteNothing": "Its workspaces stay: other profiles see them too. Its favorites, recents and appearance are lost.",
+    "deleteKept_one": "{{count}} workspace stays because another profile sees it.",
+    "deleteKept_other": "{{count}} workspaces stay because other profiles see them.",
+    "deleted": "Profile “{{name}}” deleted",
+    "deleteFailed": "The profile was not deleted",
+    "workspacesOf": "Workspaces visible in {{name}}",
+    "workspacesHint": "There is one library: a hidden workspace stays intact and visible to other profiles."
   },
   "kinds": {
     "one": {
@@ -147,7 +162,8 @@
       "terminal": "Terminal",
       "reveal": "Shown in File Explorer",
       "open_remote": "Remote repository",
-      "withTool": "Opened in {{tool}}"
+      "withTool": "Opened in {{tool}}",
+      "launch": "Launch"
     },
     "space": "Space"
   },
@@ -531,5 +547,88 @@
     "autoMinutes_one": "After {{count}} minute",
     "autoMinutes_other": "After {{count}} minutes",
     "privacyNote": "This is a privacy lock, not encryption: it keeps protected content from showing or opening by mistake. Anyone who can read your account's files can read the database too."
+  },
+  "launch": {
+    "run": "Launch",
+    "tip_one": "Runs {{count}} step in order",
+    "tip_other": "Runs {{count}} steps in order",
+    "section": "Launch",
+    "empty": "No steps yet. Add them from an item's menu: right-click › Add to launch.",
+    "hint": "They run in this order with “Launch”. A step that fails doesn't stop the others.",
+    "addTo": "Add to “{{name}}” launch",
+    "added": "Added to “{{name}}” launch",
+    "remove": "Remove {{name}} from the launch",
+    "changeFailed": "The launch was not changed",
+    "failed": "Launching “{{name}}” did not work",
+    "done_one": "“{{name}}” launch: {{count}} step run",
+    "done_other": "“{{name}}” launch: {{count}} steps run",
+    "partial_one": "{{count}} step failed: {{problems}}",
+    "partial_other": "{{count}} steps failed: {{problems}}"
+  },
+  "shortcuts": {
+    "title": "Shortcuts",
+    "palette": "Search from any app",
+    "paletteHint": "Brings LlamaDesk to the front with search open.",
+    "capture": "Quick capture",
+    "captureHint": "Adds the address you copied. The clipboard is read only when you press it.",
+    "change": "Change",
+    "recording": "Press the combination…",
+    "saved": "Shortcut set: {{keys}}",
+    "failed": "The shortcut was not registered",
+    "notRegistered": "Not active: {{error}}",
+    "inApp": "Inside LlamaDesk",
+    "list": {
+      "search": "Search or run an action",
+      "add": "Add here",
+      "inspector": "Details panel",
+      "favorite": "Favorite",
+      "sidebar": "Sidebar",
+      "lock": "Lock or unlock",
+      "workspace": "Go to workspace",
+      "history": "Back and forward",
+      "open": "Open the selected item",
+      "details": "Item details",
+      "reorder": "Move the item",
+      "recheck": "Recheck paths"
+    }
+  },
+  "capture": {
+    "noUrl": "There's no web address on the clipboard: type or paste it here.",
+    "noWorkspace": "Create a workspace to save into first."
+  },
+  "data": {
+    "title": "Data and backups",
+    "hint": "Everything lives in one file on this computer. Every day at startup LlamaDesk saves a copy and keeps the last seven.",
+    "backupNow": "Create a backup now",
+    "saveCopy": "Save a copy to…",
+    "restoreFile": "Restore from file…",
+    "openFolder": "Open backups folder",
+    "openFailed": "The folder did not open",
+    "list": "Recent backups",
+    "none": "No backups yet.",
+    "automatic": "Automatic",
+    "manual": "Manual",
+    "restore": "Restore…",
+    "created": "Backup created: {{name}}",
+    "createFailed": "The backup did not complete",
+    "restoreTitle": "Restore this backup?",
+    "restoreDescription": "LlamaDesk restarts with the data from the backup. The current database stays next to it as llamadesk.before-restore.db.",
+    "restoreConfirm": "Restore and restart",
+    "restoreFailed": "The restore was not prepared"
+  },
+  "cover": {
+    "label": "Cover",
+    "choose": "Choose an image…",
+    "change": "Change image…",
+    "remove": "Remove",
+    "focusHint": "Click the preview to pick the point that always stays visible.",
+    "failed": "The cover was not changed",
+    "appOnly": "Covers are chosen in the installed app."
+  },
+  "icons": {
+    "choose": "Choose an icon",
+    "change": "Change icon",
+    "search": "Search: bank, travel, code…",
+    "none": "No icon for this word."
   }
 }
