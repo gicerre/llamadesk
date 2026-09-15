@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BrandMark } from '@/components/brand/BrandMark';
 import { ErrorPanel } from '@/components/ui/feedback';
+import { api, isTauri } from '@/lib/ipc';
 import { useSession } from '@/stores/session';
 import { applyAppearance } from './appearance';
+import { Opener } from './Opener';
 
 /**
- * Primo fotogramma: il simbolo sul fondo del tema, finche' il backend non
- * risponde (millisecondi). Nessuno spinner. L'animazione di apertura vera
- * arriva con la fase 7 e si innestera' qui.
+ * Primo fotogramma: il fondo del tema, finche' il backend non risponde
+ * (millisecondi). Appena dipinto, la finestra puo' comparire: niente lampi.
+ * Poi la shell, con sopra l'animazione di apertura se e' il caso.
  */
 export function BootstrapGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
@@ -20,14 +21,21 @@ export function BootstrapGate({ children }: { children: React.ReactNode }) {
     // Tema di sistema subito, prima ancora di conoscere le impostazioni.
     applyAppearance({ theme: 'system', density: 'comfortable', material: 'solid' });
     void bootstrap();
+    // Due fotogrammi: il primo applica gli stili, il secondo e' dipinto.
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        if (isTauri()) void api.windowReady().catch(() => undefined);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
   }, [bootstrap]);
 
   if (status === 'loading') {
-    return (
-      <div className="bg-canvas flex h-full items-center justify-center">
-        <BrandMark size={56} />
-      </div>
-    );
+    return <div className="bg-canvas h-full" />;
   }
 
   if (status === 'error') {
@@ -45,5 +53,10 @@ export function BootstrapGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return children;
+  return (
+    <>
+      {children}
+      <Opener />
+    </>
+  );
 }

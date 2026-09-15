@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '@/lib/ipc';
 import { resolveLanguage, setLanguage } from '@/lib/i18n';
+import { useOpener } from './opener';
 import type { AppSettings } from '@/types/generated/AppSettings';
 import type { Profile } from '@/types/generated/Profile';
 import type { ProfileSession } from '@/types/generated/ProfileSession';
@@ -69,6 +70,14 @@ export const useSession = create<SessionState>((set, get) => ({
         : payload.settings.language;
       await setLanguage(language);
       const scopedKeys = await api.profileScopedKeys().catch(() => []);
+
+      // L'apertura si decide una volta, prima del primo fotogramma della shell.
+      const opener = useOpener.getState();
+      if (opener.phase === 'pending') {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const play = payload.settings.openerAnimation && !payload.startedHidden && !reduced;
+        opener.setPhase(play ? 'build' : 'done');
+      }
 
       set({
         status: 'ready',

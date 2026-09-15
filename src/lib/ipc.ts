@@ -42,6 +42,7 @@ type Maybe<T> = T | null;
 export interface Commands {
   bootstrap: { args: Record<string, never>; result: BootstrapPayload };
   complete_onboarding: { args: Record<string, never>; result: null };
+  window_ready: { args: Record<string, never>; result: null };
   set_setting: { args: { key: string; value: string }; result: AppSettings };
   set_profile_setting: {
     args: { profileId: Id; key: string; value: Maybe<string> };
@@ -227,6 +228,7 @@ const none = {} as Record<string, never>;
 export const api = {
   bootstrap: () => call('bootstrap', none),
   completeOnboarding: () => call('complete_onboarding', none),
+  windowReady: () => call('window_ready', none),
   setSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
     call('set_setting', { key, value: JSON.stringify(value) }),
   setProfileSetting: <K extends keyof AppSettings>(

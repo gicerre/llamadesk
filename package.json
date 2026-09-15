@@ -19,7 +19,7 @@
     "test": "vitest run && node scripts/check-sql.mjs",
     "test:watch": "vitest",
     "tauri": "tauri",
-    "icons": "node scripts/generate-icon.mjs && tauri icon src-tauri/icons/source.png",
+    "icons": "node scripts/brand.mjs && tauri icon src-tauri/icons/source.png && node scripts/brand.mjs --ico",
     "check:sql": "node scripts/check-sql.mjs"
   },
   "dependencies": {

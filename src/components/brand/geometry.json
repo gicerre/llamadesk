@@ -1,0 +1,107 @@
+{
+  "$comment": "Simbolo 'Collo a L' (D10) su griglia 512. Unica fonte per React, icone e SVG in docs/brand. Ogni forma e' un rettangolo con raggi per angolo [alto-sx, alto-dx, basso-dx, basso-sx]: dove due forme si toccano l'angolo e' vivo, cosi' il contorno resta continuo. 'part' serve all'animazione di apertura, 'tone' al colore.",
+  "viewBox": 512,
+  "brand": {
+    "light": "#1D7384",
+    "dark": "#5BB6C6",
+    "onTile": "#4FB3C4"
+  },
+  "ink": {
+    "light": "#14191B",
+    "dark": "#E6EBEA",
+    "onTile": "#EEF2F1"
+  },
+  "tile": {
+    "top": "#262D31",
+    "bottom": "#1B2023",
+    "radiusRatio": 0.225,
+    "symbolScale": 0.8,
+    "smallSymbolScale": 0.94
+  },
+  "regular": [
+    {
+      "part": "neck",
+      "tone": "ink",
+      "x": 139,
+      "y": 148,
+      "w": 86,
+      "h": 206,
+      "r": [0, 0, 0, 0]
+    },
+    {
+      "part": "head",
+      "tone": "ink",
+      "x": 139,
+      "y": 148,
+      "w": 190,
+      "h": 84,
+      "r": [0, 42, 42, 0]
+    },
+    {
+      "part": "ear",
+      "tone": "ink",
+      "x": 139,
+      "y": 70,
+      "w": 36,
+      "h": 100,
+      "r": [18, 18, 0, 0]
+    },
+    {
+      "part": "ear",
+      "tone": "ink",
+      "x": 193,
+      "y": 88,
+      "w": 36,
+      "h": 82,
+      "r": [18, 18, 0, 0]
+    },
+    {
+      "part": "desk",
+      "tone": "brand",
+      "x": 139,
+      "y": 354,
+      "w": 238,
+      "h": 84,
+      "r": [0, 30, 30, 30]
+    }
+  ],
+  "small": [
+    {
+      "part": "neck",
+      "tone": "ink",
+      "x": 132,
+      "y": 149,
+      "w": 104,
+      "h": 192,
+      "r": [0, 0, 0, 0]
+    },
+    {
+      "part": "head",
+      "tone": "ink",
+      "x": 132,
+      "y": 149,
+      "w": 206,
+      "h": 100,
+      "r": [0, 50, 50, 0]
+    },
+    {
+      "part": "ears",
+      "tone": "ink",
+      "x": 132,
+      "y": 73,
+      "w": 104,
+      "h": 100,
+      "r": [26, 26, 0, 0],
+      "notch": 30
+    },
+    {
+      "part": "desk",
+      "tone": "brand",
+      "x": 132,
+      "y": 341,
+      "w": 252,
+      "h": 94,
+      "r": [0, 32, 32, 32]
+    }
+  ]
+}

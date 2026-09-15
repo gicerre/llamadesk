@@ -470,7 +470,8 @@
       "densityCompact": "Compact density",
       "densityComfortable": "Comfortable density",
       "refreshTools": "Search for tools again",
-      "recheckPaths": "Recheck paths"
+      "recheckPaths": "Recheck paths",
+      "replayOpener": "Replay the opening animation"
     }
   },
   "lock": {

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useWorkspaces } from '@/lib/queries';
 import { workspaceFromPath } from '@/lib/routes';
+import { useOpener } from '@/stores/opener';
 import { useSession } from '@/stores/session';
 import { useUi } from '@/stores/ui';
 import { applyAppearance, setAccent } from './appearance';
@@ -31,7 +32,9 @@ export function ThemeController() {
   const color =
     workspaces.data?.find((entry) => entry.node.id === workspaceId)?.node.colorMain ?? null;
 
-  useEffect(() => setAccent(color), [color]);
+  // Durante l'apertura l'accento resta Titicaca; poi sfuma in quello del workspace.
+  const building = useOpener((state) => state.phase === 'build' || state.phase === 'pending');
+  useEffect(() => setAccent(building ? null : color), [building, color]);
 
   return null;
 }

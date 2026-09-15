@@ -26,6 +26,10 @@ pub struct AppState {
     pub shortcuts: Mutex<shortcuts::Registry>,
     /// Chi e' sbloccato. Solo in memoria: un riavvio blocca tutto.
     pub lock: Mutex<services::protection::LockBook>,
+    /// Avvio nella tray: la finestra non si mostra da sola.
+    pub started_hidden: bool,
+    /// La finestra e' gia' stata mostrata una volta (dal frontend o dal ripiego).
+    pub revealed: std::sync::atomic::AtomicBool,
     /// Materiale della finestra (`mica` | `solid`), deciso all'avvio.
     pub window_material: &'static str,
 }
@@ -79,6 +83,9 @@ pub fn run() {
                 db_path,
                 shortcuts: Mutex::new(shortcuts::Registry::default()),
                 lock: Mutex::new(services::protection::LockBook::default()),
+                started_hidden: settings.start_minimized
+                    || std::env::args().any(|arg| arg == "--minimized"),
+                revealed: std::sync::atomic::AtomicBool::new(false),
                 window_material,
             });
 
@@ -106,16 +113,19 @@ pub fn run() {
             // 4. System tray.
             tray::build(&handle, &settings.language)?;
 
-            // 5. Finestra: creata nascosta in tauri.conf.json per evitare il
-            //    flash bianco: la mostriamo qui, se non si parte in tray.
-            if let Some(window) = app.get_webview_window("main") {
-                let should_hide =
-                    settings.start_minimized || std::env::args().any(|arg| arg == "--minimized");
-
-                if !should_hide {
-                    let _ = window.show();
+            // 5. Finestra: creata nascosta in tauri.conf.json. La mostra il
+            //    frontend quando ha dipinto il primo fotogramma (`window_ready`),
+            //    cosi' non si vede mai una finestra vuota. Ripiego: se il
+            //    frontend non risponde entro 3 secondi la si mostra comunque.
+            let fallback = handle.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(3));
+                if let Some(state) = fallback.try_state::<AppState>() {
+                    window::reveal_once(&fallback, &state);
                 }
+            });
 
+            if let Some(window) = app.get_webview_window("main") {
                 // La X non chiude l'app: la ripone nella tray (configurabile).
                 let close_handle = handle.clone();
                 window.clone().on_window_event(move |event| {
@@ -154,6 +164,7 @@ pub fn run() {
             // avvio, impostazioni, profili, scorciatoie
             commands::app::bootstrap,
             commands::app::complete_onboarding,
+            commands::app::window_ready,
             commands::app::get_settings,
             commands::app::set_setting,
             commands::app::set_profile_setting,

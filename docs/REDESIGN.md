@@ -478,3 +478,28 @@ Scelte e limiti:
   separati. Il blocco è di riservatezza (D2), come dice l'interfaccia.
 - Rinviato: blocco quando si blocca la sessione di Windows (richiede le notifiche WTS della
   finestra nativa). Non verificato nell'app Tauri reale: blocco alla chiusura nella tray.
+
+### Fase 7 — brand e apertura (15 settembre 2026) ✅
+
+- **Simbolo definitivo** "Collo a L" in `src/components/brand/geometry.json`: rettangoli con
+  raggi per angolo (dove due forme si toccano l'angolo è vivo, così collo, testa, orecchie e
+  scrivania formano un contorno continuo), centratura ottica, versione piccola fino a 32 px con le
+  orecchie unite da una tacca. Componenti `BrandMark` (tema, monocromatico, tessera),
+  `Wordmark`, `Logo`.
+- **Icone**: `scripts/brand.mjs` rasterizza la stessa geometria (nessuna dipendenza) in
+  `source.png`, poi `tauri icon`, poi un `icon.ico` proprio con la versione piccola a 16–32 px e
+  la normale a 40–256; simbolo all'80% della tessera (94% nelle piccole) dopo la prova a
+  16/24/32/48/64/128 px. Rimossi il vecchio generatore (glifo a nodi viola) e `squircle.mjs`.
+- **Logo system** in `docs/brand/` (icona, simbolo chiaro/scuro/piccolo/monocromatico, logo
+  chiaro/scuro) e guida in `docs/BRAND.md`.
+- **Nessun lampo**: la finestra resta nascosta finché il frontend non ha dipinto il primo
+  fotogramma (`window_ready`); ripiego a 3 s; niente se si parte nella tray.
+- **Apertura** (`src/app/Opener.tsx`): scrivania, collo, testa, orecchie, nome, poi volo del
+  simbolo sul segnaposto della barra del titolo mentre il fondo dissolve e l'accento passa da
+  Titicaca al workspace. Solo a freddo, con l'impostazione attiva, senza "riduci movimento";
+  la shell si carica sotto. Comando palette "Rivedi l'animazione di apertura".
+- **Verifiche**: 116 test Rust, 40 test frontend, lint/typecheck/prettier/clippy puliti; anteprima
+  delle icone a sei dimensioni su fondo chiaro e scuro; nel browser inizio e fine dell'apertura.
+
+Da verificare nell'app reale: fotogrammi intermedi dell'apertura (una scheda di browser in
+background sospende le animazioni), icona nella barra delle applicazioni e nella tray.

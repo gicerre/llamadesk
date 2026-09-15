@@ -270,6 +270,8 @@ pub struct BootstrapPayload {
     /// `mica` (Windows 11) oppure `solid`: con `solid` l'interfaccia dipinge
     /// tinte opache anche dove altrimenti lascerebbe vedere il materiale.
     pub window_material: String,
+    /// Avvio nella tray (`--minimized` o impostazione): niente animazione di apertura.
+    pub started_hidden: bool,
 }
 
 /* ==================================================================== nodi */

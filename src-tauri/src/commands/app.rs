@@ -59,7 +59,15 @@ pub fn bootstrap(app: AppHandle, state: State<'_, AppState>) -> Result<Bootstrap
         settings,
         profile_overrides: overrides,
         window_material: state.window_material.to_string(),
+        started_hidden: state.started_hidden,
     })
+}
+
+/// Il frontend ha dipinto il primo fotogramma: ora la finestra puo' comparire
+/// senza lampi. Se si e' partiti nella tray resta nascosta.
+#[tauri::command]
+pub fn window_ready(app: AppHandle, state: State<'_, AppState>) {
+    crate::window::reveal_once(&app, &state);
 }
 
 #[tauri::command]

@@ -672,7 +672,9 @@ const handlers: Handlers = {
       ...(state.overrides.get(state.settings.activeProfileId ?? '')?.keys() ?? []),
     ],
     windowMaterial: 'solid',
+    startedHidden: false,
   }),
+  window_ready: () => null,
   complete_onboarding: () => {
     state.firstRun = false;
     return null;

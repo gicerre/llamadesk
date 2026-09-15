@@ -15,4 +15,8 @@ settings: AppSettings, profileOverrides: Array<string>,
  * `mica` (Windows 11) oppure `solid`: con `solid` l'interfaccia dipinge
  * tinte opache anche dove altrimenti lascerebbe vedere il materiale.
  */
-windowMaterial: string, };
+windowMaterial: string, 
+/**
+ * Avvio nella tray (`--minimized` o impostazione): niente animazione di apertura.
+ */
+startedHidden: boolean, };

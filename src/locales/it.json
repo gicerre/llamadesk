@@ -470,7 +470,8 @@
       "densityCompact": "Densità compatta",
       "densityComfortable": "Densità normale",
       "refreshTools": "Cerca di nuovo gli strumenti",
-      "recheckPaths": "Ricontrolla i percorsi"
+      "recheckPaths": "Ricontrolla i percorsi",
+      "replayOpener": "Rivedi l'animazione di apertura"
     }
   },
   "lock": {

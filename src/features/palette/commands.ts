@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   Star,
   Sun,
+  Sparkles,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import { invalidateTools, queryClient } from '@/lib/queries';
 import { paths } from '@/lib/routes';
 import { useDialogs } from '@/stores/dialogs';
 import { useInspector } from '@/stores/inspector';
+import { useOpener } from '@/stores/opener';
 import { useSession } from '@/stores/session';
 import { toast, toastError } from '@/stores/toasts';
 import { useUi } from '@/stores/ui';
@@ -191,6 +193,13 @@ export function buildCommands(t: TFunction, context: PaletteContext): CommandDef
       icon: RefreshCw,
       shortcut: 'F5',
       run: () => void queryClient.invalidateQueries({ queryKey: ['paths'] }),
+    },
+    {
+      id: 'replay-opener',
+      label: t('palette.commands.replayOpener'),
+      keywords: 'apertura animazione opener animation logo avvio',
+      icon: Sparkles,
+      run: () => window.setTimeout(() => useOpener.getState().replay(), 150),
     },
     {
       id: 'new-profile',

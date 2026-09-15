@@ -34,7 +34,11 @@ export function TitleBar() {
         className="flex h-full shrink-0 items-center gap-2 pr-2 pl-3.5 transition-[width] duration-200 ease-out"
         style={{ width: collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded }}
       >
-        {!collapsed && <BrandMark size={18} className="pointer-events-none" />}
+        {!collapsed && (
+          <span data-brand-anchor className="pointer-events-none flex">
+            <BrandMark size={18} decorative />
+          </span>
+        )}
         <Tip
           label={collapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')}
           shortcut="Ctrl+B"
