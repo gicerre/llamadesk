@@ -1,0 +1,62 @@
+name: Bug report
+description: Something does not work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Please do not paste anything private: names of clients,
+        internal URLs or paths can be replaced with `example.com` and `C:\dev\project`.
+        For anything security-related, use a [security advisory](../../security/advisories/new)
+        instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: LlamaDesk version
+      description: Settings → About, or the installer file name.
+      placeholder: 0.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Press Win+R, type `winver`.
+      placeholder: Windows 11 24H2 (build 26100)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+      placeholder: |
+        1. Right-click on a repository → Open in IntelliJ IDEA
+        2. Expected: the project opens
+        3. Got: the toast says "IntelliJ IDEA is no longer installed"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Library (workspaces, projects, sections, resources)
+        - Opening things (actions, tools, browsers, Launch)
+        - Search and command palette
+        - Protection and lock
+        - Settings, profiles, backups
+        - Window, theme, animation, startup
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshot, the exact error text, whether it happens every time.

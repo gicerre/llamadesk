@@ -97,3 +97,47 @@ foreign keys then remove edges, favorites, usage and tags of the purged nodes.
 - **Search has no FTS5 index**, as before: hundreds of nodes, not millions.
 - **SQL literals are validated** by `scripts/check-sql.mjs` against the real schema, without a
   Rust toolchain.
+
+## 6. Tools, preferences and launch steps
+
+**`tools`** holds what can open something: detected programs (stable ids like `ide:vscode`, so
+preferences survive a reinstall) and ones added by hand, each with `exe_path` and an
+`args_template` (a JSON array with `{path}`, `{path_ps}` or `{urls}`). `detected_at` is set to
+NULL when a program disappears instead of deleting the row.
+
+**`tool_preferences`** is "which tool for which kind", either for a profile or for a node
+(`CHECK ((profile_id IS NULL) <> (node_id IS NULL))`, with two partial unique indexes). A node
+inherits from its ancestors along the workspace it is being looked at from, then from the
+profile, then falls back to the first available tool.
+
+**`launch_steps`** is the Launch sequence of a container: `owner_id`, `target_id`, `action_id`,
+optional `tool_id`, `sort_order` (same fractional ordering as everything else). The target must
+be inside the owner; duplicating a subtree remaps the steps to the copies.
+
+## 7. Usage, favorites and search
+
+**`usage_events`** records one row per successful action (`node_id`, `action_id`, `tool_id`,
+`via_workspace_id`) and is pruned after 90 days. It powers Continue, Recents and the ranking in
+the palette; it is per profile and never leaves the machine. **`favorites`** is per profile too,
+and can point at a specific action and tool.
+
+Search does not use FTS: it reads the visible nodes with their tags and usage and scores them in
+Rust. One less index to keep in sync, and the ranking can use things FTS cannot (inheritance,
+the workspace you are in, how recently you opened something).
+
+## 8. Protection and assets
+
+`profiles.lock_hash` holds the Argon2id hash (never leaves Rust) and `lock_auto_minutes` the idle
+timeout; `nodes.is_protected` is the flag that cascades. There is no "unlocked" column anywhere:
+that state is in memory.
+
+**`assets`** rows are cover images, deduplicated by `sha256`; the file lives in `<data>/covers`
+and is deleted when no node or profile references it. Only workspaces and projects may have one
+(`CHECK`), and `cover_focus_x/y` say which point stays visible when the banner is cropped.
+
+## 9. Backups
+
+A backup is the database file itself, copied with `VACUUM INTO` — no export format to keep in
+sync with the schema. Restores are validated (integrity, `user_version` between 3 and the current
+target, expected tables) before they replace anything. Cover images are not part of a backup:
+they sit next to the database in `<data>/covers`.

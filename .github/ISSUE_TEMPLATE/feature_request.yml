@@ -1,0 +1,40 @@
+name: Idea or feature request
+description: Something LlamaDesk should do, or do differently
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing, please check the constraints in
+        [CONTRIBUTING.md](../../blob/main/CONTRIBUTING.md): no network calls, no telemetry, no
+        accounts, no hardcoded data. Ideas that need any of those cannot be accepted, however
+        useful they are.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+      placeholder: Every morning I open the same four links plus a terminal, one by one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: A sketch is enough. If you have a workaround today, say what it is.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often would you use it
+      options:
+        - Several times a day
+        - Every day
+        - Every week
+        - Now and then
+    validations:
+      required: true

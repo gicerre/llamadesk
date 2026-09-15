@@ -58,11 +58,13 @@ src/
   app/          App, router, BootstrapGate, ThemeController (+ appearance.ts), WindowBridge
     shell/      AppShell, TitleBar, PathBar, WindowControls, location context
     sidebar/    Sidebar, WorkspaceSwitcher, ProjectNav, ProfileMenu
-  features/     one folder per area: workspace, project, library, create, settings, welcome
-  components/   ui/ (presentation only, Radix primitives), NodeIcon, brand/BrandMark
+  features/     one folder per area: workspace, project, library, create, actions, launch,
+                palette, protection, inspector, resources, settings, welcome
+  components/   ui/ (presentation only, Radix primitives), NodeIcon, Cover, brand/
   lib/          ipc (typed commands), queries (TanStack Query), routes, identity, motion, icons,
-                i18n, mock/backend (browser preview only, loaded lazily)
-  stores/       Zustand: session, ui, dialogs, toasts
+                fuzzy, focusNavigation, viewport, accelerators, pickers,
+                mock/backend (browser preview only, loaded lazily)
+  stores/       Zustand: session, ui, dialogs, toasts, palette, lock, opener
   types/generated/  written by ts-rs, never edited by hand
 ```
 
@@ -83,3 +85,60 @@ sits on a solid surface. Elsewhere (or if the system refuses the effect) the fro
 colors everywhere. All colors are CSS tokens in `src/styles/index.css`; the workspace accent is
 `--ld-accent-base`, a registered property so it can transition when the workspace changes, and
 light/dark variants are derived from it in OKLCH to keep contrast.
+
+## Actions and tools
+
+`services::tools` finds terminals, IDEs and browsers by looking at known installation paths
+(plus the JetBrains and Visual Studio folders) and reads browser profiles from `Local State`
+and `profiles.ini`. Nothing is executed during detection, and the search roots come from a
+`Roots` struct so the whole catalogue is testable against a fake folder tree. A tool that
+disappears keeps its row (`detected_at` goes NULL) so preferences survive a reinstall.
+
+`services::actions` turns a request into a **plan**: a list of steps (open a URL, open a path,
+reveal it, or spawn a program with separate arguments) plus the confirmation level and the tool
+that will be used. Planning is pure and unit-tested; only the command executes the steps, on a
+blocking thread, with the configured stagger between browser tabs. The same planner serves the
+row click, the context menu, the palette and Launch, so the rules cannot diverge: visibility in
+the profile, the lock, the confirmation barrier, `http`/`https`/`mailto` only, existing paths,
+never an executable, and a tool that is actually installed.
+
+`services::launch` composes those plans into a sequence for a project, subproject or section.
+A step that cannot be planned (missing path, uninstalled tool) does not stop the others; the
+outcome lists it.
+
+## Search
+
+`services::search` reads the visible library on every query (a personal library is a few
+thousand rows) and scores each node: fields with different weights (name, aliases, tags, names
+of ancestors, address or path, description), then usage and recency, then a small bonus for the
+current workspace. Case and accents are folded one character at a time, so the highlight ranges
+it returns still point at the original name. The last word can be a **verb** (`term`, `ide`,
+`esplora`, or a tool name), in which case the hit carries the action to run — on a container,
+its first path. About 30 ms per query over 3,400 nodes in release mode.
+
+## Protection
+
+A per-profile password is stored as an Argon2id hash by `services::protection`; the unlocked
+state lives in memory only (`LockBook` in `AppState`), so a restart locks everything. Every
+command that reads or writes a node passes through a `Gate`: while locked, a protected node — by
+its own flag or through **any** of its paths — comes back without content and every action on it
+is refused with `locked`. Search, favorites and recents filter them out, and the frontend never
+has to remember to hide anything.
+
+## Backups and covers
+
+`services::backup` makes a consistent copy with SQLite's `VACUUM INTO` (one per calendar day at
+startup, last seven kept, plus manual copies). A restore validates the candidate file, stages it
+next to the database and applies it at the next launch, before the connection is opened, keeping
+the previous file as `llamadesk.before-restore.db`.
+
+`services::assets` copies cover images into `<data>/covers/<sha256>.<ext>`, recognising the type
+from the first bytes; identical images are stored once and files nobody references are deleted.
+They are served through Tauri's asset protocol, scoped to that folder alone.
+
+## Window and first frame
+
+The window is created hidden. The frontend calls `window_ready` after its first painted frame and
+Rust reveals the window then (a background thread reveals it anyway after three seconds, in case
+the frontend never answers). The opening animation runs on top of the already-loaded shell, only
+on a cold start, and never when the app starts in the tray or the system asks for reduced motion.

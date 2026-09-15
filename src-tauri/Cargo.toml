@@ -1,6 +1,6 @@
 [package]
 name = "llamadesk"
-version = "0.1.0"
+version = "0.0.1"
 description = "Local-first launcher and workspace manager for links, tools and project contexts"
 authors = ["LlamaDesk contributors"]
 license = "MIT"

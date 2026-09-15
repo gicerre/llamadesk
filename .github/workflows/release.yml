@@ -56,13 +56,19 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'LlamaDesk ${{ github.ref_name }}'
           releaseBody: |
-            Installer per Windows 10/11.
+            Installer per Windows 10/11 (beta).
 
             - `LlamaDesk_x.y.z_x64-setup.exe` — installer NSIS (consigliato, non richiede privilegi di amministratore)
             - `LlamaDesk_x.y.z_x64_en-US.msi` — pacchetto MSI per distribuzione aziendale
 
-            **Local-first**: nessun account, nessun cloud, nessuna telemetria.
-            I dati restano in `%APPDATA%\com.llamadesk.app\llamadesk.db`.
+            Gli installer non sono firmati: SmartScreen avvisa al primo avvio.
+            Verifica l'impronta SHA-256 pubblicata sotto, oppure compila da sorgente.
+
+            **Local-first**: nessun account, nessun cloud, nessuna telemetria, nessun
+            aggiornamento automatico. I dati restano in `%APPDATA%\com.llamadesk.app\`
+            (database, backup e cover) e sopravvivono a un aggiornamento.
+
+            Le novita' sono in `CHANGELOG.md`.
           releaseDraft: true
-          prerelease: false
+          prerelease: true
           args: --target x86_64-pc-windows-msvc
