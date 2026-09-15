@@ -19,7 +19,11 @@ export function GeneralTab() {
 
   return (
     <GlassPanel radius="3xl" className="divide-y divide-black/5 dark:divide-white/[0.06]">
-      <SettingRow title={t('settings.language')} description={t('settings.languageDesc')}>
+      <SettingRow
+        title={t('settings.language')}
+        description={t('settings.languageDesc')}
+        scopeKey="language"
+      >
         <div className="flex gap-1.5">
           {SUPPORTED_LANGUAGES.map((language) => (
             <Button
@@ -62,7 +66,11 @@ export function GeneralTab() {
         />
       </SettingRow>
 
-      <SettingRow title={t('settings.openDelay')} description={t('settings.openDelayDesc')}>
+      <SettingRow
+        title={t('settings.openDelay')}
+        description={t('settings.openDelayDesc')}
+        scopeKey="openDelayMs"
+      >
         <input
           type="number"
           min={0}
@@ -74,7 +82,11 @@ export function GeneralTab() {
         />
       </SettingRow>
 
-      <SettingRow title={t('health.threshold')} description={t('health.thresholdDesc')}>
+      <SettingRow
+        title={t('health.threshold')}
+        description={t('health.thresholdDesc')}
+        scopeKey="staleLinkDays"
+      >
         <input
           type="number"
           min={7}

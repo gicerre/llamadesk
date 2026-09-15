@@ -133,6 +133,9 @@ export function ShortcutsTab() {
       <p className="px-2 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">
         {t('settings.shortcutHint')}
       </p>
+      <p className="px-2 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">
+        {t('profiles.scopeHint')}
+      </p>
 
       <div className="flex justify-start px-2">
         <Button

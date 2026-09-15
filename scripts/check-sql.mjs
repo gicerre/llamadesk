@@ -2,7 +2,7 @@
  * Verifica che ogni istruzione SQL scritta nel backend Rust sia valida.
  *
  * Estrae le stringhe SQL dai sorgenti `src-tauri/src/**.rs`, applica lo schema
- * reale (la migrazione 0001) su un SQLite in memoria e prova a preparare ogni
+ * reale (tutte le migrazioni, in ordine) su un SQLite in memoria e prova a preparare ogni
  * query: un errore di sintassi o una colonna inesistente fanno fallire qui,
  * invece che al primo avvio dell'applicazione.
  *
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import initSqlJs from 'sql.js';
 
 const RUST_ROOT = 'src-tauri/src';
-const SCHEMA = 'src-tauri/src/db/migrations/0001_init.sql';
+const MIGRATIONS = 'src-tauri/src/db/migrations';
 
 function rustFiles(dir) {
   return readdirSync(dir).flatMap((entry) => {
@@ -42,7 +42,10 @@ function extractQueries(path) {
 const SQL = await initSqlJs();
 const db = new SQL.Database();
 db.run('PRAGMA foreign_keys = ON;');
-db.run(readFileSync(SCHEMA, 'utf8'));
+// Stesso ordine del migratore: il prefisso numerico del nome file.
+for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort()) {
+  db.run(readFileSync(join(MIGRATIONS, file), 'utf8'));
+}
 
 const queries = rustFiles(RUST_ROOT).flatMap(extractQueries);
 const failures = [];

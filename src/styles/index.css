@@ -122,6 +122,20 @@
   box-shadow: var(--shadow-glass-lg);
 }
 
+/* Materiale dei menu fluttuanti (dropdown, popover, toast).
+   Molto piu' denso degli altri: un menu galleggia a pochi pixel dal contenuto
+   e NON ha un backdrop che lo scurisce, come invece hanno modali e palette.
+   Con il vetro dei pannelli inline il testo sottostante traspare e il menu
+   diventa illeggibile. Anche i menu di macOS sono quasi opachi, per lo stesso
+   motivo: qui il blur resta per la materialita' dei bordi, non per la
+   trasparenza. In tema scuro la superficie e' piu' CHIARA dello sfondo, perche'
+   nel buio l'elevazione si legge come luce. */
+@utility glass-popover {
+  @apply border border-black/[0.08] bg-white/95 backdrop-blur-xl;
+  @apply dark:border-white/[0.12] dark:bg-zinc-900/95;
+  box-shadow: var(--shadow-glass-lg);
+}
+
 /* Variante leggerissima, per card in griglia. */
 @utility glass-panel-subtle {
   @apply border border-black/[0.05] bg-white/45 backdrop-blur-md;

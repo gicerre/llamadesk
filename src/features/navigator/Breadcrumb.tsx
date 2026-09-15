@@ -102,7 +102,7 @@ export function Breadcrumb({ crumbs, danger, currentId, siblingEnvironments }: B
                 initial={{ opacity: 0, y: -6, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1, transition: springBouncy }}
                 exit={{ opacity: 0, y: -4, scale: 0.98, transition: fadeFast }}
-                className="glass-panel-strong absolute right-0 z-30 mt-2 flex w-56 flex-col gap-0.5 rounded-2xl p-1.5"
+                className="glass-popover absolute right-0 z-30 mt-2 flex w-56 flex-col gap-0.5 rounded-2xl p-1.5"
               >
                 {siblingEnvironments.map((environment) => (
                   <button

@@ -20,11 +20,18 @@ pub struct Migration {
     pub sql: &'static str,
 }
 
-pub const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "init",
-    sql: include_str!("migrations/0001_init.sql"),
-}];
+pub const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "init",
+        sql: include_str!("migrations/0001_init.sql"),
+    },
+    Migration {
+        version: 2,
+        name: "profile_settings",
+        sql: include_str!("migrations/0002_profile_settings.sql"),
+    },
+];
 
 pub fn current_version(conn: &Connection) -> Result<i32> {
     let version: i32 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
@@ -110,6 +117,7 @@ mod tests {
 
         for table in [
             "settings",
+            "profile_settings",
             "profiles",
             "containers",
             "applications",

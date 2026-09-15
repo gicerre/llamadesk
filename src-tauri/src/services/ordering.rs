@@ -67,7 +67,9 @@ pub fn place(
     let read = |id: Option<&str>| -> Result<Option<f64>> {
         let Some(id) = id else { return Ok(None) };
         let query = format!("SELECT sort_order FROM {table} WHERE id = ?1");
-        Ok(conn.query_row(&query, [id], |row| row.get::<_, f64>(0)).ok())
+        Ok(conn
+            .query_row(&query, [id], |row| row.get::<_, f64>(0))
+            .ok())
     };
 
     let previous = read(previous_id)?;
@@ -126,7 +128,10 @@ mod tests {
             if needs_rebalance(Some(previous), Some(next)) {
                 break;
             }
-            assert!(value > previous && value < next, "posizione fuori intervallo");
+            assert!(
+                value > previous && value < next,
+                "posizione fuori intervallo"
+            );
             previous = value;
         }
     }

@@ -86,13 +86,14 @@ export function backgroundStyle(background: Background | null): React.CSSPropert
 }
 
 /**
- * Sfondo effettivo: quello del profilo se c'è, altrimenti quello globale.
+ * Sfondo effettivo. `settings.backgroundId` arriva dal backend già risolto:
+ * globale, oppure l'override del profilo attivo se ne ha uno. Un secondo
+ * meccanismo qui (la vecchia colonna `profiles.background_id`) potrebbe solo
+ * entrare in conflitto con quello.
+ *
  * `null` significa "usa il mesh gradient animato di default".
  */
 export function resolveActiveBackground(backgrounds: Background[]): Background | null {
-  const { settings, profiles, activeProfileId } = useSessionStore.getState();
-  const profile = profiles.find((entry) => entry.id === activeProfileId);
-
-  const id = profile?.backgroundId ?? settings?.backgroundId ?? null;
+  const id = useSessionStore.getState().settings?.backgroundId ?? null;
   return backgrounds.find((background) => background.id === id) ?? null;
 }

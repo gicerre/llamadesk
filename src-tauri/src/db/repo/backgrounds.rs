@@ -21,8 +21,12 @@ pub fn list(conn: &Connection) -> Result<Vec<Background>> {
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Background> {
-    conn.query_row("SELECT * FROM backgrounds WHERE id = ?1", [id], map_background)
-        .map_err(|_| anyhow!("sfondo non trovato: {id}"))
+    conn.query_row(
+        "SELECT * FROM backgrounds WHERE id = ?1",
+        [id],
+        map_background,
+    )
+    .map_err(|_| anyhow!("sfondo non trovato: {id}"))
 }
 
 pub fn create(conn: &Connection, name: &str, source: &str, value: &str) -> Result<Background> {

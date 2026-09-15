@@ -66,8 +66,28 @@
       "notes": "Notes",
       "tags": "Tags",
       "noFavorites": "Mark an application as favourite to find it here.",
-      "noRecents": "What you open will show up here."
-    }
+      "noRecents": "What you open will show up here.",
+      "noQuickWorkspaces": "Group the links you open together into a quick workspace.",
+      "noCalendars": "Add a link of type \"Calendar\" to an application to find it here.",
+      "noProjects": "No projects yet.",
+      "noNotes": "Notes written on projects, applications and links show up here.",
+      "noTags": "Tag your links to find them by topic."
+    },
+    "customise": "Customise",
+    "done": "Done",
+    "drag": "Drag to reorder",
+    "rows": "Rows to show",
+    "wide": "Full width",
+    "narrow": "Half width",
+    "hide": "Hide",
+    "show": "Add to the dashboard",
+    "hiddenTitle": "Hidden widgets",
+    "allHidden": "Every widget is hidden",
+    "allHiddenHint": "Customise the dashboard to bring back the ones you need.",
+    "linkCount_one": "{{count}} link",
+    "linkCount_other": "{{count}} links",
+    "childCount_one": "{{count}} item",
+    "childCount_other": "{{count}} items"
   },
   "settings": {
     "title": "Settings",
@@ -184,7 +204,11 @@
       "environment": "New environment",
       "context": "New context",
       "group": "New group"
-    }
+    },
+    "duplicateName": "An item with this name already exists here.",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteCascade": "Everything inside goes with it. This cannot be undone — but a JSON export can be restored, and Settings › Data makes one in two clicks.",
+    "deleteEmpty": "It is empty: nothing else will be lost."
   },
   "editor": {
     "name": "Name",
@@ -259,5 +283,35 @@
     "replaceHint": "Deletes your current data and restores the backup. A copy of the database is saved first.",
     "importDone": "Import complete",
     "importSummary": "{{containers}} containers, {{applications}} applications and {{links}} links imported."
+  },
+  "applications": {
+    "createHint": "An application is a tool and its addresses. Give it a name and its main URL — you can add more links afterwards.",
+    "firstLink": "Main address",
+    "firstLinkHint": "Optional, but without it the card has nothing to open.",
+    "noLink": "Add a link"
+  },
+  "profiles": {
+    "create": "New profile",
+    "placeholder": "Work",
+    "customised_one": "{{count}} custom setting",
+    "customised_other": "{{count}} custom settings",
+    "scopeGlobal": "All profiles",
+    "scopeProfile": "Only this profile",
+    "scopeHint": "Appearance and thresholds can differ per profile. Shortcuts and startup options stay global: the OS registers them once for the whole application.",
+    "delete": "Delete profile",
+    "deleteTitle": "Delete the profile {{name}}?",
+    "deleteCascade": "Its projects, applications, links, workspaces, notes and tags go with it, along with its appearance settings. This cannot be undone — but a JSON export can be restored, and Settings › Data makes one in two clicks.",
+    "deleteEmpty": "It is empty: only its name and its appearance settings will be lost.",
+    "deleteActive": "This is the profile you are in: LlamaDesk will switch to {{next}}."
+  },
+  "impact": {
+    "containers_one": "Container",
+    "containers_other": "Containers",
+    "applications_one": "Application",
+    "applications_other": "Applications",
+    "links_one": "Link",
+    "links_other": "Links",
+    "bundles_one": "Quick workspace",
+    "bundles_other": "Quick workspaces"
   }
 }

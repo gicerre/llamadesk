@@ -3,21 +3,48 @@
 //! testabili con `cargo test`.
 
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 use tauri_plugin_autostart::ManagerExt;
 
+use crate::commands::{db, fail};
 use crate::db::repo::profiles;
 use crate::db::seed;
-use crate::domain::{AppSettings, BootstrapPayload, Profile, ShortcutStatus};
+use crate::domain::{AppSettings, BootstrapPayload, Profile, ProfileDeleteImpact, ShortcutStatus};
 use crate::shortcuts;
-use crate::commands::{db, fail};
 use crate::AppState;
 
 /* ------------------------------------------------------------------ avvio -- */
 
+/// Profilo attivo secondo le impostazioni globali, con ripiego sul primo
+/// esistente: un `activeProfileId` che punta a un profilo cancellato non deve
+/// lasciare l'applicazione senza contesto.
+fn active_profile_id(conn: &rusqlite::Connection) -> Result<Option<String>, String> {
+    let settings = seed::read_settings(conn).map_err(fail)?;
+    let known = profiles::list(conn).map_err(fail)?;
+
+    let active = settings
+        .active_profile_id
+        .filter(|id| known.iter().any(|profile| &profile.id == id))
+        .or_else(|| known.first().map(|profile| profile.id.clone()));
+
+    Ok(active)
+}
+
 #[tauri::command]
 pub fn bootstrap(app: AppHandle, state: State<'_, AppState>) -> Result<BootstrapPayload, String> {
     let conn = db(&state)?;
+    let active = active_profile_id(&conn)?;
+
+    // Le impostazioni consegnate al frontend sono gia' quelle *effettive* del
+    // profilo attivo: la UI non deve conoscere il meccanismo dell'overlay per
+    // disegnare la finestra giusta al primo frame.
+    let (settings, overrides) = match &active {
+        Some(profile_id) => (
+            seed::read_effective_settings(&conn, profile_id).map_err(fail)?,
+            seed::read_profile_overrides(&conn, profile_id).map_err(fail)?,
+        ),
+        None => (seed::read_settings(&conn).map_err(fail)?, Vec::new()),
+    };
 
     Ok(BootstrapPayload {
         is_first_run: seed::read_flag(&conn, "firstRun").map_err(fail)?,
@@ -25,7 +52,9 @@ pub fn bootstrap(app: AppHandle, state: State<'_, AppState>) -> Result<Bootstrap
         db_path: state.db_path.to_string_lossy().to_string(),
         system_locale: sys_locale::get_locale().unwrap_or_else(|| "en-US".into()),
         profiles: profiles::list(&conn).map_err(fail)?,
-        settings: seed::read_settings(&conn).map_err(fail)?,
+        active_profile_id: active,
+        settings,
+        profile_overrides: overrides,
     })
 }
 
@@ -37,10 +66,14 @@ pub fn complete_onboarding(state: State<'_, AppState>) -> Result<(), String> {
 
 /* ----------------------------------------------------------- impostazioni -- */
 
+/// Impostazioni effettive del profilo attivo (globali + override).
 #[tauri::command]
 pub fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
     let conn = db(&state)?;
-    seed::read_settings(&conn).map_err(fail)
+    match active_profile_id(&conn)? {
+        Some(profile_id) => seed::read_effective_settings(&conn, &profile_id).map_err(fail),
+        None => seed::read_settings(&conn).map_err(fail),
+    }
 }
 
 /// Aggiorna una singola chiave e restituisce l'intera struct rileggendola dal
@@ -69,8 +102,7 @@ pub fn set_setting(
         let parsed: Value = serde_json::from_str(&value).map_err(fail)?;
         object.insert(key.clone(), parsed);
 
-        let updated: AppSettings =
-            serde_json::from_value(Value::Object(object)).map_err(fail)?;
+        let updated: AppSettings = serde_json::from_value(Value::Object(object)).map_err(fail)?;
         seed::write_settings(&conn, &updated).map_err(fail)?;
         updated
     };
@@ -85,7 +117,9 @@ pub fn set_setting(
                 launcher.disable()
             };
             if let Err(error) = result {
-                return Err(format!("impossibile aggiornare l'avvio automatico: {error}"));
+                return Err(format!(
+                    "impossibile aggiornare l'avvio automatico: {error}"
+                ));
             }
         }
         "globalShortcut" => {
@@ -97,10 +131,87 @@ pub fn set_setting(
         _ => {}
     }
 
-    Ok(updated)
+    // Restituiamo le impostazioni *effettive*: se il profilo attivo sovrascrive
+    // la chiave appena cambiata, la UI deve continuare a vedere l'override.
+    let conn = db(&state)?;
+    match active_profile_id(&conn)? {
+        Some(profile_id) => seed::read_effective_settings(&conn, &profile_id).map_err(fail),
+        None => Ok(updated),
+    }
+}
+
+/// Imposta (o rimuove, con `value = null`) un override per un profilo.
+/// Restituisce le impostazioni effettive risultanti.
+#[tauri::command]
+pub fn set_profile_setting(
+    state: State<'_, AppState>,
+    profile_id: String,
+    key: String,
+    value: Option<String>,
+) -> Result<AppSettings, String> {
+    let conn = db(&state)?;
+    seed::write_profile_setting(&conn, &profile_id, &key, value.as_deref()).map_err(fail)?;
+    seed::read_effective_settings(&conn, &profile_id).map_err(fail)
+}
+
+#[tauri::command]
+pub fn get_profile_overrides(
+    state: State<'_, AppState>,
+    profile_id: String,
+) -> Result<Vec<String>, String> {
+    let conn = db(&state)?;
+    seed::read_profile_overrides(&conn, &profile_id).map_err(fail)
+}
+
+/// Elenco delle chiavi che possono variare per profilo. La UI la usa per
+/// decidere dove mostrare l'interruttore "solo per questo profilo", invece di
+/// tenersi una copia dell'elenco che prima o poi divergerebbe.
+#[tauri::command]
+pub fn profile_scoped_keys() -> Vec<String> {
+    seed::PROFILE_SCOPED_KEYS
+        .iter()
+        .map(|key| key.to_string())
+        .collect()
 }
 
 /* ---------------------------------------------------------------- profili -- */
+
+/// Tutto quello che serve per entrare in un profilo: chi è, come si presenta,
+/// e che cosa personalizza rispetto alle impostazioni globali.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileSession {
+    pub profile: Profile,
+    pub settings: AppSettings,
+    pub overrides: Vec<String>,
+}
+
+/// Rende attivo un profilo e ne restituisce il contesto completo.
+///
+/// Il profilo attivo è una preferenza globale: appartiene all'applicazione,
+/// non al profilo (che non può dichiarare di essere quello attivo).
+fn enter_profile(conn: &rusqlite::Connection, profile_id: &str) -> Result<ProfileSession, String> {
+    let profile = profiles::get(conn, profile_id).map_err(fail)?;
+
+    let mut settings = seed::read_settings(conn).map_err(fail)?;
+    settings.active_profile_id = Some(profile_id.to_string());
+    seed::write_settings(conn, &settings).map_err(fail)?;
+
+    Ok(ProfileSession {
+        profile,
+        settings: seed::read_effective_settings(conn, profile_id).map_err(fail)?,
+        overrides: seed::read_profile_overrides(conn, profile_id).map_err(fail)?,
+    })
+}
+
+#[tauri::command]
+pub fn activate_profile(
+    state: State<'_, AppState>,
+    profile_id: String,
+) -> Result<ProfileSession, String> {
+    let conn = db(&state)?;
+    enter_profile(&conn, &profile_id)
+}
 
 #[tauri::command]
 pub fn list_profiles(state: State<'_, AppState>) -> Result<Vec<Profile>, String> {
@@ -126,6 +237,33 @@ pub fn rename_profile(
 ) -> Result<Profile, String> {
     let conn = db(&state)?;
     profiles::rename(&conn, &id, &name).map_err(fail)
+}
+
+#[tauri::command]
+pub fn profile_delete_impact(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<ProfileDeleteImpact, String> {
+    let conn = db(&state)?;
+    profiles::delete_impact(&conn, &id).map_err(fail)
+}
+
+/// Elimina un profilo e restituisce il contesto in cui l'applicazione si
+/// ritrova: se era quello attivo si passa al primo rimasto, altrimenti si
+/// resta dove si era.
+#[tauri::command]
+pub fn delete_profile(state: State<'_, AppState>, id: String) -> Result<ProfileSession, String> {
+    let mut guard = db(&state)?;
+    // Cancellazione e cambio di profilo attivo vanno insieme: un
+    // `activeProfileId` rimasto a puntare nel vuoto non deve arrivare su disco.
+    let tx = guard.transaction().map_err(fail)?;
+
+    profiles::delete(&tx, &id).map_err(fail)?;
+    let active = active_profile_id(&tx)?.ok_or("nessun profilo rimasto")?;
+    let session = enter_profile(&tx, &active)?;
+
+    tx.commit().map_err(fail)?;
+    Ok(session)
 }
 
 /* ------------------------------------------------------ scorciatoia globale -- */

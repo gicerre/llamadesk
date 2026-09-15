@@ -7,9 +7,9 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
 use crate::commands::{db, fail};
-use crate::db::repo::{backgrounds, profiles};
+use crate::db::repo::backgrounds;
 use crate::db::seed::new_id;
-use crate::domain::{Background, DangerPrompt, ImportSummary, Profile};
+use crate::domain::{Background, DangerPrompt, ImportSummary};
 use crate::services::{backup, danger};
 use crate::AppState;
 
@@ -149,11 +149,7 @@ pub fn import_background_image(
         return Err("formato immagine non supportato: usa PNG, JPG, WEBP o AVIF".into());
     }
 
-    let directory = app
-        .path()
-        .app_data_dir()
-        .map_err(fail)?
-        .join("wallpapers");
+    let directory = app.path().app_data_dir().map_err(fail)?.join("wallpapers");
     fs::create_dir_all(&directory).map_err(fail)?;
 
     let target = directory.join(format!("{}.{extension}", new_id()));
@@ -184,17 +180,6 @@ pub fn delete_background(state: State<'_, AppState>, id: String) -> Result<(), S
     }
 
     backgrounds::delete(&conn, &id).map_err(fail)
-}
-
-/// Sfondo specifico di un profilo. `None` fa tornare a quello globale.
-#[tauri::command]
-pub fn set_profile_background(
-    state: State<'_, AppState>,
-    profile_id: String,
-    background_id: Option<String>,
-) -> Result<Profile, String> {
-    let conn = db(&state)?;
-    profiles::set_background(&conn, &profile_id, background_id.as_deref()).map_err(fail)
 }
 
 /* ------------------------------------------ prompt della Danger Zone ---- */

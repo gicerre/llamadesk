@@ -220,7 +220,8 @@ mod tests {
         let bundle = create(&conn, &profile, "Standup", false, None).unwrap();
         add_link(&conn, &bundle.id, "l1").unwrap();
 
-        conn.execute("DELETE FROM links WHERE id = 'l1'", []).unwrap();
+        conn.execute("DELETE FROM links WHERE id = 'l1'", [])
+            .unwrap();
 
         assert!(links_of(&conn, &bundle.id).unwrap().is_empty());
     }
@@ -247,8 +248,22 @@ mod tests {
         let (conn, profile) = fixture();
 
         create(&conn, &profile, "Permanente", false, None).unwrap();
-        create(&conn, &profile, "Scaduto", true, Some("2000-01-01 00:00:00")).unwrap();
-        create(&conn, &profile, "Ancora valido", true, Some("2999-01-01 00:00:00")).unwrap();
+        create(
+            &conn,
+            &profile,
+            "Scaduto",
+            true,
+            Some("2000-01-01 00:00:00"),
+        )
+        .unwrap();
+        create(
+            &conn,
+            &profile,
+            "Ancora valido",
+            true,
+            Some("2999-01-01 00:00:00"),
+        )
+        .unwrap();
 
         assert_eq!(purge_expired(&conn).unwrap(), 1);
 

@@ -17,7 +17,6 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::ShortcutState;
 
-
 /// Stato condiviso fra i comandi. Una sola connessione dietro un Mutex: e'
 /// un'app monoutente locale, un pool sarebbe complessita' senza guadagno.
 pub struct AppState {
@@ -83,8 +82,8 @@ pub fn run() {
             // 5. Finestra: creata nascosta in tauri.conf.json per evitare il
             //    flash bianco: la mostriamo qui, se non si parte in tray.
             if let Some(window) = app.get_webview_window("main") {
-                let should_hide = settings.start_minimized
-                    || std::env::args().any(|arg| arg == "--minimized");
+                let should_hide =
+                    settings.start_minimized || std::env::args().any(|arg| arg == "--minimized");
 
                 if !should_hide {
                     let _ = window.show();
@@ -122,9 +121,15 @@ pub fn run() {
             commands::app::complete_onboarding,
             commands::app::get_settings,
             commands::app::set_setting,
+            commands::app::set_profile_setting,
+            commands::app::get_profile_overrides,
+            commands::app::profile_scoped_keys,
+            commands::app::activate_profile,
             commands::app::list_profiles,
             commands::app::create_profile,
             commands::app::rename_profile,
+            commands::app::profile_delete_impact,
+            commands::app::delete_profile,
             commands::app::apply_global_shortcut,
             commands::app::get_shortcut_status,
             // gerarchia
@@ -135,6 +140,11 @@ pub fn run() {
             commands::tree::update_container,
             commands::tree::move_container,
             commands::tree::container_delete_impact,
+            commands::dashboard::list_widgets,
+            commands::dashboard::update_widget,
+            commands::dashboard::move_widget,
+            commands::dashboard::calendar_links,
+            commands::dashboard::recent_notes,
             commands::tree::delete_container,
             commands::tree::duplicate_container,
             // applicazioni e link
@@ -180,7 +190,6 @@ pub fn run() {
             commands::data::create_background,
             commands::data::import_background_image,
             commands::data::delete_background,
-            commands::data::set_profile_background,
             commands::data::save_danger_prompt,
             commands::data::delete_danger_prompt,
         ])

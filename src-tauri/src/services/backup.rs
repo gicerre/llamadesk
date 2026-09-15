@@ -21,7 +21,9 @@ use rusqlite::{params, Connection};
 
 use crate::db::repo::{bundles, containers, items, library, profiles};
 use crate::db::seed::new_id;
-use crate::domain::{Background, BackupFile, BundleItemRow, DangerPrompt, ImportSummary, TaggableRow};
+use crate::domain::{
+    Background, BackupFile, BundleItemRow, DangerPrompt, ImportSummary, TaggableRow,
+};
 
 /// Versione del formato. Da incrementare solo per modifiche incompatibili.
 pub const FORMAT_VERSION: u32 = 1;
@@ -33,7 +35,11 @@ pub fn build(conn: &Connection, app_version: &str) -> Result<BackupFile> {
         format_version: FORMAT_VERSION,
         app_version: app_version.to_string(),
         exported_at: conn.query_row("SELECT datetime('now')", [], |row| row.get(0))?,
-        profiles: query(conn, "SELECT * FROM profiles ORDER BY sort_order", profiles::map)?,
+        profiles: query(
+            conn,
+            "SELECT * FROM profiles ORDER BY sort_order",
+            profiles::map,
+        )?,
         containers: query(conn, "SELECT * FROM containers", containers::map)?,
         applications: query(conn, "SELECT * FROM applications", items::map_application)?,
         links: query(conn, "SELECT * FROM links", items::map_link)?,
@@ -68,7 +74,8 @@ pub fn build(conn: &Connection, app_version: &str) -> Result<BackupFile> {
 pub fn export_to_file(conn: &Connection, app_version: &str, path: &Path) -> Result<usize> {
     let backup = build(conn, app_version)?;
     let json = serde_json::to_string_pretty(&backup)?;
-    fs::write(path, &json).with_context(|| format!("scrittura di {} non riuscita", path.display()))?;
+    fs::write(path, &json)
+        .with_context(|| format!("scrittura di {} non riuscita", path.display()))?;
     Ok(json.len())
 }
 
@@ -196,7 +203,9 @@ pub fn apply(conn: &Connection, backup: &BackupFile, mode: ImportMode) -> Result
     while !pending.is_empty() {
         guard += 1;
         if guard > 64 {
-            return Err(anyhow!("gerarchia del backup incoerente: riferimenti circolari"));
+            return Err(anyhow!(
+                "gerarchia del backup incoerente: riferimenti circolari"
+            ));
         }
 
         let (ready, rest): (Vec<_>, Vec<_>) = pending.into_iter().partition(|container| {
@@ -520,9 +529,11 @@ mod tests {
         apply(&conn, &backup, ImportMode::Replace).unwrap();
 
         let level: String = conn
-            .query_row("SELECT danger_level FROM containers WHERE id = 'e'", [], |r| {
-                r.get(0)
-            })
+            .query_row(
+                "SELECT danger_level FROM containers WHERE id = 'e'",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(level, "critical");
     }

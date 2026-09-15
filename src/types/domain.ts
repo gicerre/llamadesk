@@ -179,6 +179,10 @@ export interface DeleteImpact {
   links: number;
 }
 
+export interface ProfileDeleteImpact extends DeleteImpact {
+  bundles: number;
+}
+
 /* --------------------------------------------------------- configurazione */
 
 export interface AppSettings {
@@ -209,8 +213,23 @@ export interface BootstrapPayload {
   dbPath: string;
   systemLocale: string;
   profiles: Profile[];
+  /** Risolto dal backend: se punta a un profilo cancellato, ricade sul primo. */
+  activeProfileId: string | null;
+  /** Già effettive per il profilo attivo (globali + override). */
   settings: AppSettings;
+  /** Chiavi che il profilo attivo sovrascrive. */
+  profileOverrides: string[];
 }
+
+/** Contesto completo di un profilo, restituito quando lo si attiva. */
+export interface ProfileSession {
+  profile: Profile;
+  settings: AppSettings;
+  overrides: string[];
+}
+
+/** Ambito di un'impostazione: globale o solo per il profilo attivo. */
+export type SettingScope = 'global' | 'profile';
 
 export interface ShortcutStatus {
   accelerator: string;
@@ -253,6 +272,41 @@ export interface Bundle {
 }
 
 export type BundleWithLinks = Bundle & { links: Link[] };
+
+/* ------------------------------------------------------------- dashboard */
+
+/** Uno per tipo e per profilo: il CHECK di `dashboard_widgets`. */
+export type WidgetKind =
+  'favorites' | 'recents' | 'quick_workspaces' | 'calendars' | 'projects' | 'notes' | 'tags';
+
+/** Configurazione di un widget, già ripulita da Rust (`sanitize_config`). */
+export interface WidgetConfig {
+  /** Occupa tutta la larghezza della griglia. */
+  wide?: boolean;
+  /** Righe mostrate, solo per i widget che sono elenchi. */
+  limit?: number;
+}
+
+export interface DashboardWidget {
+  id: string;
+  profileId: string;
+  kind: WidgetKind;
+  config: WidgetConfig;
+  isVisible: boolean;
+  sortOrder: number;
+}
+
+export type LinkInContext = Link & {
+  applicationName: string;
+  containerId: string;
+  containerName: string;
+};
+
+export type NoteInContext = Note & {
+  title: string;
+  /** `null` per le note del profilo, che non vivono nell'albero. */
+  containerId: string | null;
+};
 
 /* ---------------------------------------------------------------- sfondi */
 

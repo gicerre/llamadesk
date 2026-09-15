@@ -11,3 +11,4 @@ pub mod library;
 pub mod profiles;
 pub mod search;
 pub mod usage;
+pub mod widgets;

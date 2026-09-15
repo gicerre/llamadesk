@@ -66,8 +66,28 @@
       "notes": "Note",
       "tags": "Tag",
       "noFavorites": "Segna un'applicazione come preferita per ritrovarla qui.",
-      "noRecents": "Quello che apri comparirà qui."
-    }
+      "noRecents": "Quello che apri comparirà qui.",
+      "noQuickWorkspaces": "Raggruppa in un workspace rapido i link che apri insieme.",
+      "noCalendars": "Aggiungi a un'applicazione un link di tipo \"Calendario\" per ritrovarlo qui.",
+      "noProjects": "Ancora nessun progetto.",
+      "noNotes": "Le note scritte su progetti, applicazioni e link compaiono qui.",
+      "noTags": "Aggiungi dei tag ai link per ritrovarli per argomento."
+    },
+    "customise": "Personalizza",
+    "done": "Fine",
+    "drag": "Trascina per riordinare",
+    "rows": "Righe da mostrare",
+    "wide": "Larghezza piena",
+    "narrow": "Metà larghezza",
+    "hide": "Nascondi",
+    "show": "Aggiungi alla dashboard",
+    "hiddenTitle": "Widget nascosti",
+    "allHidden": "Tutti i widget sono nascosti",
+    "allHiddenHint": "Personalizza la dashboard per rimettere quelli che ti servono.",
+    "linkCount_one": "{{count}} link",
+    "linkCount_other": "{{count}} link",
+    "childCount_one": "{{count}} elemento",
+    "childCount_other": "{{count}} elementi"
   },
   "settings": {
     "title": "Impostazioni",
@@ -184,7 +204,11 @@
       "environment": "Nuovo ambiente",
       "context": "Nuovo contesto",
       "group": "Nuovo gruppo"
-    }
+    },
+    "duplicateName": "Qui esiste già un elemento con questo nome.",
+    "deleteTitle": "Eliminare {{name}}?",
+    "deleteCascade": "Tutto quello che contiene se ne va con lui. Non si torna indietro — ma un export JSON si ripristina, e Impostazioni › Dati ne fa uno in due clic.",
+    "deleteEmpty": "È vuoto: non si perde nient'altro."
   },
   "editor": {
     "name": "Nome",
@@ -259,5 +283,35 @@
     "replaceHint": "Cancella i dati attuali e ripristina il backup. Prima viene salvata una copia del database.",
     "importDone": "Importazione completata",
     "importSummary": "Importati {{containers}} contenitori, {{applications}} applicazioni e {{links}} link."
+  },
+  "applications": {
+    "createHint": "Un'applicazione è uno strumento e i suoi indirizzi. Dalle un nome e il suo URL principale — gli altri link si aggiungono dopo.",
+    "firstLink": "Indirizzo principale",
+    "firstLinkHint": "Facoltativo, ma senza non c'è niente da aprire.",
+    "noLink": "Aggiungi un link"
+  },
+  "profiles": {
+    "create": "Nuovo profilo",
+    "placeholder": "Lavoro",
+    "customised_one": "{{count}} impostazione personalizzata",
+    "customised_other": "{{count}} impostazioni personalizzate",
+    "scopeGlobal": "Tutti i profili",
+    "scopeProfile": "Solo questo profilo",
+    "scopeHint": "Aspetto e soglie possono cambiare da profilo a profilo. Scorciatoie e opzioni di avvio restano globali: il sistema operativo le registra una volta sola per tutta l'applicazione.",
+    "delete": "Elimina profilo",
+    "deleteTitle": "Eliminare il profilo {{name}}?",
+    "deleteCascade": "Progetti, applicazioni, link, workspace, note e tag se ne vanno con lui, insieme alle sue impostazioni di aspetto. Non si torna indietro — ma un export JSON si ripristina, e Impostazioni › Dati ne fa uno in due clic.",
+    "deleteEmpty": "È vuoto: si perdono solo il nome e le sue impostazioni di aspetto.",
+    "deleteActive": "È il profilo in cui ti trovi: LlamaDesk passerà a {{next}}."
+  },
+  "impact": {
+    "containers_one": "Contenitore",
+    "containers_other": "Contenitori",
+    "applications_one": "Applicazione",
+    "applications_other": "Applicazioni",
+    "links_one": "Link",
+    "links_other": "Link",
+    "bundles_one": "Workspace rapido",
+    "bundles_other": "Workspace rapidi"
   }
 }

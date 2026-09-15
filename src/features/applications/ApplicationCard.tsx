@@ -14,6 +14,7 @@ import {
   Mail,
   MoonStar,
   Pencil,
+  Plus,
   Star,
 } from 'lucide-react';
 import { Badge } from '@/components/ui';
@@ -88,7 +89,7 @@ export function ApplicationCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.985 }}
       transition={springSnappy}
-      onClick={() => defaultLink && onOpen(defaultLink.id)}
+      onClick={() => (defaultLink ? onOpen(defaultLink.id) : onEdit(application))}
       className={cn(
         'glass-panel-subtle glass-hairline gpu group relative cursor-pointer rounded-2xl p-3.5',
         'transition-shadow duration-300 hover:shadow-[var(--shadow-glass)]',
@@ -130,9 +131,16 @@ export function ApplicationCard({
             )}
           </div>
 
-          {defaultLink && (
+          {defaultLink ? (
             <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">
               {defaultLink.url}
+            </span>
+          ) : (
+            // Senza link il click non aprirebbe nulla: invece di restare muta,
+            // la card dice che cosa manca e porta dove si aggiunge.
+            <span className="flex items-center gap-1 text-xs text-indigo-500 dark:text-indigo-400">
+              <Plus strokeWidth={2} className="size-3" />
+              {t('applications.noLink')}
             </span>
           )}
 

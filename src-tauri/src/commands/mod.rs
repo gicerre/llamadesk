@@ -5,6 +5,7 @@
 //! `cargo test`. Ogni modulo copre un'area funzionale.
 
 pub mod app;
+pub mod dashboard;
 pub mod data;
 pub mod discover;
 pub mod items;

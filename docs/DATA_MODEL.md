@@ -46,6 +46,31 @@ otherwise ordinary branch). The UI always shows where the level came from
 Drag & drop writes `(previous + next) / 2` — **one** UPDATE per move instead of rewriting the
 whole list. When the gap between two neighbours drops below `1e-6` the list is rebalanced.
 
+## 4. Profile settings are an overlay, not columns
+
+Migration 0002 adds `profile_settings (profile_id, key, value)`. The effective
+settings of a profile are the global `settings` table overlaid with that
+profile's rows — so a profile with no rows behaves exactly as before the feature
+existed, which is every profile's starting state.
+
+Why an overlay rather than `profiles.theme`, `profiles.language`, …: making a
+new preference customisable per profile is then a one-line change to
+`PROFILE_SCOPED_KEYS` in `db/seed.rs`, not a migration. It is the same choice as
+`allowed_child_kinds`: rules as data.
+
+**Not everything can be overridden.** `PROFILE_SCOPED_KEYS` is deliberately
+short — theme, language, wallpaper, overlay opacity, open delay, dormancy
+threshold. The two global shortcuts are excluded because the OS registers them
+once for the whole process: the same key cannot mean different things depending
+on which profile is active inside the app. Autostart, start-minimised and
+close-to-tray are excluded because they belong to the application's lifecycle,
+not to a working context. Rust rejects an attempt to override any of them, and a
+test pins that behaviour.
+
+`profiles.background_id` predates the overlay. Migration 0002 copies its values
+into `profile_settings` and the column is no longer read: two mechanisms for the
+same thing is one too many.
+
 ## Other notes
 
 - **Ids are UUIDv7** text: time-sortable, collision-free, which makes export/import and

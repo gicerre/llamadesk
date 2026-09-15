@@ -34,8 +34,8 @@ pub fn set_entity_tags(
 ) -> Result<Vec<Tag>, String> {
     let mut guard = db(&state)?;
     let tx = guard.transaction().map_err(fail)?;
-    let tags =
-        library::set_entity_tags(&tx, &profile_id, &entity_type, &entity_id, &names).map_err(fail)?;
+    let tags = library::set_entity_tags(&tx, &profile_id, &entity_type, &entity_id, &names)
+        .map_err(fail)?;
     tx.commit().map_err(fail)?;
     Ok(tags)
 }

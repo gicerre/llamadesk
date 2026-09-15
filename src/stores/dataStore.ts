@@ -7,7 +7,14 @@ import {
   type LinkPatch,
 } from '@/lib/ipc';
 import { useSessionStore } from './sessionStore';
-import type { Container, ContainerKind, ContainerView, LinkKind, LinkUsage } from '@/types/domain';
+import type {
+  Application,
+  Container,
+  ContainerKind,
+  ContainerView,
+  LinkKind,
+  LinkUsage,
+} from '@/types/domain';
 
 /* ============================================================================
    Stato dei dati di dominio.
@@ -45,7 +52,7 @@ interface DataState {
   deleteContainer: (id: string) => Promise<void>;
   duplicateContainer: (id: string, newName: string) => Promise<void>;
 
-  createApplication: (containerId: string, name: string) => Promise<void>;
+  createApplication: (containerId: string, name: string) => Promise<Application | null>;
   updateApplication: (id: string, patch: ApplicationPatch) => Promise<void>;
   deleteApplication: (id: string) => Promise<void>;
   duplicateApplication: (id: string, newName: string) => Promise<void>;
@@ -61,6 +68,20 @@ interface DataState {
 }
 
 const activeProfileId = (): string | null => useSessionStore.getState().activeProfileId;
+
+/** Stessa formula di `ordering::rank_between` in Rust. */
+function rankBetween(previous: number | null, next: number | null): number {
+  if (previous !== null && next !== null) return (previous + next) / 2;
+  if (previous !== null) return previous + 1000;
+  if (next !== null) return next - 1000;
+  return 1000;
+}
+
+/** Lo stesso ordine di `list_containers`: `ORDER BY sort_order, name`. */
+function byTreeOrder(a: Container, b: Container): number {
+  if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+}
 
 /** Esegue una mutazione e ricarica la vista, con un solo punto di gestione errori. */
 async function mutate(action: () => Promise<unknown>, after: () => Promise<void>): Promise<void> {
@@ -144,11 +165,28 @@ export const useDataStore = create<DataState>((set, get) => ({
     }
   },
 
+  /**
+   * Spostamento da drag & drop dell'albero: il nodo va subito al suo posto con
+   * una posizione provvisoria fra i nuovi vicini, poi la ricarica rimette al
+   * comando il database (che può aver anche ribilanciato i fratelli).
+   */
   moveContainer: async (id, parentId, previousId, nextId) => {
+    const current = get().containers;
+    const rank = (neighbourId: string | null) =>
+      current.find((node) => node.id === neighbourId)?.sortOrder ?? null;
+    const sortOrder = rankBetween(rank(previousId), rank(nextId));
+
+    set({
+      containers: current
+        .map((node) => (node.id === id ? { ...node, parentId, sortOrder } : node))
+        .sort(byTreeOrder),
+    });
+
     try {
       await mutate(() => ipc.moveContainer(id, parentId, previousId, nextId), get().refresh);
     } catch (error) {
       set({ error: error instanceof Error ? error.message : String(error) });
+      await get().loadTree();
     }
   },
 
@@ -173,11 +211,14 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   createApplication: async (containerId, name) => {
     const profileId = activeProfileId();
-    if (!profileId) return;
+    if (!profileId) return null;
     try {
-      await mutate(() => ipc.createApplication(profileId, containerId, name), get().refresh);
+      const created = await ipc.createApplication(profileId, containerId, name);
+      await get().refresh();
+      return created;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : String(error) });
+      return null;
     }
   },
 

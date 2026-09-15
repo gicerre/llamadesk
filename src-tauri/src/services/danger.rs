@@ -43,14 +43,19 @@ fn map_prompt(row: &Row<'_>) -> rusqlite::Result<DangerPrompt> {
 }
 
 pub fn list_prompts(conn: &Connection) -> Result<Vec<DangerPrompt>> {
-    let mut statement = conn.prepare("SELECT * FROM danger_prompts ORDER BY is_builtin DESC, name")?;
+    let mut statement =
+        conn.prepare("SELECT * FROM danger_prompts ORDER BY is_builtin DESC, name")?;
     let rows = statement.query_map([], map_prompt)?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
 pub fn prompt_by_id(conn: &Connection, id: &str) -> Result<Option<DangerPrompt>> {
     Ok(conn
-        .query_row("SELECT * FROM danger_prompts WHERE id = ?1", [id], map_prompt)
+        .query_row(
+            "SELECT * FROM danger_prompts WHERE id = ?1",
+            [id],
+            map_prompt,
+        )
         .ok())
 }
 
@@ -158,17 +163,6 @@ pub fn build_open_intent(conn: &Connection, link_id: &str) -> Result<OpenIntent>
     })
 }
 
-/// Sostituisce i segnaposto `{nome}` nel testo di un prompt.
-/// Un segnaposto sconosciuto viene lasciato invariato: meglio un `{cliente}`
-/// visibile di una frase mutilata.
-pub fn interpolate(template: &str, values: &BTreeMap<String, String>) -> String {
-    let mut result = template.to_string();
-    for (key, value) in values {
-        result = result.replace(&format!("{{{key}}}"), value);
-    }
-    result
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,8 +248,11 @@ mod tests {
     #[test]
     fn a_link_can_opt_in_on_a_safe_branch() {
         let conn = fixture();
-        conn.execute("UPDATE containers SET danger_level = NULL WHERE id = 'env'", [])
-            .unwrap();
+        conn.execute(
+            "UPDATE containers SET danger_level = NULL WHERE id = 'env'",
+            [],
+        )
+        .unwrap();
         conn.execute(
             "UPDATE links SET danger_level = 'danger' WHERE id = 'admin'",
             [],
@@ -306,7 +303,10 @@ mod tests {
         let intent = build_open_intent(&conn, "admin").unwrap();
 
         assert_eq!(intent.placeholders.get("project").unwrap(), "ACME");
-        assert_eq!(intent.placeholders.get("environment").unwrap(), "PRODUZIONE");
+        assert_eq!(
+            intent.placeholders.get("environment").unwrap(),
+            "PRODUZIONE"
+        );
         assert_eq!(intent.placeholders.get("context").unwrap(), "Cliente A");
         assert_eq!(intent.placeholders.get("application").unwrap(), "Camunda");
         assert_eq!(intent.placeholders.get("link").unwrap(), "Admin");
@@ -316,22 +316,6 @@ mod tests {
         assert_eq!(prompt.level, "critical");
         assert!(prompt.is_builtin);
         assert_eq!(prompt.confirm_word.as_deref(), Some("PROCEED"));
-    }
-
-    #[test]
-    fn interpolation_replaces_known_placeholders_only() {
-        let mut values = BTreeMap::new();
-        values.insert("environment".to_string(), "PRODUZIONE".to_string());
-        values.insert("application".to_string(), "Camunda".to_string());
-
-        let rendered = interpolate(
-            "Stai aprendo {application} in {environment} per {cliente}",
-            &values,
-        );
-        assert_eq!(
-            rendered,
-            "Stai aprendo Camunda in PRODUZIONE per {cliente}"
-        );
     }
 
     #[test]
@@ -355,5 +339,4 @@ mod tests {
         assert_eq!(ctx.level, "critical");
         assert_eq!(ctx.inherited_from_name.as_deref(), Some("PRODUZIONE"));
     }
-
 }

@@ -57,7 +57,10 @@ pub fn link_usage(conn: &Connection, profile_id: &str, stale_days: i64) -> Resul
 }
 
 /// Frecency grezza per la ricerca: quante aperture e quanto di recente.
-pub fn frecency(conn: &Connection, profile_id: &str) -> Result<std::collections::HashMap<String, f64>> {
+pub fn frecency(
+    conn: &Connection,
+    profile_id: &str,
+) -> Result<std::collections::HashMap<String, f64>> {
     let mut statement = conn.prepare(
         "SELECT u.entity_id AS id,
                 COUNT(*) AS opens,

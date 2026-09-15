@@ -24,7 +24,7 @@ function PaletteContent({ onClose }: { onClose: () => void }) {
   const profileId = useSessionStore((state) => state.activeProfileId);
   const requestOpen = useOpenStore((state) => state.requestOpen);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => useUiStore.getState().paletteQuery);
   const [results, setResults] = useState<SearchHit[]>([]);
   const [selected, setSelected] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);

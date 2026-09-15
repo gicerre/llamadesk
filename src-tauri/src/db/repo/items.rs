@@ -9,7 +9,7 @@ use rusqlite::{params, Connection, Row};
 
 use crate::db::repo::containers;
 use crate::db::seed::new_id;
-use crate::domain::{Application, ApplicationWithLinks, Link};
+use crate::domain::{Application, ApplicationWithLinks, Link, LinkInContext};
 use crate::services::{opener, ordering};
 
 pub const APPLICATIONS: &str = "applications";
@@ -43,9 +43,8 @@ pub fn get_application(conn: &Connection, id: &str) -> Result<Application> {
 }
 
 pub fn list_applications(conn: &Connection, container_id: &str) -> Result<Vec<Application>> {
-    let mut statement = conn.prepare(
-        "SELECT * FROM applications WHERE container_id = ?1 ORDER BY sort_order, name",
-    )?;
+    let mut statement = conn
+        .prepare("SELECT * FROM applications WHERE container_id = ?1 ORDER BY sort_order, name")?;
     let rows = statement.query_map([container_id], map_application)?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
@@ -99,8 +98,7 @@ pub fn update_application(
     is_favorite: Option<bool>,
 ) -> Result<Application> {
     let current = get_application(conn, id)?;
-    let danger_level =
-        containers::resolve_level_update(danger_level, current.danger_level.clone());
+    let danger_level = containers::resolve_level_update(danger_level, current.danger_level.clone());
     let name = name
         .map(str::trim)
         .unwrap_or(current.name.as_str())
@@ -242,8 +240,7 @@ pub fn update_link(
     is_default: Option<bool>,
 ) -> Result<Link> {
     let current = get_link(conn, id)?;
-    let danger_level =
-        containers::resolve_level_update(danger_level, current.danger_level.clone());
+    let danger_level = containers::resolve_level_update(danger_level, current.danger_level.clone());
 
     let name = name
         .map(str::trim)
@@ -324,4 +321,60 @@ pub fn delete_link(conn: &Connection, id: &str) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Tutti i link di tipo calendario del profilo, con applicazione e
+/// contenitore: alimentano il widget "Calendari". Prima i preferiti.
+pub fn calendar_links(conn: &Connection, profile_id: &str) -> Result<Vec<LinkInContext>> {
+    let mut statement = conn.prepare(
+        "SELECT l.*, a.name AS application_name, c.id AS container_id, c.name AS container_name
+           FROM links l
+           JOIN applications a ON a.id = l.application_id
+           JOIN containers c   ON c.id = a.container_id
+          WHERE a.profile_id = ?1 AND l.kind = 'calendar'
+          ORDER BY l.is_favorite DESC, a.name, l.sort_order, l.name",
+    )?;
+    let rows = statement.query_map([profile_id], |row| {
+        Ok(LinkInContext {
+            link: map_link(row)?,
+            application_name: row.get("application_name")?,
+            container_id: row.get("container_id")?,
+            container_name: row.get("container_name")?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::{migrator, seed};
+    use std::path::Path;
+
+    #[test]
+    fn calendar_links_bring_their_context() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.pragma_update(None, "foreign_keys", true).unwrap();
+        migrator::run(&mut conn, Path::new("memory.db")).unwrap();
+        seed::ensure_seed(&mut conn, "en-US").unwrap();
+        let profile: String = conn
+            .query_row("SELECT id FROM profiles LIMIT 1", [], |r| r.get(0))
+            .unwrap();
+
+        conn.execute_batch(&format!(
+            "INSERT INTO containers (id, profile_id, kind, name) VALUES ('c', '{profile}', 'project', 'ACME');
+             INSERT INTO applications (id, profile_id, container_id, name) VALUES ('a', '{profile}', 'c', 'Google');
+             INSERT INTO links (id, application_id, name, url, kind, is_favorite) VALUES
+               ('mail', 'a', 'Gmail',  'https://mail.example',  'mail',     0),
+               ('team', 'a', 'Team',   'https://cal.example/t', 'calendar', 0),
+               ('mine', 'a', 'Mio',    'https://cal.example/m', 'calendar', 1);"
+        ))
+        .unwrap();
+
+        let calendars = calendar_links(&conn, &profile).unwrap();
+        let ids: Vec<&str> = calendars.iter().map(|c| c.link.id.as_str()).collect();
+        assert_eq!(ids, ["mine", "team"]);
+        assert_eq!(calendars[0].application_name, "Google");
+        assert_eq!(calendars[0].container_name, "ACME");
+    }
 }

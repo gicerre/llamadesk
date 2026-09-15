@@ -15,20 +15,26 @@ import type {
   ContainerView,
   DangerLevel,
   DangerPrompt,
+  DashboardWidget,
   DeleteImpact,
   ImportMode,
   ImportSummary,
   Link,
+  LinkInContext,
   LinkKind,
   LinkUsage,
   NotableType,
   Note,
+  NoteInContext,
   OpenIntent,
   Profile,
+  ProfileDeleteImpact,
+  ProfileSession,
   SearchHit,
   ShortcutStatus,
   Tag,
   TaggableType,
+  WidgetConfig,
 } from '@/types/domain';
 
 /* ============================================================================
@@ -103,10 +109,25 @@ export const ipc = {
   setSetting: (key: keyof AppSettings, value: unknown) =>
     call<AppSettings>('set_setting', { key, value: JSON.stringify(value) }),
 
+  /** Override di una chiave per un profilo. `null` rimuove l'override. */
+  setProfileSetting: (profileId: string, key: keyof AppSettings, value: unknown | null) =>
+    call<AppSettings>('set_profile_setting', {
+      profileId,
+      key,
+      value: value === null ? null : JSON.stringify(value),
+    }),
+  getProfileOverrides: (profileId: string) =>
+    call<string[]>('get_profile_overrides', { profileId }),
+  /** Elenco autorevole delle chiavi personalizzabili per profilo (da Rust). */
+  profileScopedKeys: () => call<string[]>('profile_scoped_keys'),
+
   /* --- Profili ---------------------------------------------------------- */
+  activateProfile: (profileId: string) => call<ProfileSession>('activate_profile', { profileId }),
   listProfiles: () => call<Profile[]>('list_profiles'),
   createProfile: (name: string, icon?: string) => call<Profile>('create_profile', { name, icon }),
   renameProfile: (id: string, name: string) => call<Profile>('rename_profile', { id, name }),
+  profileDeleteImpact: (id: string) => call<ProfileDeleteImpact>('profile_delete_impact', { id }),
+  deleteProfile: (id: string) => call<ProfileSession>('delete_profile', { id }),
 
   /* --- Gerarchia -------------------------------------------------------- */
   listContainers: (profileId: string) => call<Container[]>('list_containers', { profileId }),
@@ -172,6 +193,16 @@ export const ipc = {
   favouriteApplications: (profileId: string) =>
     call<ApplicationWithLinks[]>('favourite_applications', { profileId }),
 
+  /* dashboard */
+  listWidgets: (profileId: string) => call<DashboardWidget[]>('list_widgets', { profileId }),
+  updateWidget: (id: string, patch: { isVisible?: boolean; config?: WidgetConfig }) =>
+    call<DashboardWidget>('update_widget', { id, ...patch }),
+  moveWidget: (id: string, previousId: string | null, nextId: string | null) =>
+    call<DashboardWidget>('move_widget', { id, previousId, nextId }),
+  calendarLinks: (profileId: string) => call<LinkInContext[]>('calendar_links', { profileId }),
+  recentNotes: (profileId: string, limit?: number) =>
+    call<NoteInContext[]>('recent_notes', { profileId, limit }),
+
   /* --- Tag e note ------------------------------------------------------- */
   listTags: (profileId: string) => call<Tag[]>('list_tags', { profileId }),
   tagsForEntity: (entityType: TaggableType, entityId: string) =>
@@ -210,8 +241,6 @@ export const ipc = {
   importBackgroundImage: (sourcePath: string, name?: string) =>
     call<Background>('import_background_image', { sourcePath, name }),
   deleteBackground: (id: string) => call<void>('delete_background', { id }),
-  setProfileBackground: (profileId: string, backgroundId: string | null) =>
-    call<Profile>('set_profile_background', { profileId, backgroundId }),
 
   /* --- Prompt della Danger Zone ----------------------------------------- */
   saveDangerPrompt: (prompt: {

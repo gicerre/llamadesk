@@ -1,6 +1,7 @@
 # HANDOFF — LlamaDesk
 
-> Documento di ripresa lavori. Aggiornato al **7 settembre 2026**, fine Fase 3.
+> Documento di ripresa lavori. Aggiornato all'**11 settembre 2026**, fine
+> sessione: Fase 4 quasi completa (vedi § 7).
 > Chi riprende (persona o assistente) dovrebbe leggere **solo questo file** per
 > rimettersi in pari, e poi `docs/ARCHITECTURE.md` e `docs/DATA_MODEL.md` per i
 > dettagli.
@@ -10,17 +11,18 @@
 ## 1. Stato in tre righe
 
 Applicazione desktop Windows (Tauri 2 + React 19), local-first, zero telemetria.
-Fasi 1, 2 e 3 completate: architettura, dati, Danger Zone, navigator, ricerca,
-note, tag, backup, quick workspace, sfondi, cattura rapida. **Il codice Rust non
-è mai stato compilato** (vedi § 3): è l'unica cosa che manca per vedere l'app girare.
+Fasi 1, 2 e 3 completate. **L'applicazione compila, i test passano e gira**:
+database creato in `%APPDATA%\com.llamadesk.app`, migrazione applicata, seed
+eseguito, onboarding superato. Il blocco principale dell'handoff precedente è
+risolto.
 
 | | |
 |---|---|
 | Versione | `0.1.0` (mai rilasciata) |
-| File sorgente | 107 (32 moduli Rust) |
-| Comandi Tauri registrati | 58 |
-| Test | 51 Rust (mai eseguiti) + 16 frontend (verdi) |
-| Repository git | **non ancora inizializzato** |
+| File sorgente | 119 (34 moduli Rust) |
+| Comandi Tauri registrati | 68 |
+| Test | 67 Rust + 25 frontend, **tutti verdi** |
+| Repository git | branch `develop`, ultimo commit `fbcd4de`. **Tutto il lavoro dell'8 e dell'11 settembre è ancora nel working tree, non committato**: per scelta dell'utente, non committare senza che lo chieda |
 
 ---
 
@@ -49,35 +51,42 @@ Node 20.19.4 e npm 10.8.2 sono già presenti e funzionanti.
 
 ---
 
-## 3. ⚠️ Il rischio numero uno
+## 3. Primo avvio: com'è andata
 
-**Rust non è installato su questa macchina**, quindi nessuna riga di backend è
-mai stata compilata. Il primo `cargo build` produrrà molto probabilmente errori
-di tipo o di borrow checker. Non è un problema di progettazione: è lavoro di
-rifinitura che va fatto con il compilatore davanti.
+`cargo check` è passato **al primo colpo, zero errori** e 4 warning (import
+inutilizzato, una funzione morta, due costanti doppie): tutti risolti.
+`cargo clippy -- -D warnings` e `cargo fmt --check` sono puliti, i 50 test
+passano in 0,24 s.
 
-Cosa è stato fatto per contenere il rischio:
+Prova sul database reale: `user_version = 1`, `journal_mode = wal`,
+`foreign_keys = 1`, 16 tabelle, 1 profilo "Personale 🦙" con lingua rilevata
+dal sistema, 3 prompt built-in, 4 widget, 9 regole di annidamento. La catena
+plug & play funziona esattamente come progettata.
 
-- **`npm run check:sql`** estrae ogni stringa SQL dai sorgenti `.rs`, applica lo
-  schema vero su SQLite in memoria e prova a preparare ogni query: **156 query,
-  tutte valide**. Gli errori SQL — la classe di bug più probabile e più
-  fastidiosa da scoprire a runtime — sono già esclusi. Gira in CI senza toolchain Rust.
-- Lo schema è stato eseguito davvero (cascade delete, CHECK, CTE ricorsive verificate).
-- La logica pura del frontend ha i suoi test.
+### Che cosa ha rivelato l'uso vero
 
-**Primo compito della prossima sessione**: installare Rust, lanciare
-`cargo test`, sistemare quello che esce. Poi `npm run dev`.
+Il primo utilizzo reale ha fatto emergere due problemi che nessun test avrebbe
+trovato, entrambi corretti l'8 settembre:
 
-Punti dove mi aspetto attrito, in ordine di probabilità:
+1. **4 applicazioni create, 0 link.** "Aggiungi applicazione" chiedeva solo il
+   nome; l'URL si aggiungeva dalla matita in hover, che nessuno trova. Una
+   applicazione senza link, cliccata, non faceva niente: l'azione principale
+   dell'app era morta. Ora la creazione chiede nome **e primo indirizzo**
+   (`ApplicationCreateDialog`), e una card senza link mostra "Aggiungi un link"
+   e porta all'editor invece di restare muta.
+2. **Ambienti creati in doppio** (due PROD e due TEST sotto lo stesso progetto,
+   due vuoti). Ora il dialogo avvisa quando esiste già un fratello con lo stesso
+   nome — avviso, non divieto: due "Cliente A" in rami diversi restano legittimi.
 
-1. `src-tauri/src/shortcuts.rs` — confronto `Shortcut` nel registro; se
-   `Shortcut` non implementa `PartialEq`, confrontare `.id()`.
-2. `src-tauri/src/tray.rs` — `show_menu_on_left_click` è stato rinominato fra le
-   minor di Tauri 2; se non compila, usare `menu_on_left_click`.
-3. `src-tauri/src/services/backup.rs` — la closure `id_of` è `FnMut` e viene
-   chiamata più volte dentro la stessa `params![]`; se il borrow checker
-   protesta, estrarre gli id in variabili locali prima della macro.
-4. Versioni dei crate: `rusqlite 0.32` è certa; i `tauri-plugin-*` sono a `"2"`.
+Corretto nella stessa sessione anche un difetto latente: la cattura rapida
+ritrovava l'applicazione appena creata **cercandola per nome**, e con due
+applicazioni omonime avrebbe attaccato il link a quella sbagliata. Ora
+`createApplication` restituisce l'entità creata.
+
+E il rischio più serio ora che i dati sono veri: **il cestino cancellava un
+intero progetto senza chiedere niente**. `container_delete_impact` esisteva dalla
+Fase 2 ma non era collegato; ora la conferma mostra quanti contenitori,
+applicazioni e link stanno per sparire.
 
 ---
 
@@ -99,6 +108,16 @@ sottoalberi in transazione, **motore Danger Zone** (9 test), navigator ad
 albero, breadcrumb con *climate shift*, ApplicationCard con dnd-kit,
 Command Palette collegata alla ricerca reale con frecency, Environment Switcher,
 health check dei link dormienti.
+
+### Fase 4 (quasi completa) — profili, albero, dashboard
+Overlay `profile_settings` (migrazione 0002, 6 test): tema, lingua, sfondo,
+overlay, ritardo di apertura e soglia dormienti possono variare per profilo,
+con ripiego sul valore globale. Selettore di profilo in sidebar (crea,
+rinomina, cambia, **elimina** con conferma d'impatto) e selettore di ambito su
+ogni impostazione personalizzabile. **Drag & drop dell'albero** della sidebar
+(`navigator/NavigatorDnd.tsx` + logica pura in `treeDrop.ts`). **Dashboard a
+widget** riordinabili e configurabili (`features/dashboard/`, backend in
+`db/repo/widgets.rs` e `commands/dashboard.rs`).
 
 ### Fase 3 — il contorno che serve
 Backup/restore JSON (10 test), Quick Workspaces trasversali con scadenza,
@@ -124,6 +143,8 @@ Ognuna ha una ragione precisa. Cambiarle si può, ma sapendo cosa si perde.
 | **`sort_order` è un REAL** | Uno spostamento = una UPDATE, con ribilanciamento automatico. |
 | **Wallpaper interno = motore del glassmorphism** | Su Windows/WebView2 `backdrop-filter` **non** può sfocare il desktop dietro la finestra. Senza questo strato i pannelli in vetro sarebbero grigi e piatti. |
 | **Modalità import come stringa** `merge`/`replace` | Un booleano sarebbe stato ambiguo su un'operazione distruttiva. |
+| **Impostazioni per profilo come overlay** chiave/valore | Rendere personalizzabile una nuova preferenza è una riga in `PROFILE_SCOPED_KEYS`, non una migrazione. Le scorciatoie globali ne restano fuori per necessità tecnica, non per scelta estetica. |
+| **Scrivere un'impostazione segue l'ambito visibile** | Se il profilo attivo sovrascrive una chiave, modificarla aggiorna l'override. Altrimenti cambieresti il tema e non succederebbe niente, perché un override invisibile continua a vincere. |
 
 ## 6. Vincoli non negoziabili
 
@@ -141,32 +162,75 @@ Sono la ragione per cui il progetto esiste. Valgono anche per chi riprende.
 
 ## 7. Da fare, in ordine
 
-### Subito (blocca tutto il resto)
-- [ ] Installare Rust + MSVC Build Tools
-- [ ] `cargo test` → sistemare gli errori di compilazione
-- [ ] `npm run dev` → primo avvio reale, verificare: onboarding, creazione
-      progetto → ambiente → applicazione → link, apertura con conferma critical,
-      Ctrl+Space, Ctrl+Shift+L, tray, chiusura nella tray
-- [ ] `git init` + primo commit (il `.gitignore` è già pronto)
+### Subito
+- [x] ~~Installare Rust + MSVC Build Tools~~ (Rust 1.98.1, ma **non è nel PATH
+      delle shell nuove**: usare `$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"`)
+- [x] ~~`cargo test`~~ — 50/50 verdi
+- [x] ~~Primo avvio reale~~ — onboarding, creazione della struttura, database OK
+- [ ] **Verificare i flussi non ancora provati**: apertura di un link con
+      conferma `critical`, "Apri tutto" con elementi protetti, Ctrl+Space,
+      Ctrl+Shift+L, tray, chiusura nella tray, export/import JSON
+- [ ] **Provare a mano quanto fatto l'11 settembre** — compila e i test
+      passano, ma nessuna di queste cose è mai stata vista girare nell'app:
+      - eliminazione di un profilo (anche di quello attivo, e stando sulla
+        pagina di un suo contenitore: deve tornare alla dashboard);
+      - drag & drop dell'albero: le tre fasce, un ambiente spostato fra due
+        progetti, un gruppo da un progetto a un workspace, l'apertura
+        automatica di un ramo chiuso, lo scorrimento della sidebar durante il
+        trascinamento, il click che *non* deve navigare dopo un rilascio;
+      - dashboard: "Personalizza", trascinamento dei widget, righe, larghezza
+        piena (solo a finestra larga, `xl`), nascondi/rimetti, i 5 widget
+        nuovi (workspace rapidi, calendari, progetti, note, tag → palette
+        con la query già scritta).
+- [ ] Ripulire i due ambienti duplicati rimasti nel database (ora la
+      cancellazione chiede conferma e mostra le conseguenze)
+- [x] ~~`git init` + primo commit~~
 
 ### Fase 4 proposta
-- [ ] **Profili come contesti di lavoro veri** — ⚠️ *proposta in sospeso, mai
-      approvata*: oggi il profilo separa solo i dati; potrebbe portarsi dietro
-      sfondo, scorciatoia e lingua, così passare da "Lavoro" a "Personale"
-      cambia visibilmente il clima dell'app. Va deciso.
-- [ ] Lo **switcher di profilo in sidebar è decorativo**: il pulsante c'è ma non
-      apre nulla. Serve il menu per creare/rinominare/cambiare profilo.
-- [ ] Drag & drop dell'**albero** (oggi funziona solo sulle applicazioni dentro
-      un contenitore; `move_container` lato Rust esiste già ed è pronto)
-- [ ] Dashboard con **widget riordinabili** e configurabili (la tabella
-      `dashboard_widgets` esiste ed è popolata dal seed, ma la UI ignora ancora
-      la configurazione)
-- [ ] Conferma di **cancellazione con impatto**: `container_delete_impact`
-      esiste e restituisce i numeri veri, ma la UI cancella senza chiedere
+- [x] ~~Profili come contesti di lavoro veri~~ — fatto con l'overlay
+      `profile_settings`. Le due scorciatoie globali restano globali per
+      necessità (una sola registrazione nell'OS per processo).
+- [x] ~~Switcher di profilo in sidebar~~ — crea, rinomina, cambia profilo.
+- [x] ~~Eliminazione di un profilo~~ — dall'icona cestino nello switcher, con
+      conferma che mostra contenitori, applicazioni, link e workspace rapidi
+      che spariscono. L'ultimo profilo non si elimina (l'azione non compare e
+      Rust la rifiuta). Eliminando quello attivo si ricade sul primo rimasto,
+      nella stessa transazione, e la conferma lo annuncia.
+- [ ] Eventuale **scorciatoia di attivazione per profilo** (`Ctrl+Alt+1/2/3`):
+      è la lettura sensata di "scorciatoia per profilo", ma è una feature a sé.
+- [x] ~~Drag & drop dell'**albero**~~ — ogni riga ha tre fasce (prima /
+      dentro / dopo); le fasce vietate dalle regole di annidamento si spengono,
+      quindi a schermo non si promette mai un rilascio che Rust rifiuterebbe.
+      Un solo contesto per Progetti e Workspace (un gruppo può passare
+      dall'uno all'altro), ramo chiuso che si apre sostando, spostamento
+      ottimistico. Logica pura in `navigator/treeDrop.ts` (9 test);
+      `move_node` ora rifiuta anche un padre di un altro profilo (3 test).
+- [x] ~~Dashboard con **widget riordinabili** e configurabili~~ — la
+      dashboard si disegna da `dashboard_widgets`. **Un widget per tipo e per
+      profilo**: "aggiungere" = renderlo visibile, così la configurazione
+      sopravvive e non ci sono doppioni. `widgets::ensure_all` crea al volo i
+      tipi mancanti (profili nuovi o ripristinati, tipi futuri) senza
+      migrazioni. "Personalizza" permette di trascinare, nascondere,
+      rimettere, scegliere le righe (3/6/9/12) e la larghezza piena. Resi
+      tutti e 7 i tipi dello schema; nuove query `calendar_links` e
+      `recent_notes`. La config passa sempre da `sanitize_config` (chiavi
+      ammesse per tipo, valori nel dominio).
 - [ ] `ts-rs` per generare i tipi TS dalle struct Rust ed eliminare il drift
 - [ ] Screenshot nel README (`docs/screenshots/` è vuota)
 - [ ] Primo tag `v0.1.0` → la pipeline di release è già scritta e produce
       `.exe` NSIS + `.msi`
+
+### Sessione dell'11 settembre, in breve
+- `scripts/check-sql.mjs` applicava solo la migrazione 0001 e falliva sulla
+  0002: ora applica tutte le migrazioni in ordine.
+- Il dialogo di cancellazione dei contenitori mostrava etichette sbagliate
+  ("Preferiti" per le applicazioni): ora usa le chiavi `impact.*`.
+- `openPalette` ora accetta una query iniziale; il pulsante di ricerca in
+  sidebar la chiamava con l'evento del click, corretto.
+- I drag & drop (albero e widget) sono **solo mouse**: nessun supporto da
+  tastiera, come per le card delle applicazioni.
+- `dataStore.error` non viene mostrato da nessuna parte: un rifiuto del
+  backend si vede solo perché lo stato ottimistico torna indietro.
 
 ### Debiti noti, non urgenti
 - La modalità "trasparenza di sistema" (Acrylic nativo) è presente come
@@ -175,6 +239,9 @@ Sono la ragione per cui il progetto esiste. Valgono anche per chi riprende.
   ancora il ritardo globale delle impostazioni.
 - `reorder_bundle_links` esiste lato Rust, ma la UI dei workspace non ha
   ancora il drag & drop.
+- La disposizione dei widget **non è nell'export JSON**: dopo un ripristino
+  la dashboard riparte dai widget di default (`ensure_all` la ricrea, quindi
+  niente si rompe, ma la personalizzazione si perde).
 
 ---
 
@@ -183,7 +250,7 @@ Sono la ragione per cui il progetto esiste. Valgono anche per chi riprende.
 ```bash
 npm run lint          # ESLint
 npm run typecheck     # TypeScript strict
-npm run test          # Vitest + validazione delle 156 query SQL
+npm run test          # Vitest + validazione delle query SQL (190)
 npm run check:sql     # solo la validazione SQL (utile senza toolchain Rust)
 npm run icons         # rigenera logo e set di icone
 npm run build         # installer .exe e .msi

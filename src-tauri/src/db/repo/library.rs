@@ -10,7 +10,7 @@ use anyhow::{anyhow, Result};
 use rusqlite::{params, Connection, Row};
 
 use crate::db::seed::new_id;
-use crate::domain::{Note, Tag};
+use crate::domain::{Note, NoteInContext, Tag};
 
 /* -------------------------------------------------------------------- tag */
 
@@ -31,7 +31,12 @@ pub fn list_tags(conn: &Connection, profile_id: &str) -> Result<Vec<Tag>> {
 
 /// Crea il tag se non esiste, altrimenti restituisce quello esistente.
 /// L'utente scrive un nome, non gestisce un'anagrafica di tag.
-pub fn ensure_tag(conn: &Connection, profile_id: &str, name: &str, color: Option<&str>) -> Result<Tag> {
+pub fn ensure_tag(
+    conn: &Connection,
+    profile_id: &str,
+    name: &str,
+    color: Option<&str>,
+) -> Result<Tag> {
     let name = name.trim();
     if name.is_empty() {
         return Err(anyhow!("il nome del tag non puo' essere vuoto"));
@@ -147,6 +152,42 @@ pub fn set_note(
     get_note(conn, entity_type, entity_id)
 }
 
+/// Le note non vuote del profilo, dalla più recente: alimentano il widget
+/// "Note". Ognuna porta il nome di ciò che annota e dove ritrovarla.
+pub fn recent_notes(conn: &Connection, profile_id: &str, limit: u32) -> Result<Vec<NoteInContext>> {
+    // La relazione è polimorfica: si risolve un tipo di entità alla volta, e
+    // la condizione sul profilo filtra via anche eventuali orfani.
+    let mut statement = conn.prepare(
+        "SELECT n.*, owner.title, owner.container_id
+           FROM notes n
+           JOIN (
+             SELECT 'container' AS entity_type, id AS entity_id, name AS title, id AS container_id
+               FROM containers WHERE profile_id = ?1
+             UNION ALL
+             SELECT 'application', id, name, container_id
+               FROM applications WHERE profile_id = ?1
+             UNION ALL
+             SELECT 'link', l.id, a.name || ' › ' || l.name, a.container_id
+               FROM links l JOIN applications a ON a.id = l.application_id
+              WHERE a.profile_id = ?1
+             UNION ALL
+             SELECT 'profile', id, name, NULL
+               FROM profiles WHERE id = ?1
+           ) owner ON owner.entity_type = n.entity_type AND owner.entity_id = n.entity_id
+          WHERE trim(n.content) <> ''
+          ORDER BY n.updated_at DESC, n.id
+          LIMIT ?2",
+    )?;
+    let rows = statement.query_map(params![profile_id, limit], |row| {
+        Ok(NoteInContext {
+            note: map_note(row)?,
+            title: row.get("title")?,
+            container_id: row.get("container_id")?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
 /// Note e tag di entità ormai cancellate: le foreign key non possono coprire
 /// una relazione polimorfica, quindi ripuliamo noi all'avvio.
 pub fn prune_orphans(conn: &Connection) -> Result<usize> {
@@ -210,9 +251,22 @@ mod tests {
     fn setting_tags_replaces_the_whole_set() {
         let (conn, profile) = fixture();
 
-        set_entity_tags(&conn, &profile, "container", "c1", &["a".into(), "b".into()]).unwrap();
-        let after = set_entity_tags(&conn, &profile, "container", "c1", &["b".into(), "c".into()])
-            .unwrap();
+        set_entity_tags(
+            &conn,
+            &profile,
+            "container",
+            "c1",
+            &["a".into(), "b".into()],
+        )
+        .unwrap();
+        let after = set_entity_tags(
+            &conn,
+            &profile,
+            "container",
+            "c1",
+            &["b".into(), "c".into()],
+        )
+        .unwrap();
 
         let names: Vec<_> = after.iter().map(|tag| tag.name.as_str()).collect();
         assert_eq!(names, vec!["b", "c"]);
@@ -258,9 +312,54 @@ mod tests {
 
         set_note(&conn, "container", "c1", "nota").unwrap();
         set_entity_tags(&conn, &profile, "container", "c1", &["x".into()]).unwrap();
-        conn.execute("DELETE FROM containers WHERE id = 'c1'", []).unwrap();
+        conn.execute("DELETE FROM containers WHERE id = 'c1'", [])
+            .unwrap();
 
         assert_eq!(prune_orphans(&conn).unwrap(), 2);
         assert!(get_note(&conn, "container", "c1").unwrap().is_none());
+    }
+
+    #[test]
+    fn recent_notes_resolve_what_they_annotate() {
+        let (conn, profile) = fixture();
+        conn.execute_batch(&format!(
+            "INSERT INTO applications (id, profile_id, container_id, name) VALUES ('a1', '{profile}', 'c1', 'Camunda');
+             INSERT INTO links (id, application_id, name, url) VALUES ('l1', 'a1', 'Admin', 'https://a.example');
+             INSERT INTO notes (id, entity_type, entity_id, content, updated_at) VALUES
+               ('n1', 'container',   'c1',        'progetto', '2026-01-01 10:00:00'),
+               ('n2', 'link',        'l1',        'password nel vault', '2026-01-03 10:00:00'),
+               ('n3', 'profile',     '{profile}', 'del profilo', '2026-01-02 10:00:00'),
+               ('n4', 'application', 'a1',        '   ', '2026-01-04 10:00:00'),
+               ('n5', 'container',   'altrove',   'orfana', '2026-01-05 10:00:00');"
+        ))
+        .unwrap();
+
+        let profile_name: String = conn
+            .query_row("SELECT name FROM profiles WHERE id = ?1", [&profile], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        let notes = recent_notes(&conn, &profile, 10).unwrap();
+        let summary: Vec<(&str, &str, Option<&str>)> = notes
+            .iter()
+            .map(|n| {
+                (
+                    n.note.id.as_str(),
+                    n.title.as_str(),
+                    n.container_id.as_deref(),
+                )
+            })
+            .collect();
+
+        // La più recente prima; vuote e orfane escluse.
+        assert_eq!(
+            summary,
+            [
+                ("n2", "Camunda › Admin", Some("c1")),
+                ("n3", profile_name.as_str(), None),
+                ("n1", "ACME", Some("c1")),
+            ]
+        );
+        assert_eq!(recent_notes(&conn, &profile, 1).unwrap().len(), 1);
     }
 }

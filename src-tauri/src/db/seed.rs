@@ -10,6 +10,7 @@ use anyhow::Result;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
 
+use crate::db::repo::widgets;
 use crate::domain::AppSettings;
 
 /// I prompt built-in contengono CHIAVI i18n: il frontend le risolve nella
@@ -19,8 +20,6 @@ const BUILTIN_PROMPTS: [(&str, &str, &str); 3] = [
     ("danger", "danger.builtin.danger", "Danger"),
     ("critical", "danger.builtin.critical", "Critical"),
 ];
-
-const DEFAULT_WIDGETS: [&str; 4] = ["favorites", "recents", "quick_workspaces", "calendars"];
 
 pub fn new_id() -> String {
     Uuid::now_v7().to_string()
@@ -40,7 +39,11 @@ pub fn ensure_seed(conn: &mut Connection, system_locale: &str) -> Result<()> {
 
     let language = normalize_language(system_locale);
     let profile_id = new_id();
-    let profile_name = if language == "it" { "Personale" } else { "Personal" };
+    let profile_name = if language == "it" {
+        "Personale"
+    } else {
+        "Personal"
+    };
 
     let tx = conn.transaction()?;
 
@@ -67,13 +70,7 @@ pub fn ensure_seed(conn: &mut Connection, system_locale: &str) -> Result<()> {
         )?;
     }
 
-    for (index, kind) in DEFAULT_WIDGETS.iter().enumerate() {
-        tx.execute(
-            "INSERT INTO dashboard_widgets (id, profile_id, kind, sort_order)
-             VALUES (?1, ?2, ?3, ?4)",
-            params![new_id(), profile_id, kind, (index as f64 + 1.0) * 1000.0],
-        )?;
-    }
+    widgets::ensure_all(&tx, &profile_id)?;
 
     let settings = AppSettings {
         language: language.to_string(),
@@ -131,6 +128,126 @@ pub fn read_settings(conn: &Connection) -> Result<AppSettings> {
     Ok(serde_json::from_value(serde_json::Value::Object(object))?)
 }
 
+/* ==================== impostazioni per profilo (overlay) ================== */
+
+/// Le uniche chiavi che un profilo puo' sovrascrivere.
+///
+/// Fuori da questo elenco restano deliberatamente:
+///  * le due scorciatoie globali — sono registrate nell'OS da un solo processo,
+///    e lo stesso tasto non puo' significare cose diverse a seconda del profilo
+///    attivo dentro l'applicazione;
+///  * avvio automatico, avvio minimizzato e chiusura nella tray — riguardano il
+///    ciclo di vita dell'applicazione, non il contesto di lavoro;
+///  * `activeProfileId`, che per definizione e' globale.
+pub const PROFILE_SCOPED_KEYS: [&str; 6] = [
+    "theme",
+    "language",
+    "backgroundId",
+    "overlayOpacity",
+    "openDelayMs",
+    "staleLinkDays",
+];
+
+pub fn is_profile_scoped(key: &str) -> bool {
+    PROFILE_SCOPED_KEYS.contains(&key)
+}
+
+/// Chiavi che questo profilo sovrascrive: servono alla UI per mostrare quali
+/// impostazioni sono "solo per questo profilo".
+pub fn read_profile_overrides(conn: &Connection, profile_id: &str) -> Result<Vec<String>> {
+    let mut statement =
+        conn.prepare("SELECT key FROM profile_settings WHERE profile_id = ?1 ORDER BY key")?;
+    let rows = statement.query_map([profile_id], |row| row.get::<_, String>(0))?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// Impostazioni effettive: quelle globali, sovrascritte da quelle del profilo.
+///
+/// Un profilo senza override si comporta esattamente come prima che questa
+/// funzionalita' esistesse — ed e' lo stato di partenza di ogni profilo.
+pub fn read_effective_settings(conn: &Connection, profile_id: &str) -> Result<AppSettings> {
+    let mut object = settings_object(conn, "SELECT key, value FROM settings", None)?;
+
+    let overrides = settings_object(
+        conn,
+        "SELECT key, value FROM profile_settings WHERE profile_id = ?1",
+        Some(profile_id),
+    )?;
+
+    for (key, value) in overrides {
+        // Una chiave non piu' sovrascrivibile (per esempio dopo un
+        // aggiornamento che la toglie dall'elenco) viene semplicemente ignorata.
+        if is_profile_scoped(&key) {
+            object.insert(key, value);
+        }
+    }
+
+    Ok(serde_json::from_value(serde_json::Value::Object(object))?)
+}
+
+/// Imposta un override per il profilo. `None` lo rimuove: il profilo torna a
+/// seguire il valore globale.
+pub fn write_profile_setting(
+    conn: &Connection,
+    profile_id: &str,
+    key: &str,
+    value: Option<&str>,
+) -> Result<()> {
+    if !is_profile_scoped(key) {
+        return Err(anyhow::anyhow!(
+            "l'impostazione '{key}' non puo' variare per profilo"
+        ));
+    }
+
+    match value {
+        None => {
+            conn.execute(
+                "DELETE FROM profile_settings WHERE profile_id = ?1 AND key = ?2",
+                params![profile_id, key],
+            )?;
+        }
+        Some(value) => {
+            conn.execute(
+                "INSERT INTO profile_settings (profile_id, key, value, updated_at)
+                 VALUES (?1, ?2, ?3, datetime('now'))
+                 ON CONFLICT(profile_id, key)
+                   DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                params![profile_id, key, value],
+            )?;
+        }
+    }
+    Ok(())
+}
+
+/// Legge una tabella chiave/valore in un oggetto JSON.
+fn settings_object(
+    conn: &Connection,
+    sql: &str,
+    parameter: Option<&str>,
+) -> Result<serde_json::Map<String, serde_json::Value>> {
+    let mut statement = conn.prepare(sql)?;
+    let mapper = |row: &rusqlite::Row<'_>| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?));
+
+    let rows: Vec<(String, String)> = match parameter {
+        Some(value) => statement
+            .query_map([value], mapper)?
+            .collect::<rusqlite::Result<Vec<_>>>()?,
+        None => statement
+            .query_map([], mapper)?
+            .collect::<rusqlite::Result<Vec<_>>>()?,
+    };
+
+    let mut object = serde_json::Map::new();
+    for (key, raw) in rows {
+        // Un valore illeggibile non deve far crashare l'avvio: viene ignorato
+        // e la chiave ricade sul proprio default.
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&raw) {
+            object.insert(key, parsed);
+        }
+    }
+    Ok(object)
+}
+
 pub fn read_flag(conn: &Connection, key: &str) -> Result<bool> {
     let raw: Option<String> = conn
         .query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
@@ -162,6 +279,16 @@ mod tests {
     use super::*;
     use crate::db::migrator;
     use std::path::Path;
+
+    /// I valori dell'overlay sono JSON, come nella tabella `settings`.
+    const JSON_DARK: &str = "\"dark\"";
+    const JSON_LIGHT: &str = "\"light\"";
+    const JSON_IT: &str = "\"it\"";
+
+    fn first_profile(conn: &Connection) -> String {
+        conn.query_row("SELECT id FROM profiles LIMIT 1", [], |r| r.get(0))
+            .unwrap()
+    }
 
     fn migrated() -> Connection {
         let mut conn = Connection::open_in_memory().unwrap();
@@ -231,5 +358,120 @@ mod tests {
         let reloaded = read_settings(&conn).unwrap();
         assert_eq!(reloaded.theme, "dark");
         assert_eq!(reloaded.open_delay_ms, 400);
+    }
+
+    #[test]
+    fn a_profile_without_overrides_follows_the_global_settings() {
+        let mut conn = migrated();
+        ensure_seed(&mut conn, "en-US").unwrap();
+        let profile = first_profile(&conn);
+
+        let global = read_settings(&conn).unwrap();
+        let effective = read_effective_settings(&conn, &profile).unwrap();
+
+        assert_eq!(effective.theme, global.theme);
+        assert_eq!(effective.language, global.language);
+        assert!(read_profile_overrides(&conn, &profile).unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_override_wins_over_the_global_value() {
+        let mut conn = migrated();
+        ensure_seed(&mut conn, "en-US").unwrap();
+        let profile = first_profile(&conn);
+
+        write_profile_setting(&conn, &profile, "theme", Some(JSON_DARK)).unwrap();
+        write_profile_setting(&conn, &profile, "language", Some(JSON_IT)).unwrap();
+
+        let effective = read_effective_settings(&conn, &profile).unwrap();
+        assert_eq!(effective.theme, "dark");
+        assert_eq!(effective.language, "it");
+
+        // Le impostazioni globali non sono state toccate.
+        assert_eq!(read_settings(&conn).unwrap().theme, "system");
+        assert_eq!(
+            read_profile_overrides(&conn, &profile).unwrap(),
+            vec!["language".to_string(), "theme".to_string()]
+        );
+    }
+
+    /// Togliere un override deve far tornare il profilo al valore globale,
+    /// non lasciarlo con l'ultimo valore impostato.
+    #[test]
+    fn removing_an_override_falls_back_to_global() {
+        let mut conn = migrated();
+        ensure_seed(&mut conn, "en-US").unwrap();
+        let profile = first_profile(&conn);
+
+        write_profile_setting(&conn, &profile, "theme", Some(JSON_DARK)).unwrap();
+        write_profile_setting(&conn, &profile, "theme", None).unwrap();
+
+        assert_eq!(
+            read_effective_settings(&conn, &profile).unwrap().theme,
+            "system"
+        );
+        assert!(read_profile_overrides(&conn, &profile).unwrap().is_empty());
+    }
+
+    /// Le scorciatoie globali sono registrate nell'OS una volta sola: non
+    /// possono dipendere dal profilo attivo, e il backend lo impedisce.
+    #[test]
+    fn global_only_settings_cannot_be_overridden() {
+        let mut conn = migrated();
+        ensure_seed(&mut conn, "en-US").unwrap();
+        let profile = first_profile(&conn);
+
+        for key in [
+            "globalShortcut",
+            "captureShortcut",
+            "autostart",
+            "activeProfileId",
+        ] {
+            assert!(
+                write_profile_setting(&conn, &profile, key, Some(JSON_DARK)).is_err(),
+                "'{key}' non dovrebbe essere sovrascrivibile per profilo"
+            );
+        }
+    }
+
+    /// Due profili devono poter avere aspetti diversi nello stesso momento.
+    #[test]
+    fn two_profiles_keep_separate_appearances() {
+        let mut conn = migrated();
+        ensure_seed(&mut conn, "en-US").unwrap();
+        let work = first_profile(&conn);
+
+        conn.execute(
+            "INSERT INTO profiles (id, name, sort_order) VALUES ('personal', 'Personale', 2000)",
+            [],
+        )
+        .unwrap();
+
+        write_profile_setting(&conn, &work, "theme", Some(JSON_DARK)).unwrap();
+        write_profile_setting(&conn, "personal", "theme", Some(JSON_LIGHT)).unwrap();
+
+        assert_eq!(read_effective_settings(&conn, &work).unwrap().theme, "dark");
+        assert_eq!(
+            read_effective_settings(&conn, "personal").unwrap().theme,
+            "light"
+        );
+    }
+
+    /// Cancellare un profilo non deve lasciare i suoi override nel database.
+    #[test]
+    fn overrides_die_with_their_profile() {
+        let mut conn = migrated();
+        conn.pragma_update(None, "foreign_keys", true).unwrap();
+        ensure_seed(&mut conn, "en-US").unwrap();
+        let profile = first_profile(&conn);
+
+        write_profile_setting(&conn, &profile, "theme", Some(JSON_DARK)).unwrap();
+        conn.execute("DELETE FROM profiles WHERE id = ?1", [&profile])
+            .unwrap();
+
+        let left: i64 = conn
+            .query_row("SELECT COUNT(*) FROM profile_settings", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(left, 0);
     }
 }

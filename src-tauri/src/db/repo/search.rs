@@ -189,7 +189,9 @@ mod tests {
 
     #[test]
     fn scores_prefer_exact_then_prefix_then_substring() {
-        assert!(text_score("camunda", "Camunda", 1.0) > text_score("camunda", "Camunda Admin", 1.0));
+        assert!(
+            text_score("camunda", "Camunda", 1.0) > text_score("camunda", "Camunda Admin", 1.0)
+        );
         assert!(
             text_score("camunda", "Camunda Admin", 1.0) > text_score("camunda", "Old Camunda", 1.0)
         );
@@ -198,9 +200,6 @@ mod tests {
 
     #[test]
     fn weight_scales_the_score() {
-        assert_eq!(
-            text_score("x", "x", 0.5) * 2.0,
-            text_score("x", "x", 1.0)
-        );
+        assert_eq!(text_score("x", "x", 0.5) * 2.0, text_score("x", "x", 1.0));
     }
 }

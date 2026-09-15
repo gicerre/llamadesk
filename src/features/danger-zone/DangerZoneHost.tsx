@@ -33,7 +33,7 @@ export function DangerZoneHost() {
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1, transition: springBouncy }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            className="glass-panel-strong fixed bottom-6 left-1/2 z-50 flex max-w-lg -translate-x-1/2 items-center gap-3 rounded-2xl border-red-500/30 px-4 py-3"
+            className="glass-popover fixed bottom-6 left-1/2 z-50 flex max-w-lg -translate-x-1/2 items-center gap-3 rounded-2xl border-red-500/30 px-4 py-3"
           >
             <span className="text-sm text-red-500 dark:text-red-400">{error}</span>
             <button

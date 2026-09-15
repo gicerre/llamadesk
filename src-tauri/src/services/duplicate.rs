@@ -83,7 +83,12 @@ fn clone_application(
     name: &str,
 ) -> Result<String> {
     let id = new_id();
-    let sort_order = ordering::append(conn, items::APPLICATIONS, "container_id", Some(container_id))?;
+    let sort_order = ordering::append(
+        conn,
+        items::APPLICATIONS,
+        "container_id",
+        Some(container_id),
+    )?;
 
     conn.execute(
         "INSERT INTO applications

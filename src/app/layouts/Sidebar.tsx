@@ -6,15 +6,16 @@ import { LayoutDashboard, Search, Settings, Zap } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { LAYOUT_IDS, springSnappy } from '@/lib/motion';
 import { useUiStore } from '@/stores/uiStore';
-import { useActiveProfile, useSessionStore } from '@/stores/sessionStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import { useDataStore } from '@/stores/dataStore';
+import { NavigatorDnd } from '@/features/navigator/NavigatorDnd';
 import { NavigatorTree } from '@/features/navigator/NavigatorTree';
+import { ProfileSwitcher } from '@/features/profiles/ProfileSwitcher';
 
 export function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const openPalette = useUiStore((state) => state.openPalette);
-  const profile = useActiveProfile();
   const activeProfileId = useSessionStore((state) => state.activeProfileId);
 
   const loadTree = useDataStore((state) => state.loadTree);
@@ -30,31 +31,12 @@ export function Sidebar() {
 
   return (
     <aside className="glass-panel glass-hairline m-3 mt-0 flex w-64 shrink-0 flex-col gap-3 rounded-3xl p-3">
-      {/* Profilo attivo */}
-      <button
-        type="button"
-        className={cn(
-          'no-drag flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left',
-          'transition-colors duration-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]',
-        )}
-      >
-        <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400/80 to-cyan-400/80 text-base">
-          {profile?.icon ?? '\u{1F999}'}
-        </span>
-        <span className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100">
-            {profile?.name ?? '—'}
-          </span>
-          <span className="text-[0.6875rem] text-zinc-500 dark:text-zinc-500">
-            {t('nav.profile')}
-          </span>
-        </span>
-      </button>
+      <ProfileSwitcher />
 
       {/* Scorciatoia alla ricerca globale */}
       <button
         type="button"
-        onClick={openPalette}
+        onClick={() => openPalette()}
         className={cn(
           'no-drag flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm',
           'bg-black/[0.04] text-zinc-500 dark:bg-white/[0.05] dark:text-zinc-400',
@@ -107,8 +89,10 @@ export function Sidebar() {
       </NavLink>
 
       <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
-        <NavigatorTree rootKind="project" label={t('nav.projects')} />
-        <NavigatorTree rootKind="workspace" label={t('nav.workspaces')} />
+        <NavigatorDnd>
+          <NavigatorTree rootKind="project" label={t('nav.projects')} />
+          <NavigatorTree rootKind="workspace" label={t('nav.workspaces')} />
+        </NavigatorDnd>
       </div>
 
       <NavLink

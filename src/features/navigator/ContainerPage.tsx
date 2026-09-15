@@ -20,9 +20,11 @@ import { useOpenStore } from '@/features/danger-zone/openStore';
 import { DangerLevelPicker } from '@/features/danger-zone/DangerLevelPicker';
 import { ApplicationCard } from '@/features/applications/ApplicationCard';
 import { ApplicationEditor } from '@/features/applications/ApplicationEditor';
+import { ApplicationCreateDialog } from '@/features/applications/ApplicationCreateDialog';
 import { NotePanel } from '@/features/notes/NotePanel';
 import { TagInput } from '@/features/tags/TagInput';
 import { Breadcrumb } from './Breadcrumb';
+import { DeleteContainerDialog } from './DeleteContainerDialog';
 import { CHILD_KINDS } from './hierarchy';
 import type { ApplicationWithLinks, ContainerKind, DangerLevel } from '@/types/domain';
 import { INHERIT } from '@/types/domain';
@@ -50,7 +52,6 @@ export function ContainerPage() {
   const updateContainer = useDataStore((state) => state.updateContainer);
   const duplicateContainer = useDataStore((state) => state.duplicateContainer);
   const deleteContainer = useDataStore((state) => state.deleteContainer);
-  const createApplication = useDataStore((state) => state.createApplication);
   const reorderApplications = useDataStore((state) => state.reorderApplications);
 
   const requestOpenMany = useOpenStore((state) => state.requestOpenMany);
@@ -58,6 +59,7 @@ export function ContainerPage() {
 
   const [dialog, setDialog] = useState<Dialog>(null);
   const [newApplicationOpen, setNewApplicationOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   // L'ordine locale esiste solo fra il rilascio del drag e la ricarica dei
   // dati: appena il database conferma, torna a comandare lui.
@@ -173,10 +175,7 @@ export function ContainerPage() {
             variant="ghost"
             size="icon"
             title={t('common.delete')}
-            onClick={() => {
-              void deleteContainer(container.id);
-              navigate('/');
-            }}
+            onClick={() => setConfirmingDelete(true)}
           >
             <Trash2 strokeWidth={1.75} className="size-4" />
           </Button>
@@ -264,22 +263,21 @@ export function ContainerPage() {
       )}
 
       {/* Dialoghi */}
-      <PromptDialog
+      <ApplicationCreateDialog
         open={newApplicationOpen}
-        title={t('navigator.addApplication')}
-        label={t('editor.name')}
-        placeholder="Camunda"
-        onCancel={() => setNewApplicationOpen(false)}
-        onConfirm={(name) => {
-          void createApplication(container.id, name);
-          setNewApplicationOpen(false);
-        }}
+        containerId={container.id}
+        onClose={() => setNewApplicationOpen(false)}
       />
 
       <PromptDialog
         open={dialog?.kind === 'child'}
         title={dialog?.kind === 'child' ? t(`navigator.new.${dialog.childKind}`) : ''}
         label={t('editor.name')}
+        warn={(value) =>
+          view.children.some((child) => child.name.toLowerCase() === value.toLowerCase())
+            ? t('navigator.duplicateName')
+            : null
+        }
         onCancel={() => setDialog(null)}
         onConfirm={(name) => {
           if (dialog?.kind === 'child') {
@@ -302,6 +300,19 @@ export function ContainerPage() {
       />
 
       <ApplicationEditor application={editing} onClose={() => setEditingId(null)} />
+
+      <DeleteContainerDialog
+        container={confirmingDelete ? container : null}
+        onCancel={() => setConfirmingDelete(false)}
+        onConfirm={() => {
+          setConfirmingDelete(false);
+          void deleteContainer(container.id);
+          // Risaliamo al padre invece che alla dashboard: dopo aver eliminato
+          // un ambiente ci si aspetta di restare nel progetto.
+          const parent = view.breadcrumb.at(-2);
+          navigate(parent ? `/c/${parent.id}` : '/');
+        }}
+      />
     </motion.div>
   );
 }

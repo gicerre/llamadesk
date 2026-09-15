@@ -26,9 +26,6 @@ pub const TOGGLE_PALETTE_EVENT: &str = "llamadesk://toggle-palette";
 /// Evento della cattura rapida: porta con sé l'URL trovato negli appunti.
 pub const QUICK_CAPTURE_EVENT: &str = "llamadesk://quick-capture";
 
-pub const DEFAULT_PALETTE: &str = "CmdOrCtrl+Space";
-pub const DEFAULT_CAPTURE: &str = "CmdOrCtrl+Shift+L";
-
 /// Quali acceleratori sono attualmente registrati, e con quale esito.
 #[derive(Default)]
 pub struct Registry {
@@ -119,7 +116,13 @@ pub fn apply_one(app: &AppHandle, kind: Kind, accelerator: &str) -> ShortcutStat
     }
 
     app.try_state::<AppState>()
-        .and_then(|state| state.shortcuts.lock().ok().map(|registry| registry.status(kind)))
+        .and_then(|state| {
+            state
+                .shortcuts
+                .lock()
+                .ok()
+                .map(|registry| registry.status(kind))
+        })
         .unwrap_or(ShortcutStatus {
             accelerator: accelerator.to_string(),
             registered: false,
@@ -164,19 +167,17 @@ fn register(app: &AppHandle, accelerator: &str) -> (Option<Shortcut>, ShortcutSt
 
 /// Smista la pressione sull'azione giusta.
 pub fn dispatch(app: &AppHandle, pressed: &Shortcut) {
-    let kind = app
-        .try_state::<AppState>()
-        .and_then(|state| {
-            state.shortcuts.lock().ok().and_then(|registry| {
-                if registry.palette.as_ref() == Some(pressed) {
-                    Some(Kind::Palette)
-                } else if registry.capture.as_ref() == Some(pressed) {
-                    Some(Kind::Capture)
-                } else {
-                    None
-                }
-            })
-        });
+    let kind = app.try_state::<AppState>().and_then(|state| {
+        state.shortcuts.lock().ok().and_then(|registry| {
+            if registry.palette.as_ref() == Some(pressed) {
+                Some(Kind::Palette)
+            } else if registry.capture.as_ref() == Some(pressed) {
+                Some(Kind::Capture)
+            } else {
+                None
+            }
+        })
+    });
 
     match kind {
         Some(Kind::Palette) => summon(app),

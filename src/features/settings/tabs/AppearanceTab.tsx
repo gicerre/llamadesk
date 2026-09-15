@@ -14,6 +14,7 @@ import {
   useBackgroundStore,
 } from '@/features/backgrounds/backgroundStore';
 import { SettingRow } from '../SettingRow';
+import { ScopeToggle } from '../ScopeToggle';
 import type { ThemeMode } from '@/types/domain';
 
 const THEMES: { value: ThemeMode; icon: typeof Sun; labelKey: string }[] = [
@@ -75,7 +76,11 @@ export function AppearanceTab() {
   return (
     <div className="flex flex-col gap-4">
       <GlassPanel radius="3xl" className="divide-y divide-black/5 dark:divide-white/[0.06]">
-        <SettingRow title={t('settings.theme')} description={t('settings.themeDesc')}>
+        <SettingRow
+          title={t('settings.theme')}
+          description={t('settings.themeDesc')}
+          scopeKey="theme"
+        >
           <div className="relative flex gap-1 rounded-full bg-black/[0.05] p-1 dark:bg-white/[0.06]">
             {THEMES.map(({ value, icon: Icon, labelKey }) => {
               const isActive = settings.theme === value;
@@ -109,6 +114,7 @@ export function AppearanceTab() {
         <SettingRow
           title={t('settings.overlayOpacity')}
           description={t('settings.overlayOpacityDesc')}
+          scopeKey="overlayOpacity"
         >
           <input
             type="range"
@@ -131,10 +137,13 @@ export function AppearanceTab() {
             </span>
             <span className="text-xs text-zinc-500">{t('appearance.wallpaperHint')}</span>
           </div>
-          <Button size="sm" onClick={() => void importImage()} isLoading={busy}>
-            <ImagePlus strokeWidth={1.75} className="size-3.5" />
-            {t('appearance.importImage')}
-          </Button>
+          <div className="flex items-center gap-3">
+            <ScopeToggle settingKey="backgroundId" />
+            <Button size="sm" onClick={() => void importImage()} isLoading={busy}>
+              <ImagePlus strokeWidth={1.75} className="size-3.5" />
+              {t('appearance.importImage')}
+            </Button>
+          </div>
         </header>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

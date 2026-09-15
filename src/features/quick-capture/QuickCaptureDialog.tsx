@@ -26,7 +26,6 @@ export function QuickCaptureDialog() {
   const containers = useDataStore((state) => state.containers);
   const createApplication = useDataStore((state) => state.createApplication);
   const createLink = useDataStore((state) => state.createLink);
-  const loadView = useDataStore((state) => state.loadView);
 
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState('');
@@ -68,15 +67,7 @@ export function QuickCaptureDialog() {
     if (!canSave || !targetId) return;
     setBusy(true);
     try {
-      await createApplication(targetId, name.trim());
-
-      // L'applicazione appena creata è l'ultima del contenitore: la
-      // ritroviamo ricaricando la vista, così il link finisce nel posto giusto.
-      await loadView(targetId);
-      const created = useDataStore
-        .getState()
-        .view?.applications.find((application) => application.name === name.trim());
-
+      const created = await createApplication(targetId, name.trim());
       if (created) {
         await createLink(created.id, name.trim(), url.trim());
       }

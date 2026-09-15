@@ -21,6 +21,16 @@ pub struct Profile {
     pub updated_at: String,
 }
 
+/// Che cosa se ne va con un profilo: la conferma deve mostrare i numeri veri.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileDeleteImpact {
+    pub containers: i64,
+    pub applications: i64,
+    pub links: i64,
+    pub bundles: i64,
+}
+
 /// Impostazioni applicative. `#[serde(default)]` e' essenziale: una chiave
 /// mancante nel database (o introdotta da una versione futura) non deve mai
 /// impedire l'avvio, deve semplicemente ricadere sul default.
@@ -71,7 +81,13 @@ pub struct BootstrapPayload {
     pub db_path: String,
     pub system_locale: String,
     pub profiles: Vec<Profile>,
+    /// Risolto dal backend: un `activeProfileId` che punta a un profilo
+    /// cancellato ricade sul primo esistente.
+    pub active_profile_id: Option<String>,
+    /// Gia' effettive per il profilo attivo (globali + override).
     pub settings: AppSettings,
+    /// Chiavi che il profilo attivo sovrascrive.
+    pub profile_overrides: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -146,6 +162,18 @@ pub struct ApplicationWithLinks {
     #[serde(flatten)]
     pub application: Application,
     pub links: Vec<Link>,
+}
+
+/// Un link con il contesto che serve a riconoscerlo fuori dal suo
+/// contenitore: sulla dashboard "Calendario" da solo non dice di chi e'.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkInContext {
+    #[serde(flatten)]
+    pub link: Link,
+    pub application_name: String,
+    pub container_id: String,
+    pub container_name: String,
 }
 
 /// Un segmento del breadcrumb.
@@ -285,6 +313,32 @@ pub struct Note {
     pub entity_id: String,
     pub content: String,
     pub updated_at: String,
+}
+
+/// Una nota con il nome di cio' che annota e il contenitore in cui
+/// ritrovarla (`None` per le note del profilo, che non vivono nell'albero).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteInContext {
+    #[serde(flatten)]
+    pub note: Note,
+    pub title: String,
+    pub container_id: Option<String>,
+}
+
+/* ================================================= dashboard ============ */
+
+/// Un widget della dashboard. `config` e' JSON libero nello schema, ma passa
+/// sempre da `widgets::sanitize_config` prima di essere salvato.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DashboardWidget {
+    pub id: String,
+    pub profile_id: String,
+    pub kind: String,
+    pub config: serde_json::Value,
+    pub is_visible: bool,
+    pub sort_order: f64,
 }
 
 /* ================================================== quick workspaces ==== */

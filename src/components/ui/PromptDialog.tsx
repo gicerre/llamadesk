@@ -11,6 +11,12 @@ export interface PromptDialogProps {
   placeholder?: string;
   initialValue?: string;
   confirmLabel?: string;
+  /**
+   * Avviso non bloccante mostrato sotto il campo. Serve per i casi "quasi
+   * certamente un errore, ma non vietato" — per esempio due ambienti con lo
+   * stesso nome sotto lo stesso progetto.
+   */
+  warn?: (value: string) => string | null;
   onConfirm: (value: string) => void;
   onCancel: () => void;
 }
@@ -25,6 +31,7 @@ function PromptDialogContent({
   placeholder,
   initialValue = '',
   confirmLabel,
+  warn,
   onConfirm,
   onCancel,
 }: Omit<PromptDialogProps, 'open'>) {
@@ -39,6 +46,8 @@ function PromptDialogContent({
     }, 80);
     return () => window.clearTimeout(timer);
   }, []);
+
+  const warning = warn?.(value.trim()) ?? null;
 
   const confirm = () => {
     const trimmed = value.trim();
@@ -56,6 +65,7 @@ function PromptDialogContent({
         autoFocus
         value={value}
         label={label}
+        hint={warning ?? undefined}
         placeholder={placeholder}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={(event) => {

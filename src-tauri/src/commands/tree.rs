@@ -21,7 +21,10 @@ pub struct DeleteImpact {
 /// Tutti i nodi del profilo: la sidebar costruisce l'albero lato React, dove
 /// espansione e drag & drop sono gia' in memoria.
 #[tauri::command]
-pub fn list_containers(state: State<'_, AppState>, profile_id: String) -> Result<Vec<Container>, String> {
+pub fn list_containers(
+    state: State<'_, AppState>,
+    profile_id: String,
+) -> Result<Vec<Container>, String> {
     let conn = db(&state)?;
     containers::list_by_profile(&conn, &profile_id).map_err(fail)
 }
@@ -89,7 +92,11 @@ pub fn resolve_sibling_path(
     let relative: Vec<String> = chain[..environment_index]
         .iter()
         .rev()
-        .map(|node| node.slug.clone().unwrap_or_else(|| node.name.to_lowercase()))
+        .map(|node| {
+            node.slug
+                .clone()
+                .unwrap_or_else(|| node.name.to_lowercase())
+        })
         .collect();
 
     let mut current = target_environment_id.clone();
@@ -98,8 +105,7 @@ pub fn resolve_sibling_path(
         let children = containers::children(&conn, &profile_id, Some(&current)).map_err(fail)?;
 
         let matched = children.into_iter().find(|child| {
-            child.slug.as_deref() == Some(slug.as_str())
-                || containers::slugify(&child.name) == slug
+            child.slug.as_deref() == Some(slug.as_str()) || containers::slugify(&child.name) == slug
         });
 
         match matched {
