@@ -58,6 +58,7 @@ pub fn bootstrap(app: AppHandle, state: State<'_, AppState>) -> Result<Bootstrap
         active_profile_id: active,
         settings,
         profile_overrides: overrides,
+        window_material: state.window_material.to_string(),
     })
 }
 

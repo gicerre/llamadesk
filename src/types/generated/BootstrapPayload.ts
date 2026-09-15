@@ -10,4 +10,9 @@ activeProfileId: string | null,
 /**
  * Gia' effettive per il profilo attivo (globali + override).
  */
-settings: AppSettings, profileOverrides: Array<string>, };
+settings: AppSettings, profileOverrides: Array<string>, 
+/**
+ * `mica` (Windows 11) oppure `solid`: con `solid` l'interfaccia dipinge
+ * tinte opache anche dove altrimenti lascerebbe vedere il materiale.
+ */
+windowMaterial: string, };

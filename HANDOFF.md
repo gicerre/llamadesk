@@ -4,10 +4,11 @@
 > [`docs/REDESIGN.md`](docs/REDESIGN.md), che da ora prevale su questo file per
 > modello, UX e piano. Lo stato descritto qui sotto è la versione 1, congelata
 > nel commit `6f2a01d` con tag `legacy-v1`. Il lavoro nuovo avviene sul branch
-> `redesign`. **Fase 1 (modello dati) completata, non committata**: vedi
-> `docs/REDESIGN.md` § 13. Il frontend v1 non funziona più con il nuovo
-> backend finché la Fase 2 non lo riscrive. Prossimo passo: **Fase 2 — design
-> system e shell**.
+> `redesign`. **Fasi 1 (modello dati) e 2 (design system e shell)
+> completate**: vedi `docs/REDESIGN.md` § 13. `npm run dev` apre la nuova
+> interfaccia; `npm run dev:vite` la mostra nel browser con dati d'esempio.
+> Prossimo passo: **Fase 3 — contenuti** (Home completa, risorse, pannello di
+> dettaglio, creazione unica, drag & drop).
 
 > Documento di ripresa lavori. Aggiornato all'**11 settembre 2026**, fine
 > sessione: Fase 4 quasi completa (vedi § 7).

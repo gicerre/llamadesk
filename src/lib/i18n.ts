@@ -2,7 +2,8 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from '@/locales/en.json';
 import it from '@/locales/it.json';
-import type { Language } from '@/types/domain';
+
+export type Language = 'en' | 'it';
 
 export const SUPPORTED_LANGUAGES: readonly Language[] = ['en', 'it'] as const;
 export const DEFAULT_LANGUAGE: Language = 'en';
@@ -26,9 +27,10 @@ export function resolveLanguage(locale: string | null | undefined): Language {
   return SUPPORTED_LANGUAGES.includes(base as Language) ? (base as Language) : DEFAULT_LANGUAGE;
 }
 
-export async function setLanguage(language: Language): Promise<void> {
-  await i18n.changeLanguage(language);
-  document.documentElement.lang = language;
+export async function setLanguage(language: string): Promise<void> {
+  const resolved = resolveLanguage(language);
+  await i18n.changeLanguage(resolved);
+  document.documentElement.lang = resolved;
 }
 
 export default i18n;

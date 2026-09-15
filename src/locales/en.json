@@ -1,317 +1,239 @@
 {
-  "app": {
-    "name": "LlamaDesk",
-    "tagline": "Your links, your tools, your contexts — in order."
-  },
   "common": {
     "cancel": "Cancel",
-    "confirm": "Confirm",
-    "save": "Save",
-    "delete": "Delete",
-    "duplicate": "Duplicate",
-    "edit": "Edit",
-    "rename": "Rename",
     "close": "Close",
-    "search": "Search",
-    "clear": "Clear",
     "loading": "Loading…",
-    "copyUrl": "Copy URL",
-    "copied": "Copied",
-    "openAll": "Open all",
-    "back": "Back",
-    "add": "Add",
-    "none": "None",
-    "copySuffix": "(copy)"
-  },
-  "onboarding": {
-    "welcome": "Welcome to LlamaDesk",
-    "subtitle": "A local-first launcher for your links, tools and project contexts. No account, no cloud, no telemetry — your data never leaves this computer.",
-    "getStarted": "Get started",
-    "pillars": {
-      "local": "100% local",
-      "localDesc": "An SQLite file in your user folder. Nothing else.",
-      "private": "Zero telemetry",
-      "privateDesc": "No tracking, no analytics, no network calls.",
-      "yours": "Entirely yours",
-      "yoursDesc": "Empty on day one. You build the structure."
-    },
-    "profileReady": "Profile \"{{name}}\" is ready."
+    "retry": "Try again",
+    "undo": "Undo"
   },
   "nav": {
-    "dashboard": "Dashboard",
+    "home": "Home",
+    "favorites": "Favorites",
+    "recents": "Recent",
     "projects": "Projects",
-    "workspaces": "Workspaces",
-    "quickWorkspaces": "Quick workspaces",
     "settings": "Settings",
-    "search": "Search…",
-    "newProject": "New project",
-    "newWorkspace": "New workspace",
+    "noProjects": "No projects yet",
+    "expand": "Show subprojects of {{name}}",
+    "collapse": "Hide subprojects of {{name}}"
+  },
+  "shell": {
+    "sidebar": "Navigation",
+    "path": "Path",
+    "back": "Back",
+    "forward": "Forward",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "search": "Search or run an action",
+    "searchSoon": "Search is coming soon",
+    "siblings": "Items next to {{name}}",
+    "hiddenPath": "Middle levels of the path",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close"
+  },
+  "switcher": {
+    "label": "Workspace: {{name}}. Switch workspace",
+    "none": "No workspace",
+    "projects_one": "{{count}} project",
+    "projects_other": "{{count}} projects",
+    "workspaces": "Workspaces",
     "profile": "Profile"
   },
-  "dashboard": {
-    "title": "Dashboard",
-    "greeting": "Welcome back",
-    "empty": {
-      "title": "Your workspace is empty",
-      "description": "Start by creating your first project, or add an application with its links.",
-      "createProject": "Create project",
-      "addApplication": "Add application"
-    },
-    "widgets": {
-      "favorites": "Favorites",
-      "recents": "Recent",
-      "quickWorkspaces": "Quick workspaces",
-      "calendars": "Calendars",
-      "projects": "Projects",
-      "notes": "Notes",
-      "tags": "Tags",
-      "noFavorites": "Mark an application as favourite to find it here.",
-      "noRecents": "What you open will show up here.",
-      "noQuickWorkspaces": "Group the links you open together into a quick workspace.",
-      "noCalendars": "Add a link of type \"Calendar\" to an application to find it here.",
-      "noProjects": "No projects yet.",
-      "noNotes": "Notes written on projects, applications and links show up here.",
-      "noTags": "Tag your links to find them by topic."
-    },
-    "customise": "Customise",
-    "done": "Done",
-    "drag": "Drag to reorder",
-    "rows": "Rows to show",
-    "wide": "Full width",
-    "narrow": "Half width",
-    "hide": "Hide",
-    "show": "Add to the dashboard",
-    "hiddenTitle": "Hidden widgets",
-    "allHidden": "Every widget is hidden",
-    "allHiddenHint": "Customise the dashboard to bring back the ones you need.",
-    "linkCount_one": "{{count}} link",
-    "linkCount_other": "{{count}} links",
-    "childCount_one": "{{count}} item",
-    "childCount_other": "{{count}} items"
-  },
-  "settings": {
-    "title": "Settings",
-    "tabs": {
-      "general": "General",
-      "appearance": "Appearance",
-      "shortcuts": "Shortcuts",
-      "danger": "Danger Zone",
-      "data": "Data",
-      "about": "About"
-    },
-    "language": "Language",
-    "languageDesc": "Interface language.",
-    "theme": "Theme",
-    "themeDesc": "Follow the system or force a mode.",
-    "themeLight": "Light",
-    "themeDark": "Dark",
-    "themeSystem": "System",
-    "startMinimized": "Start minimized",
-    "startMinimizedDesc": "Launch into the system tray without opening the window.",
-    "closeToTray": "Close to tray",
-    "closeToTrayDesc": "Closing the window keeps LlamaDesk running in the tray.",
-    "autostart": "Start with Windows",
-    "autostartDesc": "Launch LlamaDesk automatically when you sign in.",
-    "globalShortcut": "Global shortcut",
-    "globalShortcutDesc": "Opens the command palette from anywhere.",
-    "shortcutFailed": "This shortcut is already taken by another application. Pick a different one.",
-    "openDelay": "Delay between openings",
-    "openDelayDesc": "Milliseconds between each tab when opening a whole workspace.",
-    "overlayOpacity": "Background overlay",
-    "overlayOpacityDesc": "Darkens the wallpaper to keep text perfectly readable.",
-    "dbPath": "Database location",
-    "version": "Version",
-    "privacyTitle": "Zero telemetry",
-    "privacyBody": "LlamaDesk makes no network requests. No analytics, no crash reporting, no update pings. Your links, tags and notes stay in a single local SQLite file.",
-    "license": "License",
-    "pressKeys": "press keys…",
-    "resetShortcuts": "Restore defaults",
-    "shortcutHint": "Global shortcuts work even when the window is hidden in the tray. If one cannot be registered, another application already owns it — the in-window shortcut keeps working anyway."
-  },
-  "palette": {
-    "placeholder": "Search applications, workspaces, projects…",
-    "empty": "No results",
-    "hintOpen": "open",
-    "hintNavigate": "navigate",
-    "hintClose": "close",
-    "groups": {
-      "applications": "Applications",
-      "workspaces": "Workspaces",
-      "projects": "Projects",
-      "commands": "Commands"
-    },
-    "hint": "Type to search applications, links and projects."
-  },
-  "danger": {
-    "badge": "DANGER",
-    "protected": "Protected item",
-    "inheritedFrom": "Level inherited from {{name}}",
-    "levels": {
-      "normal": "Normal",
-      "warning": "Warning",
-      "danger": "Danger",
-      "critical": "Critical",
-      "inherit": "Inherit"
-    },
-    "typeToConfirm": "Type {{word}} to continue",
-    "bulk": {
-      "title": "Protected items in this workspace",
-      "message": "This selection contains {{count}} protected item(s) out of {{total}}. Do you want to continue?",
-      "confirm": "Open everything",
-      "skip": "Open only the {{count}} safe ones"
-    },
-    "builtin": "built-in",
-    "protection": "Protection",
-    "confirmWord": "PROCEED",
-    "promptsTitle": "Confirmation dialogs",
-    "promptsHint": "Built-in dialogs follow the interface language. Edit one to get an editable copy.",
-    "builtinLocked": "Built-in dialogs cannot be modified: editing one creates a copy.",
-    "duplicateToEdit": "Duplicate",
-    "promptTitle": "Title",
-    "promptMessage": "Message",
-    "confirmLabel": "Confirm button",
-    "cancelLabel": "Cancel button",
-    "wordLabel": "Word to type",
-    "preview": "Preview"
-  },
-  "tray": {
-    "open": "Open LlamaDesk",
-    "quickSearch": "Quick search",
-    "settings": "Settings",
-    "quit": "Quit"
-  },
-  "errors": {
-    "bootstrap": "LlamaDesk could not start",
-    "retry": "Retry",
-    "invalidUrl": "This address cannot be opened: only http, https and mailto links are allowed."
+  "profiles": {
+    "menu": "Profile {{name}}",
+    "newTitle": "New profile",
+    "newDescription": "A profile chooses which workspaces to show and keeps its own favorites, recents and appearance.",
+    "placeholder": "Presentation",
+    "created": "Profile “{{name}}” created",
+    "switchFailed": "The profile was not switched"
   },
   "kinds": {
-    "project": "project",
-    "workspace": "workspace",
-    "environment": "environment",
-    "context": "context",
-    "group": "group"
-  },
-  "navigator": {
-    "switchEnvironment": "Switch environment",
-    "addApplication": "Add application",
-    "noApplications": "No applications here yet",
-    "noApplicationsHint": "An application is a tool with one or more links — Camunda with its Admin, Tasklist and Operate URLs, for example.",
-    "emptyBranch": "Nothing here yet",
-    "new": {
-      "project": "New project",
-      "workspace": "New workspace",
-      "environment": "New environment",
-      "context": "New context",
-      "group": "New group"
+    "one": {
+      "workspace": "Workspace",
+      "project": "Project",
+      "subproject": "Subproject",
+      "section": "Section",
+      "link": "Link",
+      "link_group": "Link group",
+      "path": "Local path"
     },
-    "duplicateName": "An item with this name already exists here.",
-    "deleteTitle": "Delete {{name}}?",
-    "deleteCascade": "Everything inside goes with it. This cannot be undone — but a JSON export can be restored, and Settings › Data makes one in two clicks.",
-    "deleteEmpty": "It is empty: nothing else will be lost."
-  },
-  "editor": {
-    "name": "Name",
-    "icon": "Icon",
-    "favorite": "Favourite",
-    "links": "Links",
-    "linkName": "Link name",
-    "setDefault": "Open this one by default",
-    "linkKinds": {
-      "web": "Web",
-      "calendar": "Calendar",
-      "mail": "Mail",
-      "doc": "Document",
-      "other": "Other"
+    "count": {
+      "item_one": "{{count}} item",
+      "item_other": "{{count}} items",
+      "workspace_one": "{{count}} workspace",
+      "workspace_other": "{{count}} workspaces",
+      "project_one": "{{count}} project",
+      "project_other": "{{count}} projects",
+      "subproject_one": "{{count}} subproject",
+      "subproject_other": "{{count}} subprojects",
+      "section_one": "{{count}} section",
+      "section_other": "{{count}} sections",
+      "link_one": "{{count}} link",
+      "link_other": "{{count}} links",
+      "link_group_one": "{{count}} link group",
+      "link_group_other": "{{count}} link groups",
+      "path_one": "{{count}} path",
+      "path_other": "{{count}} paths"
     }
   },
-  "health": {
-    "title": "Dormant links",
-    "summary_one": "{{count}} link has not been opened in a long time.",
-    "summary_other": "{{count}} links have not been opened in a long time.",
-    "dormant": "dormant",
-    "dormantHint": "Computed from your local history only — LlamaDesk never contacts these addresses.",
-    "threshold": "Dormant after",
-    "thresholdDesc": "Days without opening before a link is flagged."
+  "states": {
+    "protected": "Protected",
+    "protectedBy": "Protected by {{name}}",
+    "caution": "Asks before opening",
+    "cautionBy": "Asks before opening (from {{name}})",
+    "shared": "Shared with other workspaces",
+    "alsoIn": "Also in"
   },
-  "tags": {
-    "add": "tag…"
+  "actions": {
+    "more": "More actions",
+    "favorite": "Add to favorites",
+    "unfavorite": "Remove from favorites",
+    "favoriteFailed": "The favorite was not updated",
+    "setDefault": "Open at startup",
+    "defaultSet": "“{{name}}” will open at startup",
+    "defaultFailed": "The default workspace was not changed",
+    "unshare": "Remove from {{workspace}}",
+    "unshared": "“{{name}}” removed from {{workspace}}",
+    "unshareFailed": "The project was not removed from the workspace"
   },
-  "notes": {
-    "title": "Note",
-    "placeholder": "A local note for this item. Saved automatically.",
-    "saved": "Saved"
+  "create": {
+    "title": {
+      "workspace": "New workspace",
+      "project": "New project",
+      "subproject": "New subproject",
+      "section": "New section"
+    },
+    "placeholder": {
+      "workspace": "Work",
+      "project": "SpecialHub",
+      "subproject": "Backend",
+      "section": "Documentation"
+    },
+    "name": "Name",
+    "color": "Color",
+    "submit": "Create",
+    "nameRequired": "Enter a name.",
+    "created": "“{{name}}” created"
   },
-  "workspaces": {
-    "subtitle": "Sets of links that open together, across projects and environments.",
-    "new": "New workspace",
-    "newTemporary": "Temporary",
-    "temporary": "expires today",
-    "namePlaceholder": "Monday standup",
-    "emptyTitle": "No quick workspaces yet",
-    "emptyHint": "Create one and add the links you always open together — they can come from different projects.",
-    "findLink": "Search a link to add…"
+  "delete": {
+    "title": "Delete “{{name}}”?",
+    "summary": "This deletes: {{summary}}. You can undo right after.",
+    "detached": "These stay in their other workspaces: {{names}}.",
+    "confirm": "Delete",
+    "done": "“{{name}}” deleted",
+    "failed": "The deletion did not complete",
+    "restoreFailed": "The restore did not complete",
+    "action": {
+      "workspace": "Delete workspace…",
+      "project": "Delete project…",
+      "subproject": "Delete subproject…",
+      "section": "Delete section…",
+      "link": "Delete link…",
+      "link_group": "Delete group…",
+      "path": "Delete path…",
+      "everywhere": "Delete everywhere…"
+    }
   },
-  "capture": {
-    "title": "Quick capture",
-    "subtitle": "The URL comes from your clipboard, read only when you press the shortcut.",
-    "url": "Address",
-    "namePlaceholder": "Jira board",
-    "destination": "Where does it go?",
-    "noUrl": "The clipboard does not contain a valid http, https or mailto address. Paste it below.",
-    "noDestination": "No destination found. Create an environment or a group first.",
-    "save": "Save link",
-    "shortcut": "Quick capture",
-    "shortcutDesc": "Reads an URL from the clipboard and opens the capture dialog."
+  "colors": {
+    "cobalt": "Cobalt",
+    "lagoon": "Lagoon",
+    "sage": "Sage",
+    "moss": "Moss",
+    "ochre": "Ochre",
+    "clay": "Clay",
+    "ruby": "Ruby",
+    "plum": "Plum",
+    "slate": "Slate",
+    "night": "Night",
+    "sand": "Sand",
+    "graphite": "Graphite"
   },
-  "appearance": {
-    "wallpaper": "Wallpaper",
-    "wallpaperHint": "The layer every glass panel samples. On Windows the blur cannot reach the desktop behind the window, so this is what gives the interface its colour.",
-    "importImage": "Import image",
-    "defaultMesh": "Animated default"
+  "workspace": {
+    "emptyTitle": "This workspace is still empty",
+    "emptyDescription": "Start with a project: something you work on, with its links, files and tools.",
+    "resources": "Workspace resources"
   },
-  "data": {
-    "title": "Backup and restore",
-    "description": "A JSON file with your whole configuration: profiles, hierarchy, links, tags, notes and workspaces. No credentials — there are none — and no usage history.",
-    "export": "Export",
-    "import": "Import",
-    "exported": "Exported ({{size}} KB).",
-    "importTitle": "Import backup",
-    "merge": "Add to what I have",
-    "mergeHint": "Everything is imported with new ids, next to your current data.",
-    "replace": "Replace everything",
-    "replaceHint": "Deletes your current data and restores the backup. A copy of the database is saved first.",
-    "importDone": "Import complete",
-    "importSummary": "{{containers}} containers, {{applications}} applications and {{links}} links imported."
+  "scope": {
+    "overview": "Overview",
+    "tabs": "Project parts",
+    "subprojects": "Subprojects",
+    "focus": "Open",
+    "emptyTitle": "Nothing here yet",
+    "emptyDescription": "Organize with subprojects and sections. Links, link groups and local paths are coming soon.",
+    "emptySection": "This section is empty."
   },
-  "applications": {
-    "createHint": "An application is a tool and its addresses. Give it a name and its main URL — you can add more links afterwards.",
-    "firstLink": "Main address",
-    "firstLinkHint": "Optional, but without it the card has nothing to open.",
-    "noLink": "Add a link"
+  "favorites": {
+    "scope": "Which favorites to show",
+    "here": "This workspace",
+    "all": "All",
+    "emptyTitle": "No favorites",
+    "emptyDescription": "Use the star next to the name of a workspace, project or section to find it here."
   },
-  "profiles": {
-    "create": "New profile",
-    "placeholder": "Work",
-    "customised_one": "{{count}} custom setting",
-    "customised_other": "{{count}} custom settings",
-    "scopeGlobal": "All profiles",
-    "scopeProfile": "Only this profile",
-    "scopeHint": "Appearance and thresholds can differ per profile. Shortcuts and startup options stay global: the OS registers them once for the whole application.",
-    "delete": "Delete profile",
-    "deleteTitle": "Delete the profile {{name}}?",
-    "deleteCascade": "Its projects, applications, links, workspaces, notes and tags go with it, along with its appearance settings. This cannot be undone — but a JSON export can be restored, and Settings › Data makes one in two clicks.",
-    "deleteEmpty": "It is empty: only its name and its appearance settings will be lost.",
-    "deleteActive": "This is the profile you are in: LlamaDesk will switch to {{next}}."
+  "recents": {
+    "emptyTitle": "What you open shows up here",
+    "emptyDescription": "Every link, file, terminal or IDE opened from LlamaDesk will appear here, ready to be reopened the same way."
   },
-  "impact": {
-    "containers_one": "Container",
-    "containers_other": "Containers",
-    "applications_one": "Application",
-    "applications_other": "Applications",
-    "links_one": "Link",
-    "links_other": "Links",
-    "bundles_one": "Quick workspace",
-    "bundles_other": "Quick workspaces"
+  "settings": {
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "language": "Language",
+    "density": "Density",
+    "densityHint": "Compact shows more rows in the same window.",
+    "densityComfortable": "Comfortable",
+    "densityCompact": "Compact",
+    "profileOverride": "Customized for this profile",
+    "general": "General",
+    "autostart": "Start with Windows",
+    "autostartHint": "LlamaDesk starts at sign-in, in the notification area.",
+    "startMinimized": "Start minimized",
+    "startMinimizedHint": "The window stays hidden until you open it.",
+    "closeToTray": "Close to the notification area",
+    "closeToTrayHint": "The X hides the window; quit from the icon menu.",
+    "openerAnimation": "Opening animation",
+    "openerAnimationHint": "Only at startup, never when the window comes back from the tray.",
+    "about": "About",
+    "version": "Version",
+    "database": "Data",
+    "material": "Window material",
+    "materialMica": "Windows 11 Mica",
+    "materialSolid": "Solid color",
+    "privacy": "All data stays on this computer. No account, no telemetry, no network connections.",
+    "saveFailed": "The setting was not saved"
+  },
+  "welcome": {
+    "title": "Your digital workspace, organized and ready to open.",
+    "lead": "Start with a workspace: an area of your life or work, like Work or Personal.",
+    "nameLabel": "Name of your first workspace",
+    "nameHint": "You can add more and change name and color whenever you like.",
+    "submit": "Create workspace",
+    "principles": {
+      "local": {
+        "title": "Local",
+        "text": "Everything stays on this computer."
+      },
+      "private": {
+        "title": "Private",
+        "text": "No account, no telemetry."
+      },
+      "yours": {
+        "title": "Yours",
+        "text": "It starts empty: you decide the structure."
+      }
+    }
+  },
+  "errors": {
+    "bootstrap": "LlamaDesk can't open its data",
+    "workspaces": "Workspaces didn't load",
+    "favorites": "Favorites didn't load",
+    "recents": "Recent items didn't load",
+    "missingTitle": "Nothing to show here",
+    "workspaceMissing": "This workspace no longer exists or isn't visible in the active profile.",
+    "nodeMissing": "This item no longer exists or isn't visible in the active profile.",
+    "pageMissing": "This address doesn't match any LlamaDesk page.",
+    "backHome": "Back to Home"
   }
 }

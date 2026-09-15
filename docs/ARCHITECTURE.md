@@ -53,18 +53,33 @@ SAVEPOINT that composes inside an outer transaction.
 
 ## Frontend structure
 
-`src/features/<slice>/` holds vertical slices — a feature owns its components, hooks and types.
-`src/components/ui/` is presentation only and knows nothing about the domain; every variant is
-declared with `class-variance-authority` so states never fork the JSX.
+```
+src/
+  app/          App, router, BootstrapGate, ThemeController (+ appearance.ts), WindowBridge
+    shell/      AppShell, TitleBar, PathBar, WindowControls, location context
+    sidebar/    Sidebar, WorkspaceSwitcher, ProjectNav, ProfileMenu
+  features/     one folder per area: workspace, project, library, create, settings, welcome
+  components/   ui/ (presentation only, Radix primitives), NodeIcon, brand/BrandMark
+  lib/          ipc (typed commands), queries (TanStack Query), routes, identity, motion, icons,
+                i18n, mock/backend (browser preview only, loaded lazily)
+  stores/       Zustand: session, ui, dialogs, toasts
+  types/generated/  written by ts-rs, never edited by hand
+```
 
-`src/lib/motion.ts` is the single source of truth for animation. Three springs (`snappy`,
-`bouncy`, `gentle`), shared variants, and the `layoutId` registry used by the sliding sidebar
-pill and the palette highlight.
+Server state (the library) lives in TanStack Query and is invalidated after every mutation: the
+database is local and answers in milliseconds, so re-reading beats hand-maintained caches.
+Client state (session, sidebar, open dialogs, toasts) lives in small Zustand stores. Shared
+dialogs are mounted once in the shell and opened from anywhere through `stores/dialogs`.
 
-## Rendering and glass (LlamaDesk 1 — replaced in redesign phase 2)
+Addresses always carry the workspace (`/w/:workspace/p/:project/s/:subproject/n/:section`):
+a shared project shows the breadcrumb and accent of the workspace it was reached from.
+`lib/routes.ts` builds and parses them and is unit-tested.
 
-Windows WebView2 cannot blur the desktop behind the window with `backdrop-filter`. The in-app
-wallpaper (`src/app/providers/Wallpaper.tsx`) is therefore the layer every glass panel samples.
-An overlay of configurable opacity sits between the wallpaper and the UI to guarantee contrast.
-The redesign (decision D8) drops the wallpaper and glass for solid surfaces, with native Mica on
-the sidebar only; this section will be rewritten with phase 2.
+## Rendering and materials
+
+The window is `transparent`. On Windows 11 `window::apply_material` applies native **Mica** and
+reports it at bootstrap; title bar and sidebar let it through with a thin tint, while the content
+sits on a solid surface. Elsewhere (or if the system refuses the effect) the frontend paints solid
+colors everywhere. All colors are CSS tokens in `src/styles/index.css`; the workspace accent is
+`--ld-accent-base`, a registered property so it can transition when the workspace changes, and
+light/dark variants are derived from it in OKLCH to keep contrast.

@@ -1,80 +1,162 @@
-import { useState } from 'react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { Segmented, Switch } from '@/components/ui/fields';
 import { cn } from '@/lib/cn';
-import { LAYOUT_IDS, pageVariants, springSnappy, staggerItem } from '@/lib/motion';
-import { GeneralTab } from './tabs/GeneralTab';
-import { AppearanceTab } from './tabs/AppearanceTab';
-import { ShortcutsTab } from './tabs/ShortcutsTab';
-import { DangerTab } from './tabs/DangerTab';
-import { DataTab } from './tabs/DataTab';
-import { AboutTab } from './tabs/AboutTab';
+import { useSession } from '@/stores/session';
+import { toastError } from '@/stores/toasts';
+import type { AppSettings } from '@/types/generated/AppSettings';
+import { PageFrame } from '../library/parts';
 
-const TABS = ['general', 'appearance', 'shortcuts', 'danger', 'data', 'about'] as const;
-type Tab = (typeof TABS)[number];
-
-const PANELS: Record<Tab, () => React.ReactElement> = {
-  general: GeneralTab,
-  appearance: AppearanceTab,
-  shortcuts: ShortcutsTab,
-  danger: DangerTab,
-  data: DataTab,
-  about: AboutTab,
-};
-
-/** Guscio delle impostazioni: solo navigazione, il contenuto vive nei tab. */
+/**
+ * Impostazioni essenziali. Strumenti, scorciatoie, protezione e dati arrivano
+ * con le fasi che li introducono; qui solo cio' che la shell usa gia'.
+ */
 export function SettingsPage() {
   const { t } = useTranslation();
-  const [active, setActive] = useState<Tab>('general');
-  const Panel = PANELS[active];
+  const settings = useSession((state) => state.settings);
+  const overrides = useSession((state) => state.overrides);
+  const updateSetting = useSession((state) => state.updateSetting);
+  const appVersion = useSession((state) => state.appVersion);
+  const dbPath = useSession((state) => state.dbPath);
+  const windowMaterial = useSession((state) => state.windowMaterial);
+
+  if (!settings) return null;
+
+  const set = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
+    void updateSetting(key, value).catch((error) => toastError(t('settings.saveFailed'), error));
 
   return (
-    <div className="flex flex-col gap-5 py-6">
-      <motion.h1
-        variants={staggerItem}
-        initial="hidden"
-        animate="visible"
-        className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
-      >
-        {t('settings.title')}
-      </motion.h1>
+    <PageFrame className="max-w-2xl">
+      <h1 className="font-display text-ink text-2xl font-semibold tracking-[-0.015em]">
+        {t('nav.settings')}
+      </h1>
 
-      <nav className="flex flex-wrap gap-1 rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.05]">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActive(tab)}
-            className={cn(
-              'relative rounded-full px-4 py-1.5 text-xs font-medium transition-colors',
-              active === tab
-                ? 'text-zinc-900 dark:text-zinc-50'
-                : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100',
-            )}
-          >
-            {active === tab && (
-              <motion.span
-                layoutId={LAYOUT_IDS.tabIndicator}
-                transition={springSnappy}
-                className="absolute inset-0 -z-10 rounded-full bg-white/80 shadow-sm dark:bg-white/[0.14]"
+      <Group title={t('settings.appearance')}>
+        <Row
+          label={t('settings.theme')}
+          note={overrides.includes('theme') ? t('settings.profileOverride') : undefined}
+          control={(id) => (
+            <span id={id}>
+              <Segmented
+                label={t('settings.theme')}
+                value={settings.theme as 'system' | 'light' | 'dark'}
+                onChange={(value) => set('theme', value)}
+                options={[
+                  { value: 'system', label: t('settings.themeSystem'), icon: <Monitor /> },
+                  { value: 'light', label: t('settings.themeLight'), icon: <Sun /> },
+                  { value: 'dark', label: t('settings.themeDark'), icon: <Moon /> },
+                ]}
+              />
+            </span>
+          )}
+        />
+        <Row
+          label={t('settings.language')}
+          control={(id) => (
+            <span id={id}>
+              <Segmented
+                label={t('settings.language')}
+                value={settings.language as 'it' | 'en'}
+                onChange={(value) => set('language', value)}
+                options={[
+                  { value: 'it', label: 'Italiano' },
+                  { value: 'en', label: 'English' },
+                ]}
+              />
+            </span>
+          )}
+        />
+        <Row
+          label={t('settings.density')}
+          hint={t('settings.densityHint')}
+          control={(id) => (
+            <span id={id}>
+              <Segmented
+                label={t('settings.density')}
+                value={settings.density as 'comfortable' | 'compact'}
+                onChange={(value) => set('density', value)}
+                options={[
+                  { value: 'comfortable', label: t('settings.densityComfortable') },
+                  { value: 'compact', label: t('settings.densityCompact') },
+                ]}
+              />
+            </span>
+          )}
+        />
+      </Group>
+
+      <Group title={t('settings.general')}>
+        {(
+          [
+            ['autostart', 'settings.autostart', 'settings.autostartHint'],
+            ['startMinimized', 'settings.startMinimized', 'settings.startMinimizedHint'],
+            ['closeToTray', 'settings.closeToTray', 'settings.closeToTrayHint'],
+            ['openerAnimation', 'settings.openerAnimation', 'settings.openerAnimationHint'],
+          ] as const
+        ).map(([key, label, hint]) => (
+          <Row
+            key={key}
+            label={t(label)}
+            hint={t(hint)}
+            control={(id) => (
+              <Switch
+                id={id}
+                checked={settings[key]}
+                onCheckedChange={(value) => set(key, value)}
               />
             )}
-            {t(`settings.tabs.${tab}`)}
-          </button>
+          />
         ))}
-      </nav>
+      </Group>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={active}
-          variants={pageVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-        >
-          <Panel />
-        </motion.div>
-      </AnimatePresence>
+      <Group title={t('settings.about')}>
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 px-4 py-3 text-sm">
+          <dt className="text-ink-3">{t('settings.version')}</dt>
+          <dd className="selectable text-ink tabular-nums">{appVersion}</dd>
+          <dt className="text-ink-3">{t('settings.database')}</dt>
+          <dd className="selectable text-ink font-mono text-xs break-all">{dbPath}</dd>
+          <dt className="text-ink-3">{t('settings.material')}</dt>
+          <dd className="text-ink">
+            {windowMaterial === 'mica' ? t('settings.materialMica') : t('settings.materialSolid')}
+          </dd>
+        </dl>
+        <p className="border-line text-ink-3 border-t px-4 py-3 text-xs">{t('settings.privacy')}</p>
+      </Group>
+    </PageFrame>
+  );
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-7">
+      <h2 className="text-2xs text-ink-3 mb-2 font-semibold tracking-[0.08em] uppercase">
+        {title}
+      </h2>
+      <div className="divide-line bg-surface shadow-1 divide-y rounded-lg">{children}</div>
+    </section>
+  );
+}
+
+interface RowProps {
+  label: string;
+  hint?: string;
+  note?: string;
+  control: (id: string) => React.ReactNode;
+}
+
+function Row({ label, hint, note, control }: RowProps) {
+  const id = useId();
+  return (
+    <div className={cn('flex min-h-14 items-center gap-4 px-4 py-2.5')}>
+      <div className="min-w-0 flex-1">
+        <label htmlFor={id} className="text-ink block text-sm font-medium">
+          {label}
+        </label>
+        {hint && <p className="text-ink-3 text-xs">{hint}</p>}
+        {note && <p className="text-accent text-xs">{note}</p>}
+      </div>
+      {control(id)}
     </div>
   );
 }

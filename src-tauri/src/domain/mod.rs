@@ -267,6 +267,9 @@ pub struct BootstrapPayload {
     /// Gia' effettive per il profilo attivo (globali + override).
     pub settings: AppSettings,
     pub profile_overrides: Vec<String>,
+    /// `mica` (Windows 11) oppure `solid`: con `solid` l'interfaccia dipinge
+    /// tinte opache anche dove altrimenti lascerebbe vedere il materiale.
+    pub window_material: String,
 }
 
 /* ==================================================================== nodi */

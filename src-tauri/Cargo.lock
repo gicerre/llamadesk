@@ -2250,6 +2250,7 @@ dependencies = [
  "ts-rs",
  "url",
  "uuid",
+ "windows-version",
 ]
 
 [[package]]

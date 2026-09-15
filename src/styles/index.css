@@ -1,83 +1,234 @@
 @import 'tailwindcss';
 
 /* ============================================================================
-   LlamaDesk — Design System
-   Ispirazione: macOS / visionOS / iOS. Vetro, superellissi, fisica.
-   Regola d'oro: nessuno sfondo piatto e opaco, nessun angolo "Bootstrap".
+   LlamaDesk 2.0 — design system (docs/REDESIGN.md § 10)
+
+   Superfici calme e neutre, un accento alla volta. Il colore del brand vive
+   nel logo; dentro l'app l'accento e' quello del workspace corrente, impostato
+   a runtime in `--ld-accent-base`. Le tinte semantiche (attenzione, pericolo,
+   riuscito) non cambiano mai con il workspace.
+
+   Tutti i colori sono token: i componenti usano le utility Tailwind generate
+   da `@theme` (bg-surface, text-ink-2, border-line...), mai valori letterali.
    ========================================================================== */
 
-/* Dark mode pilotata da classe (.dark sull'<html>), non solo da media query:
-   l'utente può forzare Light/Dark/System dalle Impostazioni. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* L'accento sfuma quando si cambia workspace: una proprieta' registrata si
+   puo' animare, una custom property qualunque no. */
+@property --ld-accent-base {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #1d7384;
+}
+
+:root {
+  --ld-canvas: #f3f5f4;
+  --ld-sunken: #e9edec;
+  --ld-surface: #ffffff;
+  --ld-raised: #ffffff;
+  --ld-ink: #14191b;
+  --ld-ink-2: #465055;
+  --ld-ink-3: #768084;
+  --ld-line: rgb(20 25 27 / 0.1);
+  --ld-line-strong: rgb(20 25 27 / 0.18);
+  --ld-hover: rgb(20 25 27 / 0.05);
+  --ld-press: rgb(20 25 27 / 0.08);
+
+  --ld-brand: #1d7384;
+  --ld-caution: #9a6212;
+  --ld-caution-soft: rgb(168 106 18 / 0.13);
+  --ld-danger: #a83e2c;
+  --ld-danger-soft: rgb(176 64 46 / 0.1);
+  --ld-ok: #2f7d4f;
+  --ld-ok-soft: rgb(47 125 79 / 0.12);
+
+  /* Accento: il colore del workspace, scurito quanto basta perche' il testo
+     bianco resti leggibile sopra. */
+  --ld-accent: oklch(from var(--ld-accent-base) min(l, 0.56) c h);
+  --ld-on-accent: #ffffff;
+  --ld-accent-soft: color-mix(in oklch, var(--ld-accent) 13%, transparent);
+  --ld-accent-line: color-mix(in oklch, var(--ld-accent) 45%, transparent);
+
+  /* Barra del titolo e sidebar: Mica quando c'e', altrimenti una tinta solida. */
+  --ld-chrome: var(--ld-sunken);
+  --ld-chrome-line: var(--ld-line);
+
+  --ld-shadow-1: 0 0 0 1px var(--ld-line), 0 1px 2px rgb(0 0 0 / 0.04);
+  --ld-shadow-2: 0 12px 32px -10px rgb(10 20 25 / 0.22), 0 0 0 1px var(--ld-line);
+  --ld-shadow-3: 0 28px 72px -16px rgb(10 20 25 / 0.32), 0 0 0 1px var(--ld-line);
+
+  /* Densita' (Normale): altezze delle righe interattive. */
+  --ld-row: 48px;
+  --ld-nav: 32px;
+
+  color-scheme: light;
+}
+
+.dark {
+  --ld-canvas: #101415;
+  --ld-sunken: #0c0f10;
+  --ld-surface: #171b1d;
+  --ld-raised: #1d2224;
+  --ld-ink: #e6ebea;
+  --ld-ink-2: #a6b0b2;
+  --ld-ink-3: #737d81;
+  --ld-line: rgb(230 235 234 / 0.09);
+  --ld-line-strong: rgb(230 235 234 / 0.17);
+  --ld-hover: rgb(230 235 234 / 0.06);
+  --ld-press: rgb(230 235 234 / 0.1);
+
+  --ld-brand: #5bb6c6;
+  --ld-caution: #e2a64e;
+  --ld-caution-soft: rgb(226 166 78 / 0.14);
+  --ld-danger: #e58470;
+  --ld-danger-soft: rgb(229 132 112 / 0.13);
+  --ld-ok: #6cc28f;
+  --ld-ok-soft: rgb(108 194 143 / 0.13);
+
+  /* Nel buio l'accento si schiarisce e perde un po' di saturazione; il testo
+     sopra diventa scuro. */
+  --ld-accent: oklch(from var(--ld-accent-base) max(l, 0.74) min(c, 0.14) h);
+  --ld-on-accent: #0c0f10;
+  --ld-accent-soft: color-mix(in oklch, var(--ld-accent) 16%, transparent);
+
+  --ld-shadow-1: 0 0 0 1px var(--ld-line);
+  --ld-shadow-2: 0 16px 40px -12px rgb(0 0 0 / 0.6), 0 0 0 1px var(--ld-line-strong);
+  --ld-shadow-3: 0 32px 80px -16px rgb(0 0 0 / 0.7), 0 0 0 1px var(--ld-line-strong);
+
+  color-scheme: dark;
+}
+
+/* Su Windows 11 barra del titolo e sidebar lasciano vedere Mica, con un velo
+   leggero che tiene il contrasto del testo indipendente dallo sfondo. */
+[data-material='mica'] {
+  --ld-chrome: rgb(233 237 236 / 0.42);
+  --ld-chrome-line: rgb(20 25 27 / 0.06);
+}
+[data-material='mica'].dark {
+  --ld-chrome: rgb(12 15 16 / 0.38);
+  --ld-chrome-line: rgb(230 235 234 / 0.06);
+}
+
+[data-density='compact'] {
+  --ld-row: 40px;
+  --ld-nav: 28px;
+}
+
+@theme inline {
+  --color-canvas: var(--ld-canvas);
+  --color-sunken: var(--ld-sunken);
+  --color-surface: var(--ld-surface);
+  --color-raised: var(--ld-raised);
+  --color-chrome: var(--ld-chrome);
+  --color-chrome-line: var(--ld-chrome-line);
+  --color-ink: var(--ld-ink);
+  --color-ink-2: var(--ld-ink-2);
+  --color-ink-3: var(--ld-ink-3);
+  --color-line: var(--ld-line);
+  --color-line-strong: var(--ld-line-strong);
+  --color-hover: var(--ld-hover);
+  --color-press: var(--ld-press);
+  --color-brand: var(--ld-brand);
+  --color-accent: var(--ld-accent);
+  --color-accent-soft: var(--ld-accent-soft);
+  --color-accent-line: var(--ld-accent-line);
+  --color-on-accent: var(--ld-on-accent);
+  --color-caution: var(--ld-caution);
+  --color-caution-soft: var(--ld-caution-soft);
+  --color-danger: var(--ld-danger);
+  --color-danger-soft: var(--ld-danger-soft);
+  --color-ok: var(--ld-ok);
+  --color-ok-soft: var(--ld-ok-soft);
+
+  --shadow-1: var(--ld-shadow-1);
+  --shadow-2: var(--ld-shadow-2);
+  --shadow-3: var(--ld-shadow-3);
+
+  --spacing-row: var(--ld-row);
+  --spacing-nav: var(--ld-nav);
+}
+
 @theme {
-  /* --- Tipografia: Segoe UI Variable su Win11 è il parente più prossimo di SF Pro --- */
-  --font-sans:
-    'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', Inter, system-ui, -apple-system,
-    sans-serif;
-  --font-mono: 'Cascadia Code', 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  /* Segoe UI Variable: Text fino a 14px, Display sopra. */
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', 'Cascadia Mono', Consolas, ui-monospace, monospace;
 
-  /* --- Raggi: generosi, mai spigolosi --- */
-  --radius-xl: 0.875rem;
-  --radius-2xl: 1.125rem;
-  --radius-3xl: 1.5rem;
-  --radius-4xl: 2rem;
+  --text-2xs: 11px;
+  --text-2xs--line-height: 14px;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-lg: 16px;
+  --text-lg--line-height: 22px;
+  --text-xl: 20px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 26px;
+  --text-2xl--line-height: 32px;
 
-  /* --- Colori d'ambiente: usati SOLO per segnalare contesto o azione --- */
-  --color-env-dev: oklch(0.72 0.14 235);
-  --color-env-test: oklch(0.75 0.16 62);
-  --color-env-prod: oklch(0.64 0.22 25);
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
-  /* --- Ombre: morbide, diffuse, mai nere e dure --- */
-  --shadow-glass: 0 8px 32px -8px rgb(0 0 0 / 0.35), 0 2px 8px -2px rgb(0 0 0 / 0.2);
-  --shadow-glass-lg: 0 24px 64px -16px rgb(0 0 0 / 0.45), 0 8px 24px -8px rgb(0 0 0 / 0.25);
-  --shadow-spotlight: 0 32px 96px -24px rgb(0 0 0 / 0.6), 0 12px 32px -12px rgb(0 0 0 / 0.35);
-  --shadow-danger-glow: 0 0 40px rgb(239 68 68 / 0.2), 0 24px 64px -16px rgb(0 0 0 / 0.5);
-
-  /* --- Timing per le sole transizioni CSS non fisiche (colori, opacità) --- */
-  --ease-glass: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.3, 0, 1, 1);
 }
 
 /* ============================================================================
    Base
    ========================================================================== */
 @layer base {
-  * {
-    /* Nessun outline blu di sistema: usiamo anelli in vetro coerenti col tema. */
-    outline: none;
-  }
-
   html,
   body,
   #root {
     height: 100%;
-    overflow: hidden; /* la shell gestisce il proprio scroll, la finestra no */
+    overflow: hidden;
+  }
+
+  html {
+    background: var(--ld-canvas);
+    transition: --ld-accent-base 240ms var(--ease-out);
+  }
+
+  /* Con Mica la finestra e' trasparente: il fondo lo dipingono le superfici. */
+  html[data-material='mica'] {
+    background: transparent;
   }
 
   body {
-    @apply font-sans text-zinc-900 antialiased dark:text-zinc-100;
-    background: transparent;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    /* L'app è un desktop, non un sito: niente selezione accidentale del testo. */
+    @apply text-ink bg-transparent font-sans text-sm antialiased;
+    /* Un'app desktop, non un sito: niente selezione accidentale del testo. */
     user-select: none;
     cursor: default;
+    font-feature-settings: 'ss01';
   }
 
-  /* La selezione resta attiva dove serve davvero. */
   input,
   textarea,
   [contenteditable],
   .selectable {
     user-select: text;
-    cursor: text;
   }
 
   ::selection {
-    @apply bg-white/25 text-white;
+    background: var(--ld-accent-soft);
   }
 
-  /* Scrollbar sottile e in vetro. */
+  /* Un solo stile di focus, visibile solo da tastiera. */
+  :focus-visible {
+    outline: 2px solid var(--ld-accent);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -86,13 +237,12 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full border-[3px] border-transparent bg-black/15 bg-clip-content dark:bg-white/15;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-black/25 dark:bg-white/25;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: var(--ld-line-strong);
+    background-clip: content-box;
   }
 
-  /* Rispetto delle preferenze di accessibilità del sistema. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -103,86 +253,33 @@
   }
 }
 
-/* ============================================================================
-   Utility del Design System
-   ========================================================================== */
-
-/* Il "materiale" base: vetro traslucido con riflesso sul bordo superiore.
-   È lo strato che campiona il wallpaper sottostante. */
-@utility glass-panel {
-  @apply border border-black/[0.06] bg-white/60 backdrop-blur-xl;
-  @apply dark:border-white/10 dark:bg-white/[0.06];
-  box-shadow: var(--shadow-glass);
-}
-
-/* Variante più densa, per modali e Command Palette. */
-@utility glass-panel-strong {
-  @apply border border-black/[0.08] bg-white/80 backdrop-blur-2xl;
-  @apply dark:border-white/[0.12] dark:bg-white/[0.09];
-  box-shadow: var(--shadow-glass-lg);
-}
-
-/* Materiale dei menu fluttuanti (dropdown, popover, toast).
-   Molto piu' denso degli altri: un menu galleggia a pochi pixel dal contenuto
-   e NON ha un backdrop che lo scurisce, come invece hanno modali e palette.
-   Con il vetro dei pannelli inline il testo sottostante traspare e il menu
-   diventa illeggibile. Anche i menu di macOS sono quasi opachi, per lo stesso
-   motivo: qui il blur resta per la materialita' dei bordi, non per la
-   trasparenza. In tema scuro la superficie e' piu' CHIARA dello sfondo, perche'
-   nel buio l'elevazione si legge come luce. */
-@utility glass-popover {
-  @apply border border-black/[0.08] bg-white/95 backdrop-blur-xl;
-  @apply dark:border-white/[0.12] dark:bg-zinc-900/95;
-  box-shadow: var(--shadow-glass-lg);
-}
-
-/* Variante leggerissima, per card in griglia. */
-@utility glass-panel-subtle {
-  @apply border border-black/[0.05] bg-white/45 backdrop-blur-md;
-  @apply dark:border-white/[0.08] dark:bg-white/[0.04];
-}
-
-/* Il riflesso di luce sul bordo superiore: 1px che cambia tutto.
-   Classe di componente (non utility) perche' agisce su uno pseudo-elemento. */
-@layer components {
-  .glass-hairline {
-    position: relative;
-  }
-  .glass-hairline::before {
-    content: '';
-    @apply pointer-events-none absolute inset-x-3 top-0 h-px;
-    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.4), transparent);
-  }
-}
-
-/* Regione trascinabile della barra titolo custom. */
 @utility drag-region {
   -webkit-app-region: drag;
+  app-region: drag;
 }
+
 @utility no-drag {
   -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
-/* Forza il rendering su GPU per gli elementi animati di frequente. */
-@utility gpu {
-  transform: translateZ(0);
-  will-change: transform;
-  backface-visibility: hidden;
-}
-
-/* Il pulsare del badge PRODUZIONE: lento, non ansiogeno. */
-@utility pulse-danger {
-  animation: pulse-danger 2s var(--ease-glass) infinite;
-}
-
-@keyframes pulse-danger {
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.4);
+/* Ingressi brevi dei livelli sovrapposti (menu, dialoghi, tooltip). */
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
-  50% {
-    opacity: 0.85;
-    box-shadow: 0 0 0 6px rgb(239 68 68 / 0);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    scale: 0.98;
   }
 }

@@ -1,265 +1,210 @@
 import { invoke } from '@tauri-apps/api/core';
-import type {
-  Application,
-  ApplicationWithLinks,
-  AppSettings,
-  Background,
-  BackgroundSource,
-  BackupPreview,
-  BootstrapPayload,
-  Bundle,
-  BundleWithLinks,
-  BulkOpenPlan,
-  Container,
-  ContainerKind,
-  ContainerView,
-  DangerLevel,
-  DangerPrompt,
-  DashboardWidget,
-  DeleteImpact,
-  ImportMode,
-  ImportSummary,
-  Link,
-  LinkInContext,
-  LinkKind,
-  LinkUsage,
-  NotableType,
-  Note,
-  NoteInContext,
-  OpenIntent,
-  Profile,
-  ProfileDeleteImpact,
-  ProfileSession,
-  SearchHit,
-  ShortcutStatus,
-  Tag,
-  TaggableType,
-  WidgetConfig,
-} from '@/types/domain';
+import type { AppSettings } from '@/types/generated/AppSettings';
+import type { BootstrapPayload } from '@/types/generated/BootstrapPayload';
+import type { DeleteImpact } from '@/types/generated/DeleteImpact';
+import type { Favorite } from '@/types/generated/Favorite';
+import type { NewNode } from '@/types/generated/NewNode';
+import type { Node } from '@/types/generated/Node';
+import type { NodeEntry } from '@/types/generated/NodeEntry';
+import type { NodePatch } from '@/types/generated/NodePatch';
+import type { NodeView } from '@/types/generated/NodeView';
+import type { Profile } from '@/types/generated/Profile';
+import type { ProfileDeleteImpact } from '@/types/generated/ProfileDeleteImpact';
+import type { ProfilePatch } from '@/types/generated/ProfilePatch';
+import type { ProfileSession } from '@/types/generated/ProfileSession';
+import type { RecentAction } from '@/types/generated/RecentAction';
+import type { ShortcutStatus } from '@/types/generated/ShortcutStatus';
+import type { Tag } from '@/types/generated/Tag';
+import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
 
 /* ============================================================================
-   UNICO punto di contatto fra React e Rust.
-   Nessun componente chiama `invoke` direttamente: qui i comandi sono tipizzati,
-   qui si centralizza la gestione degli errori, qui si potrà fare mocking nei test.
+   Unico punto di contatto con il backend Rust.
+
+   `Commands` elenca ogni comando con i suoi argomenti e il risultato: le
+   funzioni di `api` sono solo nomi comodi sopra `call`. Nel browser
+   (`npm run dev:vite`) i comandi finiscono a un backend simulato in memoria,
+   caricato solo in quel caso.
    ========================================================================== */
 
-/** Errore risalito dal backend Rust, già leggibile dall'utente. */
-export class IpcError extends Error {
+type Id = string;
+type Maybe<T> = T | null;
+
+export interface Commands {
+  bootstrap: { args: Record<string, never>; result: BootstrapPayload };
+  complete_onboarding: { args: Record<string, never>; result: null };
+  set_setting: { args: { key: string; value: string }; result: AppSettings };
+  set_profile_setting: {
+    args: { profileId: Id; key: string; value: Maybe<string> };
+    result: AppSettings;
+  };
+  get_profile_overrides: { args: { profileId: Id }; result: string[] };
+  profile_scoped_keys: { args: Record<string, never>; result: string[] };
+  activate_profile: { args: { profileId: Id }; result: ProfileSession };
+  list_profiles: { args: Record<string, never>; result: Profile[] };
+  create_profile: { args: { name: string }; result: Profile };
+  update_profile: { args: { id: Id; patch: ProfilePatch }; result: Profile };
+  profile_delete_impact: { args: { id: Id }; result: ProfileDeleteImpact };
+  delete_profile: { args: { id: Id }; result: ProfileSession };
+  get_shortcut_status: { args: { kind: 'palette' | 'capture' }; result: ShortcutStatus };
+  apply_global_shortcut: {
+    args: { kind: 'palette' | 'capture'; accelerator: string };
+    result: ShortcutStatus;
+  };
+
+  list_workspaces: {
+    args: { profileId: Id; includeArchived?: boolean };
+    result: WorkspaceEntry[];
+  };
+  workspace_profiles: { args: { workspaceId: Id }; result: Id[] };
+  set_workspace_visibility: {
+    args: { profileId: Id; workspaceId: Id; visible: boolean };
+    result: null;
+  };
+  reorder_workspace: {
+    args: { profileId: Id; workspaceId: Id; previousId: Maybe<Id>; nextId: Maybe<Id> };
+    result: null;
+  };
+  set_default_workspace: { args: { profileId: Id; workspaceId: Id }; result: null };
+  remember_workspace_route: {
+    args: { profileId: Id; workspaceId: Id; route: string };
+    result: null;
+  };
+
+  get_node_view: {
+    args: { profileId: Id; id: Id; viaWorkspaceId: Maybe<Id>; includeArchived?: boolean };
+    result: NodeView;
+  };
+  list_children: { args: { id: Id; includeArchived?: boolean }; result: NodeEntry[] };
+  create_node: {
+    args: {
+      profileId: Id;
+      parentId: Maybe<Id>;
+      input: NewNode;
+      previousId: Maybe<Id>;
+      nextId: Maybe<Id>;
+    };
+    result: Node;
+  };
+  update_node: { args: { id: Id; patch: NodePatch }; result: Node };
+  move_node: {
+    args: {
+      id: Id;
+      fromParentId: Maybe<Id>;
+      toParentId: Id;
+      previousId: Maybe<Id>;
+      nextId: Maybe<Id>;
+    };
+    result: null;
+  };
+  share_node: { args: { id: Id; parentId: Id }; result: null };
+  unshare_node: { args: { id: Id; parentId: Id }; result: null };
+  set_node_pinned: { args: { parentId: Id; childId: Id; pinned: boolean }; result: null };
+  archive_node: { args: { id: Id; archived: boolean }; result: Node };
+  node_delete_impact: { args: { id: Id }; result: DeleteImpact };
+  delete_node: { args: { id: Id }; result: string };
+  restore_deletion: { args: { deletionId: string }; result: null };
+  duplicate_node: {
+    args: { profileId: Id; id: Id; parentId: Maybe<Id>; name: Maybe<string> };
+    result: Node;
+  };
+  set_node_tags: { args: { id: Id; names: string[] }; result: Tag[] };
+  list_tags: { args: Record<string, never>; result: Tag[] };
+
+  toggle_favorite: {
+    args: { profileId: Id; nodeId: Id; actionId: Maybe<string>; toolId: Maybe<Id> };
+    result: boolean;
+  };
+  list_favorites: { args: { profileId: Id }; result: Favorite[] };
+  list_recents: {
+    args: { profileId: Id; workspaceId: Maybe<Id>; limit?: number };
+    result: RecentAction[];
+  };
+}
+
+export type CommandName = keyof Commands;
+export type CommandArgs<K extends CommandName> = Commands[K]['args'];
+export type CommandResult<K extends CommandName> = Commands[K]['result'];
+
+export function isTauri(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
+
+/** Gli errori di Rust arrivano come stringhe gia' leggibili. */
+export class BackendError extends Error {
   constructor(
-    public readonly command: string,
+    readonly command: CommandName,
     message: string,
   ) {
     super(message);
-    this.name = 'IpcError';
+    this.name = 'BackendError';
   }
 }
 
-async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+export async function call<K extends CommandName>(
+  command: K,
+  args: CommandArgs<K>,
+): Promise<CommandResult<K>> {
   try {
-    return await invoke<T>(command, args);
+    if (isTauri()) {
+      return await invoke<CommandResult<K>>(command, args as Record<string, unknown>);
+    }
+    const { mockCall } = await import('./mock/backend');
+    return await mockCall(command, args);
   } catch (error) {
-    const message =
-      typeof error === 'string' ? error : ((error as Error)?.message ?? String(error));
-    throw new IpcError(command, message);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new BackendError(command, message);
   }
 }
 
-/** True quando giriamo dentro Tauri (in `vite dev` puro non c'è backend). */
-export const isTauri = (): boolean =>
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+const none = {} as Record<string, never>;
 
-/** Campi modificabili di un contenitore. `dangerLevel: 'inherit'` torna a ereditare. */
-export interface ContainerPatch {
-  name?: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  badgeText?: string;
-  dangerLevel?: string;
-  isFavorite?: boolean;
-}
-
-export interface ApplicationPatch {
-  name?: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  dangerLevel?: string;
-  isFavorite?: boolean;
-}
-
-export interface LinkPatch {
-  name?: string;
-  url?: string;
-  kind?: LinkKind;
-  description?: string;
-  icon?: string;
-  dangerLevel?: string;
-  isFavorite?: boolean;
-  isDefault?: boolean;
-}
-
-export const ipc = {
-  /* --- Avvio ------------------------------------------------------------ */
-  bootstrap: () => call<BootstrapPayload>('bootstrap'),
-  completeOnboarding: () => call<void>('complete_onboarding'),
-
-  /* --- Impostazioni ----------------------------------------------------- */
-  getSettings: () => call<AppSettings>('get_settings'),
-  setSetting: (key: keyof AppSettings, value: unknown) =>
-    call<AppSettings>('set_setting', { key, value: JSON.stringify(value) }),
-
-  /** Override di una chiave per un profilo. `null` rimuove l'override. */
-  setProfileSetting: (profileId: string, key: keyof AppSettings, value: unknown | null) =>
-    call<AppSettings>('set_profile_setting', {
+export const api = {
+  bootstrap: () => call('bootstrap', none),
+  completeOnboarding: () => call('complete_onboarding', none),
+  setSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) =>
+    call('set_setting', { key, value: JSON.stringify(value) }),
+  setProfileSetting: <K extends keyof AppSettings>(
+    profileId: Id,
+    key: K,
+    value: AppSettings[K] | null,
+  ) =>
+    call('set_profile_setting', {
       profileId,
       key,
       value: value === null ? null : JSON.stringify(value),
     }),
-  getProfileOverrides: (profileId: string) =>
-    call<string[]>('get_profile_overrides', { profileId }),
-  /** Elenco autorevole delle chiavi personalizzabili per profilo (da Rust). */
-  profileScopedKeys: () => call<string[]>('profile_scoped_keys'),
+  profileOverrides: (profileId: Id) => call('get_profile_overrides', { profileId }),
+  profileScopedKeys: () => call('profile_scoped_keys', none),
+  activateProfile: (profileId: Id) => call('activate_profile', { profileId }),
+  listProfiles: () => call('list_profiles', none),
+  createProfile: (name: string) => call('create_profile', { name }),
+  updateProfile: (id: Id, patch: ProfilePatch) => call('update_profile', { id, patch }),
+  profileDeleteImpact: (id: Id) => call('profile_delete_impact', { id }),
+  deleteProfile: (id: Id) => call('delete_profile', { id }),
 
-  /* --- Profili ---------------------------------------------------------- */
-  activateProfile: (profileId: string) => call<ProfileSession>('activate_profile', { profileId }),
-  listProfiles: () => call<Profile[]>('list_profiles'),
-  createProfile: (name: string, icon?: string) => call<Profile>('create_profile', { name, icon }),
-  renameProfile: (id: string, name: string) => call<Profile>('rename_profile', { id, name }),
-  profileDeleteImpact: (id: string) => call<ProfileDeleteImpact>('profile_delete_impact', { id }),
-  deleteProfile: (id: string) => call<ProfileSession>('delete_profile', { id }),
+  listWorkspaces: (profileId: Id, includeArchived = false) =>
+    call('list_workspaces', { profileId, includeArchived }),
+  setWorkspaceVisibility: (profileId: Id, workspaceId: Id, visible: boolean) =>
+    call('set_workspace_visibility', { profileId, workspaceId, visible }),
+  setDefaultWorkspace: (profileId: Id, workspaceId: Id) =>
+    call('set_default_workspace', { profileId, workspaceId }),
+  rememberWorkspaceRoute: (profileId: Id, workspaceId: Id, route: string) =>
+    call('remember_workspace_route', { profileId, workspaceId, route }),
 
-  /* --- Gerarchia -------------------------------------------------------- */
-  listContainers: (profileId: string) => call<Container[]>('list_containers', { profileId }),
-  getContainerView: (id: string) => call<ContainerView>('get_container_view', { id }),
-  resolveSiblingPath: (containerId: string, targetEnvironmentId: string) =>
-    call<string>('resolve_sibling_path', { containerId, targetEnvironmentId }),
-  createContainer: (
-    profileId: string,
-    parentId: string | null,
-    kind: ContainerKind,
-    name: string,
-  ) => call<Container>('create_container', { profileId, parentId, kind, name }),
-  updateContainer: (id: string, patch: ContainerPatch) =>
-    call<Container>('update_container', { id, ...patch }),
-  moveContainer: (
-    id: string,
-    newParentId: string | null,
-    previousId: string | null,
-    nextId: string | null,
-  ) => call<Container>('move_container', { id, newParentId, previousId, nextId }),
-  containerDeleteImpact: (id: string) => call<DeleteImpact>('container_delete_impact', { id }),
-  deleteContainer: (id: string) => call<void>('delete_container', { id }),
-  duplicateContainer: (id: string, newName: string) =>
-    call<Container>('duplicate_container', { id, newName }),
+  nodeView: (profileId: Id, id: Id, viaWorkspaceId: Maybe<Id>) =>
+    call('get_node_view', { profileId, id, viaWorkspaceId }),
+  children: (id: Id) => call('list_children', { id }),
+  createNode: (profileId: Id, parentId: Maybe<Id>, input: NewNode) =>
+    call('create_node', { profileId, parentId, input, previousId: null, nextId: null }),
+  updateNode: (id: Id, patch: NodePatch) => call('update_node', { id, patch }),
+  unshareNode: (id: Id, parentId: Id) => call('unshare_node', { id, parentId }),
+  deleteImpact: (id: Id) => call('node_delete_impact', { id }),
+  deleteNode: (id: Id) => call('delete_node', { id }),
+  restoreDeletion: (deletionId: string) => call('restore_deletion', { deletionId }),
 
-  /* --- Applicazioni ----------------------------------------------------- */
-  createApplication: (profileId: string, containerId: string, name: string) =>
-    call<Application>('create_application', { profileId, containerId, name }),
-  updateApplication: (id: string, patch: ApplicationPatch) =>
-    call<Application>('update_application', { id, ...patch }),
-  moveApplication: (
-    id: string,
-    containerId: string,
-    previousId: string | null,
-    nextId: string | null,
-  ) => call<Application>('move_application', { id, containerId, previousId, nextId }),
-  deleteApplication: (id: string) => call<void>('delete_application', { id }),
-  duplicateApplication: (id: string, newName: string) =>
-    call<Application>('duplicate_application', { id, newName }),
-
-  /* --- Link ------------------------------------------------------------- */
-  createLink: (applicationId: string, name: string, url: string, kind: LinkKind = 'web') =>
-    call<Link>('create_link', { applicationId, name, url, kind }),
-  updateLink: (id: string, patch: LinkPatch) => call<Link>('update_link', { id, ...patch }),
-  moveLink: (id: string, applicationId: string, previousId: string | null, nextId: string | null) =>
-    call<Link>('move_link', { id, applicationId, previousId, nextId }),
-  deleteLink: (id: string) => call<void>('delete_link', { id }),
-
-  /* --- Apertura e Danger Zone ------------------------------------------- */
-  listDangerPrompts: () => call<DangerPrompt[]>('list_danger_prompts'),
-  prepareOpen: (linkId: string) => call<OpenIntent>('prepare_open', { linkId }),
-  prepareOpenMany: (linkIds: string[]) => call<BulkOpenPlan>('prepare_open_many', { linkIds }),
-  openLink: (linkId: string, confirmed = false) => call<void>('open_link', { linkId, confirmed }),
-  openLinks: (linkIds: string[], confirmed = false) =>
-    call<number>('open_links', { linkIds, confirmed }),
-
-  /* --- Ricerca, recenti, salute dei link -------------------------------- */
-  search: (profileId: string, query: string) =>
-    call<SearchHit[]>('search_all', { profileId, query }),
-  linkHealth: (profileId: string) => call<LinkUsage[]>('link_health', { profileId }),
-  recentApplications: (profileId: string, limit?: number) =>
-    call<ApplicationWithLinks[]>('recent_applications', { profileId, limit }),
-  favouriteApplications: (profileId: string) =>
-    call<ApplicationWithLinks[]>('favourite_applications', { profileId }),
-
-  /* dashboard */
-  listWidgets: (profileId: string) => call<DashboardWidget[]>('list_widgets', { profileId }),
-  updateWidget: (id: string, patch: { isVisible?: boolean; config?: WidgetConfig }) =>
-    call<DashboardWidget>('update_widget', { id, ...patch }),
-  moveWidget: (id: string, previousId: string | null, nextId: string | null) =>
-    call<DashboardWidget>('move_widget', { id, previousId, nextId }),
-  calendarLinks: (profileId: string) => call<LinkInContext[]>('calendar_links', { profileId }),
-  recentNotes: (profileId: string, limit?: number) =>
-    call<NoteInContext[]>('recent_notes', { profileId, limit }),
-
-  /* --- Tag e note ------------------------------------------------------- */
-  listTags: (profileId: string) => call<Tag[]>('list_tags', { profileId }),
-  tagsForEntity: (entityType: TaggableType, entityId: string) =>
-    call<Tag[]>('tags_for_entity', { entityType, entityId }),
-  setEntityTags: (profileId: string, entityType: TaggableType, entityId: string, names: string[]) =>
-    call<Tag[]>('set_entity_tags', { profileId, entityType, entityId, names }),
-  getNote: (entityType: NotableType, entityId: string) =>
-    call<Note | null>('get_note', { entityType, entityId }),
-  setNote: (entityType: NotableType, entityId: string, content: string) =>
-    call<Note | null>('set_note', { entityType, entityId, content }),
-
-  /* --- Quick Workspaces ------------------------------------------------- */
-  listBundles: (profileId: string) => call<BundleWithLinks[]>('list_bundles', { profileId }),
-  createBundle: (profileId: string, name: string, expiresAt?: string) =>
-    call<Bundle>('create_bundle', { profileId, name, expiresAt }),
-  updateBundle: (id: string, patch: { name?: string; icon?: string; openDelayMs?: number }) =>
-    call<Bundle>('update_bundle', { id, ...patch }),
-  deleteBundle: (id: string) => call<void>('delete_bundle', { id }),
-  addBundleLink: (bundleId: string, linkId: string) =>
-    call<void>('add_bundle_link', { bundleId, linkId }),
-  removeBundleLink: (bundleId: string, linkId: string) =>
-    call<void>('remove_bundle_link', { bundleId, linkId }),
-  reorderBundleLinks: (bundleId: string, linkIds: string[]) =>
-    call<void>('reorder_bundle_links', { bundleId, linkIds }),
-
-  /* --- Backup ----------------------------------------------------------- */
-  exportBackup: (path: string) => call<number>('export_backup', { path }),
-  previewBackup: (path: string) => call<BackupPreview>('preview_backup', { path }),
-  importBackup: (path: string, mode: ImportMode) =>
-    call<ImportSummary>('import_backup', { path, mode }),
-
-  /* --- Sfondi ----------------------------------------------------------- */
-  listBackgrounds: () => call<Background[]>('list_backgrounds'),
-  createBackground: (name: string, source: BackgroundSource, value: string) =>
-    call<Background>('create_background', { name, source, value }),
-  importBackgroundImage: (sourcePath: string, name?: string) =>
-    call<Background>('import_background_image', { sourcePath, name }),
-  deleteBackground: (id: string) => call<void>('delete_background', { id }),
-
-  /* --- Prompt della Danger Zone ----------------------------------------- */
-  saveDangerPrompt: (prompt: {
-    id?: string;
-    name: string;
-    level: Exclude<DangerLevel, 'normal'>;
-    title: string;
-    message: string;
-    confirmLabel: string;
-    cancelLabel: string;
-    confirmWord?: string;
-  }) => call<DangerPrompt>('save_danger_prompt', { ...prompt }),
-  deleteDangerPrompt: (id: string) => call<void>('delete_danger_prompt', { id }),
-
-  /* --- Scorciatoie globali ---------------------------------------------- */
-  applyGlobalShortcut: (kind: ShortcutKind, accelerator: string) =>
-    call<ShortcutStatus>('apply_global_shortcut', { kind, accelerator }),
-  getShortcutStatus: (kind: ShortcutKind) => call<ShortcutStatus>('get_shortcut_status', { kind }),
+  toggleFavorite: (profileId: Id, nodeId: Id) =>
+    call('toggle_favorite', { profileId, nodeId, actionId: null, toolId: null }),
+  favorites: (profileId: Id) => call('list_favorites', { profileId }),
+  recents: (profileId: Id, workspaceId: Maybe<Id>, limit = 12) =>
+    call('list_recents', { profileId, workspaceId, limit }),
 };
-
-/** Le due scorciatoie globali registrate nell'OS. */
-export type ShortcutKind = 'palette' | 'capture';

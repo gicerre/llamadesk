@@ -263,7 +263,7 @@ niente rimbalzi): hover 120ms · menu 140 · schede 160 · pagina 180 · dialogh
 |---|---|---|
 | 0 · Preparazione ✅ | commit + tag `legacy-v1` + branch `redesign`, questo documento | — |
 | 1 · Modello dati ✅ | schema 2, `ts-rs`, repository generico nodi/relazioni, regole, ordinamento, spostamento, condivisione, eliminazione con impatto, archivio, preferiti, uso, ereditarietà (protezione, conferma, strumenti) | `cargo test` copre condivisione, annidamento, cicli, ereditarietà, cancellazione di workspace con progetti condivisi |
-| 2 · Design system e shell | token, kit, barra del titolo (verifica Snap Layouts), sidebar, switcher, percorso con fratelli, avanti/indietro, toast, Mica, simbolo provvisorio | navigazione fra workspace/progetti vuoti in entrambi i temi a 100/125/150% |
+| 2 · Design system e shell ✅ | token, kit, barra del titolo (verifica Snap Layouts), sidebar, switcher, percorso con fratelli, avanti/indietro, toast, Mica, simbolo provvisorio | navigazione fra workspace/progetti vuoti in entrambi i temi a 100/125/150% |
 | 3 · Contenuti | Home, pagina progetto con ambiti e sezioni, vista a fuoco, righe risorsa, pannello di dettaglio, creazione unica con riconoscimento, drag & drop interno e da Esplora risorse, stati vuoti ed errori | esempio SpecialHub ricostruibile a mano |
 | 4 · Azioni e strumenti | registro, `execute_action`, rilevamento, preferenze ereditate, menu contestuali, azioni rapide, apertura gruppi con browser/profilo/finestra | IntelliJ/terminale da un repository; gruppo aperto in un profilo Chrome |
 | 5 · Command palette | fuzzy, oggetto + verbo, pannello azioni, suggerimenti, rilancio recenti, scorciatoia globale | "camunda term" in due tasti |
@@ -301,7 +301,40 @@ API esposta (39 comandi):
 | Libreria | `get_node_view`, `list_children`, `create_node`, `update_node`, `move_node`, `share_node`, `unshare_node`, `set_node_pinned`, `archive_node`, `node_delete_impact`, `delete_node`, `restore_deletion`, `duplicate_node`, `set_node_tags`, `list_tags` |
 | Preferiti e recenti | `toggle_favorite`, `list_favorites`, `list_recents` |
 
-**Attenzione:** il frontend v1 è ancora quello vecchio e chiama comandi che non esistono più.
-Compila, ma `npm run dev` non è utilizzabile fino alla Fase 2, che riscrive la UI su questa API.
 Pronte ma non ancora chiamate (arrivano con la Fase 4): `library::record_usage`,
 `resolve::tool_preference`.
+
+### Fase 2 — design system e shell (15 settembre 2026) ✅
+
+Frontend v1 rimosso e riscritto sulla nuova API.
+
+- **Design system**: token in `src/styles/index.css` (neutri, brand, semantici, accento del
+  workspace calcolato in OKLCH, elevazioni, raggi, tipografia Segoe UI Variable, densità);
+  motion in `src/lib/motion.ts`. Kit in `src/components/ui/` su primitive Radix: Button, Tooltip,
+  Kbd, Menu, Dialog, campi (testo, colore, scelta segmentata, interruttore), stati vuoti, errori,
+  scheletri, toast. Simbolo provvisorio del concept C in `components/brand/BrandMark.tsx`.
+- **Shell**: barra del titolo con simbolo, riduzione sidebar (`Ctrl+B`), avanti/indietro
+  (`Alt+←/→`, tasti del mouse), percorso con menu dei fratelli e compressione dei livelli
+  intermedi, campo di ricerca (disabilitato fino alla Fase 5), controlli finestra Windows.
+  Sidebar con switcher del workspace (`Ctrl+1…9`), Home/Preferiti/Recenti, progetti e
+  sottoprogetti, menu del profilo.
+- **Pagine**: benvenuto (primo workspace), Home del workspace (progetti e risorse sciolte),
+  progetto con schede dei sottoprogetti e sezioni, vista a fuoco delle sezioni, Preferiti,
+  Recenti, Impostazioni essenziali, pagina non trovata. Dialoghi condivisi per creare
+  workspace/progetti/sottoprogetti/sezioni, eliminare con impatto e **Annulla**, "Rimuovi da
+  questo workspace" per i progetti condivisi, nuovo profilo.
+- **Finestra**: trasparente con **Mica** su Windows 11 (verificato sull'app vera), tinta solida
+  altrove; il tema della finestra segue quello dell'app; finestra minima 760×520.
+- **Dati**: TanStack Query con invalidazione dopo ogni modifica; stato di sessione e interfaccia
+  in Zustand; `lib/ipc.ts` tipizzato sui tipi generati. Nel browser (`npm run dev:vite`) un
+  backend simulato con i dati d'esempio; `?vuoto` parte da zero, `?tema=scuro|chiaro`.
+- **Verifiche**: lint, typecheck, prettier, 22 test frontend, 76 test Rust, clippy puliti.
+  Controllate a schermo: pagina progetto in chiaro al 100%, Home in scuro al 125%, benvenuto al
+  150% (anteprima nel browser); benvenuto e Impostazioni nell'app Tauri reale.
+
+Aperti:
+- **Snap Layouts**: con la barra del titolo personalizzata Windows 11 non mostra il menu dei
+  layout passando su Ingrandisci. Non ancora affrontato; `Win+Z` e il trascinamento ai bordi
+  funzionano.
+- Le risorse (link, gruppi, percorsi) si vedono ma non si creano né si aprono: Fasi 3 e 4.
+- Il campo di ricerca è visibile ma disabilitato fino alla Fase 5.

@@ -9,6 +9,7 @@ mod domain;
 mod services;
 mod shortcuts;
 mod tray;
+mod window;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -23,6 +24,8 @@ pub struct AppState {
     pub db: Mutex<rusqlite::Connection>,
     pub db_path: PathBuf,
     pub shortcuts: Mutex<shortcuts::Registry>,
+    /// Materiale della finestra (`mica` | `solid`), deciso all'avvio.
+    pub window_material: &'static str,
 }
 
 pub fn run() {
@@ -62,10 +65,18 @@ pub fn run() {
             let _ = services::hierarchy::empty_trash(&connection);
             let _ = db::repo::library::prune_usage(&connection);
 
+            // Il materiale va deciso prima di mostrare la finestra: il frontend
+            // lo legge al bootstrap per sapere se dipingere tinte solide.
+            let window_material = app
+                .get_webview_window("main")
+                .map(|window| window::apply_material(&window))
+                .unwrap_or("solid");
+
             app.manage(AppState {
                 db: Mutex::new(connection),
                 db_path,
                 shortcuts: Mutex::new(shortcuts::Registry::default()),
+                window_material,
             });
 
             // 3. Scorciatoie globali: si registrano DOPO `manage`, perche' il
