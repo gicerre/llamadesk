@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Kbd } from '@/components/ui/Kbd';
 import { Tip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
+import { usePalette } from '@/stores/palette';
 import { useUi } from '@/stores/ui';
 import { SIDEBAR_WIDTH } from './layout';
 import { PathBar } from './PathBar';
@@ -88,26 +89,33 @@ export function TitleBar() {
   );
 }
 
-/**
- * Ingresso della Command Palette. La palette arriva con la fase 5: fino ad
- * allora il campo e' visibile ma dichiaratamente non ancora disponibile.
- */
+/** Ingresso della Command Palette: sembra un campo, apre la palette. */
 function SearchTrigger() {
   const { t } = useTranslation();
+  const show = usePalette((state) => state.show);
   return (
-    <Tip label={t('shell.searchSoon')}>
-      <span className="mr-2 hidden md:block">
+    <span className="mr-2">
+      <button
+        type="button"
+        onClick={() => show()}
+        aria-label={t('shell.search')}
+        aria-keyshortcuts="Control+K"
+        className="bg-hover text-ink-3 hover:text-ink-2 hover:bg-press hidden h-7 w-60 items-center gap-2 rounded-sm px-2.5 text-sm transition-colors duration-120 md:flex lg:w-72"
+      >
+        <Search className="size-3.5" aria-hidden />
+        <span className="flex-1 text-left">{t('shell.search')}</span>
+        <Kbd>Ctrl+K</Kbd>
+      </button>
+      <Tip label={t('shell.search')} shortcut="Ctrl+K">
         <button
           type="button"
-          disabled
+          onClick={() => show()}
           aria-label={t('shell.search')}
-          className="bg-hover text-ink-3 flex h-7 w-60 items-center gap-2 rounded-sm px-2.5 text-sm disabled:cursor-default lg:w-72"
+          className="text-ink-2 hover:bg-hover flex size-7 items-center justify-center rounded-sm md:hidden"
         >
-          <Search className="size-3.5" aria-hidden />
-          <span className="flex-1 text-left">{t('shell.search')}</span>
-          <Kbd>Ctrl+K</Kbd>
+          <Search className="size-4" aria-hidden />
         </button>
-      </span>
-    </Tip>
+      </Tip>
+    </span>
   );
 }

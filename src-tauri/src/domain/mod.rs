@@ -649,3 +649,35 @@ pub struct ActionOutcome {
     pub tool_name: Option<String>,
     pub browser_profile: Option<String>,
 }
+
+/* ================================================================== ricerca */
+
+/// L'azione che la ricerca propone per un risultato ("camunda term" →
+/// terminale nel repository di Camunda).
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SuggestedAction {
+    pub action_id: String,
+    pub tool_id: Option<String>,
+    pub tool_name: Option<String>,
+    /// L'elemento su cui eseguirla: il risultato stesso o, per un contenitore,
+    /// il suo primo percorso.
+    pub target: Node,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SearchHit {
+    pub node: Node,
+    /// Dalla radice al nodo, lungo il workspace scelto (il corrente, se possibile).
+    pub breadcrumb: Vec<Crumb>,
+    pub workspace_id: String,
+    pub score: f64,
+    /// Intervalli `[inizio, fine)` del nome che corrispondono, in caratteri.
+    pub highlights: Vec<(u32, u32)>,
+    /// Campo che ha deciso la corrispondenza (`name`, `alias`, `tag`, `path`...).
+    pub matched: String,
+    pub action: Option<SuggestedAction>,
+}

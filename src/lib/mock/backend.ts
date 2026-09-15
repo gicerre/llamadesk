@@ -973,6 +973,117 @@ const handlers: Handlers = {
     };
   },
 
+  // Imitazione semplice della ricerca di Rust: parole nel nome, negli antenati
+  // o nell'indirizzo; un verbo ("term", nome di uno strumento) propone l'azione.
+  search_library: ({ profileId, text, workspaceId, contextId, limit }) => {
+    const raw = text.trim();
+    if (!raw || raw.startsWith('>')) return [];
+    const containersOnly = raw.startsWith('@');
+    const fold = (value: string) => value.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+    let words = fold(raw.replace(/^@/, '')).split(/\s+/).filter(Boolean);
+    const isContainer = (kind: NodeKind) =>
+      ['workspace', 'project', 'subproject', 'section'].includes(kind);
+
+    const verbOf = (word: string) => {
+      if (word.length >= 3 && 'terminale'.startsWith(word))
+        return { actionId: 'terminal', tool: null };
+      const tool = state.tools.find(
+        (candidate) => word.length >= 3 && (candidate.id.split(':')[1] ?? '').startsWith(word),
+      );
+      if (!tool) return null;
+      return { actionId: tool.kind === 'terminal' ? 'terminal' : 'open_with', tool };
+    };
+    const last = words.at(-1) ?? '';
+    const verb = containersOnly ? null : verbOf(last);
+    if (verb) words = words.slice(0, -1);
+
+    const visible = new Set(
+      state.visibility.filter((v) => v.profileId === profileId).map((v) => v.workspaceId),
+    );
+    const firstPath = (id: string): Node | null => {
+      for (const entry of childrenOf(id)) if (entry.node.kind === 'path') return entry.node;
+      for (const entry of childrenOf(id)) {
+        if (!isContainer(entry.node.kind)) continue;
+        const found = firstPath(entry.node.id);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const hits = [];
+    for (const node of state.nodes.values()) {
+      if (node.deletion || node.archivedAt) continue;
+      if (containersOnly && !isContainer(node.kind)) continue;
+      const workspaces = workspacesOf(node.id).filter((workspace) => visible.has(workspace.id));
+      if (workspaces.length === 0) continue;
+      const via =
+        workspaces.find((workspace) => workspace.id === workspaceId)?.id ??
+        (workspaces[0] as Node).id;
+      const trail = breadcrumb(profileId, node.id, via);
+      const name = fold(node.name);
+      const others = fold(
+        [
+          ...trail.slice(0, -1).map((crumb) => crumb.name),
+          node.url ?? '',
+          node.path ?? '',
+          node.aliases ?? '',
+        ].join(' '),
+      );
+
+      let score = 0;
+      const highlights: [number, number][] = [];
+      let matchedAll = true;
+      for (const word of words) {
+        const at = name.indexOf(word);
+        if (at >= 0) {
+          score += at === 0 ? 100 : 80;
+          highlights.push([at, at + word.length]);
+        } else if (others.includes(word)) {
+          score += 50;
+        } else {
+          matchedAll = false;
+          break;
+        }
+      }
+      if (!matchedAll) continue;
+
+      let action = null;
+      if (verb) {
+        const browser = verb.tool?.kind === 'browser';
+        const fits = ['link', 'link_group'].includes(node.kind) ? browser : !browser;
+        if (!fits) continue;
+        if (words.length === 0) {
+          if (isContainer(node.kind)) continue;
+          const inContext = trail.some((crumb) => crumb.id === contextId);
+          score = 40 + (inContext ? 35 : 0);
+        }
+        const target = isContainer(node.kind) ? firstPath(node.id) : node;
+        if (!target) continue;
+        action = {
+          actionId: verb.actionId,
+          toolId: verb.tool?.id ?? null,
+          toolName: verb.tool?.name ?? null,
+          target,
+        };
+      } else if (words.length === 0) {
+        continue;
+      }
+
+      hits.push({
+        node,
+        breadcrumb: trail,
+        workspaceId: via,
+        score: score / Math.max(words.length, 1) + (via === workspaceId ? 5 : 0),
+        highlights: highlights.sort((a, b) => a[0] - b[0]),
+        matched: 'name',
+        action,
+      });
+    }
+    return hits
+      .sort((a, b) => b.score - a.score || a.node.name.localeCompare(b.node.name))
+      .slice(0, limit ?? 30);
+  },
+
   // Nessun disco nel browser: tipi plausibili, dedotti dal percorso.
   inspect_paths: ({ pathsToInspect }) =>
     pathsToInspect.map((path) => {

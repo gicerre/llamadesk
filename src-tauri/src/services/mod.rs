@@ -6,4 +6,5 @@ pub mod opener;
 pub mod ordering;
 pub mod paths;
 pub mod resolve;
+pub mod search;
 pub mod tools;

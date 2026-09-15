@@ -6,6 +6,7 @@ import { invalidateLibrary, keys, queryClient, useWorkspaces } from '@/lib/queri
 import { currentNodeId, parseNodeRoute, paths, workspaceFromPath } from '@/lib/routes';
 import { useDialogs } from '@/stores/dialogs';
 import { useInspector } from '@/stores/inspector';
+import { usePalette } from '@/stores/palette';
 import { toast, toastError } from '@/stores/toasts';
 import i18n from '@/lib/i18n';
 import { useProfileId } from '@/stores/session';
@@ -14,6 +15,8 @@ import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
 
 /** Evento della tray: "Impostazioni". */
 const OPEN_SETTINGS_EVENT = 'llamadesk://open-settings';
+/** Scorciatoia globale: la finestra e' gia' davanti, si apre la palette. */
+const TOGGLE_PALETTE_EVENT = 'llamadesk://toggle-palette';
 
 /** Il bersaglio di un tasto e' un campo di testo? Allora le scorciatoie tacciono. */
 function isTyping(target: EventTarget | null) {
@@ -66,7 +69,12 @@ export function WindowBridge() {
       }
       if (!event.ctrlKey || event.altKey) return;
 
-      // Le impostazioni si aprono anche mentre si scrive: Ctrl+, non inserisce testo.
+      // Palette e impostazioni si aprono anche mentre si scrive: non inseriscono testo.
+      if (event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        usePalette.getState().toggle();
+        return;
+      }
       if (event.key === ',') {
         event.preventDefault();
         navigate(paths.settings);
@@ -127,8 +135,12 @@ export function WindowBridge() {
   // Tray.
   useEffect(() => {
     if (!isTauri()) return;
-    const pending = listen(OPEN_SETTINGS_EVENT, () => navigate(paths.settings));
-    return () => void pending.then((unlisten) => unlisten());
+    const pending = [
+      listen(OPEN_SETTINGS_EVENT, () => navigate(paths.settings)),
+      // Dalla scorciatoia globale si vuole cercare: apre sempre, non chiude.
+      listen(TOGGLE_PALETTE_EVENT, () => usePalette.getState().show()),
+    ];
+    return () => pending.forEach((listener) => void listener.then((unlisten) => unlisten()));
   }, [navigate]);
 
   // Ultima pagina per workspace: cambiando workspace si riparte da li'.

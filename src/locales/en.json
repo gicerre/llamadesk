@@ -24,7 +24,6 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "search": "Search or run an action",
-    "searchSoon": "Search is coming soon",
     "siblings": "Items next to {{name}}",
     "hiddenPath": "Middle levels of the path",
     "minimize": "Minimize",
@@ -440,5 +439,38 @@
     "exe": "Executable",
     "args": "Arguments",
     "argsHint": "{path} becomes the path, {urls} the addresses. Empty: the path goes last."
+  },
+  "palette": {
+    "title": "Search or run an action",
+    "placeholder": "Search projects, links, paths… or type > for commands",
+    "continue": "Continue",
+    "results": "Results",
+    "commandsTitle": "Commands",
+    "emptyHint": "Type to search the whole library.",
+    "noResults": "No results for “{{text}}”",
+    "go": "Go",
+    "again": "Repeat",
+    "location": "Go to location",
+    "toggleFavorite": "Add to or remove from favorites",
+    "back": "Back to results",
+    "actionsFor": "Actions for {{name}}",
+    "hintOpen": "Open",
+    "hintRun": "Run",
+    "hintActions": "More actions",
+    "hintLocation": "Go to location",
+    "hintPrefixes": "> commands · @ containers · #tag",
+    "commands": {
+      "add": "Add to this page…",
+      "inspectPage": "Edit this page…",
+      "home": "Go to workspace Home",
+      "toggleSidebar": "Show or hide the sidebar",
+      "themeLight": "Light theme",
+      "themeDark": "Dark theme",
+      "themeSystem": "System theme",
+      "densityCompact": "Compact density",
+      "densityComfortable": "Comfortable density",
+      "refreshTools": "Search for tools again",
+      "recheckPaths": "Recheck paths"
+    }
   }
 }

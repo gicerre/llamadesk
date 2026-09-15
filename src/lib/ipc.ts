@@ -17,6 +17,7 @@ import type { ProfileDeleteImpact } from '@/types/generated/ProfileDeleteImpact'
 import type { ProfilePatch } from '@/types/generated/ProfilePatch';
 import type { ProfileSession } from '@/types/generated/ProfileSession';
 import type { RecentAction } from '@/types/generated/RecentAction';
+import type { SearchHit } from '@/types/generated/SearchHit';
 import type { ShortcutStatus } from '@/types/generated/ShortcutStatus';
 import type { Tag } from '@/types/generated/Tag';
 import type { Tool } from '@/types/generated/Tool';
@@ -152,6 +153,17 @@ export interface Commands {
   };
   prepare_action: { args: ActionArgs; result: ActionPlan };
   execute_action: { args: ActionArgs & { confirmation: Maybe<string> }; result: ActionOutcome };
+
+  search_library: {
+    args: {
+      profileId: Id;
+      text: string;
+      workspaceId: Maybe<Id>;
+      contextId: Maybe<Id>;
+      limit?: number;
+    };
+    result: SearchHit[];
+  };
 }
 
 /** Chi, su che cosa, con quale strumento e da quale workspace. */
@@ -283,6 +295,9 @@ export const api = {
   prepareAction: (args: ActionArgs) => call('prepare_action', args),
   executeAction: (args: ActionArgs, confirmation: Maybe<string> = null) =>
     call('execute_action', { ...args, confirmation }),
+
+  search: (profileId: Id, text: string, workspaceId: Maybe<Id>, contextId: Maybe<Id>, limit = 30) =>
+    call('search_library', { profileId, text, workspaceId, contextId, limit }),
 };
 
 /** Il backend chiede conferma prima di aprire (docs/REDESIGN.md § 8). */

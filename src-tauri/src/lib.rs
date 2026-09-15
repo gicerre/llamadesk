@@ -197,6 +197,8 @@ pub fn run() {
             commands::actions::tool_preferences,
             commands::actions::prepare_action,
             commands::actions::execute_action,
+            // command palette
+            commands::search::search_library,
         ])
         .run(tauri::generate_context!())
         .expect("errore fatale durante l'avvio di LlamaDesk");

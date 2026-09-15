@@ -412,3 +412,31 @@ Non verificato nell'app Tauri reale: avvio effettivo di IDE, terminali e browser
 Scelto: senza browser salvato, "nuova finestra" e profilo usano il browser preferito (Windows
 non espone "nuova finestra" per il browser predefinito). Rinviato: lettura del browser
 predefinito dal registro, `vswhere`, `App Paths`/`PATH`.
+
+### Fase 5 — command palette (15 settembre 2026) ✅
+
+- **Ricerca in Rust** (`services/search.rs`, comando `search_library`): legge a ogni richiesta
+  la libreria visibile al profilo (nodi non eliminati né archiviati, raggiungibili dai suoi
+  workspace) con tag e uso. Punteggio per campo — nome e alias (anche lettere sparse:
+  "shb"), tag, nomi degli antenati, indirizzo o percorso, descrizione — con ogni parola che
+  deve trovare posto; poi uso (frequenza e ultimi 7 giorni), tipo e workspace corrente.
+  Maiuscole e accenti ignorati; intervalli evidenziati sul nome. Un progetto condiviso
+  compare una volta, con il percorso del workspace corrente.
+- **Oggetto + verbo**: l'ultima parola può essere un verbo — `term`, `ide`, `esplora`,
+  `remoto` o il nome di uno strumento (`cursor`, `idea`, `chrome`…). Il risultato porta
+  l'azione; su un contenitore si usa il suo primo percorso ("camunda term"). Solo il verbo:
+  i percorsi della pagina aperta per primi. `@` limita ai contenitori, `#tag` filtra, `>`
+  passa ai comandi. Circa 30 ms per richiesta su 3.400 elementi (build release).
+- **Palette** (`Ctrl+K`, campo nella barra del titolo, scorciatoia globale che porta avanti la
+  finestra): a vuoto le ultime azioni (ripetibili) e tre comandi; poi risultati con percorso e
+  azione proposta, comandi corrispondenti in coda. `Invio` esegue (azione proposta, azione
+  principale o apertura del contenitore), `Tab` elenca le altre azioni con tutti gli
+  strumenti, `Ctrl+Invio` va alla posizione (pagina del contenitore + pannello di dettaglio),
+  `Esc` o `Maiusc+Tab` tornano indietro. Comandi: aggiungi, nuovo progetto/workspace/profilo,
+  modifica pagina, Home, Preferiti, Recenti, Impostazioni, barra laterale, tema, densità,
+  cerca strumenti, ricontrolla percorsi.
+- **Verifiche**: 108 test Rust, 40 test frontend, clippy/lint/typecheck/prettier puliti. Nel
+  browser: palette vuota, "special term", "back cursor", "grafana", `>tema`, pannello azioni.
+
+Rinviato alla Fase 6: la ricerca non nasconde ancora i contenuti protetti (non esiste ancora
+lo stato di blocco). Nell'anteprima nel browser la ricerca è un'imitazione semplificata.

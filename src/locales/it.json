@@ -24,7 +24,6 @@
     "collapseSidebar": "Riduci la barra laterale",
     "expandSidebar": "Espandi la barra laterale",
     "search": "Cerca o esegui un'azione",
-    "searchSoon": "La ricerca arriva a breve",
     "siblings": "Elementi accanto a {{name}}",
     "hiddenPath": "Livelli intermedi del percorso",
     "minimize": "Riduci a icona",
@@ -440,5 +439,38 @@
     "exe": "Eseguibile",
     "args": "Argomenti",
     "argsHint": "{path} diventa il percorso, {urls} gli indirizzi. Vuoto: il percorso in coda."
+  },
+  "palette": {
+    "title": "Cerca o esegui un'azione",
+    "placeholder": "Cerca progetti, link, percorsi… oppure scrivi > per i comandi",
+    "continue": "Continua",
+    "results": "Risultati",
+    "commandsTitle": "Comandi",
+    "emptyHint": "Scrivi per cercare in tutta la libreria.",
+    "noResults": "Nessun risultato per «{{text}}»",
+    "go": "Vai",
+    "again": "Ripeti",
+    "location": "Vai alla posizione",
+    "toggleFavorite": "Aggiungi o togli dai preferiti",
+    "back": "Torna ai risultati",
+    "actionsFor": "Azioni per {{name}}",
+    "hintOpen": "Apri",
+    "hintRun": "Esegui",
+    "hintActions": "Altre azioni",
+    "hintLocation": "Vai alla posizione",
+    "hintPrefixes": "> comandi · @ contenitori · #tag",
+    "commands": {
+      "add": "Aggiungi in questa pagina…",
+      "inspectPage": "Modifica questa pagina…",
+      "home": "Vai alla Home del workspace",
+      "toggleSidebar": "Mostra o nascondi la barra laterale",
+      "themeLight": "Tema chiaro",
+      "themeDark": "Tema scuro",
+      "themeSystem": "Tema del sistema",
+      "densityCompact": "Densità compatta",
+      "densityComfortable": "Densità normale",
+      "refreshTools": "Cerca di nuovo gli strumenti",
+      "recheckPaths": "Ricontrolla i percorsi"
+    }
   }
 }

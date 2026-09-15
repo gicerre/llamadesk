@@ -2,6 +2,7 @@ import { useLocation, Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { DialogHost } from '@/features/create/DialogHost';
 import { InspectorPanel } from '@/features/inspector/InspectorPanel';
+import { CommandPalette } from '@/features/palette/CommandPalette';
 import { FileDropBridge } from '@/features/resources/FileDropBridge';
 import { pageVariants } from '@/lib/motion';
 import { Sidebar } from '../sidebar/Sidebar';
@@ -35,6 +36,7 @@ export function AppShell() {
         </main>
       </div>
       <DialogHost />
+      <CommandPalette />
       <FileDropBridge />
     </div>
   );
