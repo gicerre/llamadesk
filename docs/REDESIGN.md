@@ -264,7 +264,7 @@ niente rimbalzi): hover 120ms · menu 140 · schede 160 · pagina 180 · dialogh
 | 0 · Preparazione ✅ | commit + tag `legacy-v1` + branch `redesign`, questo documento | — |
 | 1 · Modello dati ✅ | schema 2, `ts-rs`, repository generico nodi/relazioni, regole, ordinamento, spostamento, condivisione, eliminazione con impatto, archivio, preferiti, uso, ereditarietà (protezione, conferma, strumenti) | `cargo test` copre condivisione, annidamento, cicli, ereditarietà, cancellazione di workspace con progetti condivisi |
 | 2 · Design system e shell ✅ | token, kit, barra del titolo (verifica Snap Layouts), sidebar, switcher, percorso con fratelli, avanti/indietro, toast, Mica, simbolo provvisorio | navigazione fra workspace/progetti vuoti in entrambi i temi a 100/125/150% |
-| 3 · Contenuti | Home, pagina progetto con ambiti e sezioni, vista a fuoco, righe risorsa, pannello di dettaglio, creazione unica con riconoscimento, drag & drop interno e da Esplora risorse, stati vuoti ed errori | esempio SpecialHub ricostruibile a mano |
+| 3 · Contenuti ✅ | Home, pagina progetto con ambiti e sezioni, vista a fuoco, righe risorsa, pannello di dettaglio, creazione unica con riconoscimento, drag & drop interno e da Esplora risorse, stati vuoti ed errori | esempio SpecialHub ricostruibile a mano |
 | 4 · Azioni e strumenti | registro, `execute_action`, rilevamento, preferenze ereditate, menu contestuali, azioni rapide, apertura gruppi con browser/profilo/finestra | IntelliJ/terminale da un repository; gruppo aperto in un profilo Chrome |
 | 5 · Command palette | fuzzy, oggetto + verbo, pannello azioni, suggerimenti, rilancio recenti, scorciatoia globale | "camunda term" in due tasti |
 | 6 · Protezione e conferma | password, sessione, auto-lock, stati bloccati, filtro nelle query, dialoghi di conferma ereditata | contenuti bloccati assenti da ricerca/recenti/preferiti e rifiutati da Rust |
@@ -338,3 +338,33 @@ Aperti:
   funzionano.
 - Le risorse (link, gruppi, percorsi) si vedono ma non si creano né si aprono: Fasi 3 e 4.
 - Il campo di ricerca è visibile ma disabilitato fino alla Fase 5.
+
+### Fase 3 — contenuti (15 settembre 2026) ✅
+
+- **Backend**: `services/paths.rs` riconosce file, cartelle, repository (branch letto da
+  `.git/HEAD`, anche nei worktree), percorsi mancanti o non raggiungibili (limite di 1,5 s) ed
+  espande `%VARIABILI%`; comando asincrono `inspect_paths`. `create_link_group` crea un gruppo
+  con i suoi link in un solo passo (o tutto o niente). 84 test Rust.
+- **Righe delle risorse**: link con monogramma colorato dal dominio (nessuna favicon, nessuna
+  rete), gruppi "a pila" con il numero di link e l'anteprima dei nomi, percorsi con il glifo del
+  tipo rilevato, branch, dimensione; percorso mancante tratteggiato con "Individua…".
+- **Aggiungi** (`Ctrl+N` o pulsante primario): si incolla un indirizzo (link), piu' indirizzi
+  (gruppo, oppure link separati), uno o piu' percorsi (tipo mostrato prima di creare) o un nome
+  (sezione o sottoprogetto); scelta della destinazione fra l'ambito e le sue sezioni; "File…" e
+  "Cartella…" con i selettori di sistema.
+- **Pannello di dettaglio** (`Ctrl+I`, clic su una risorsa, `Esc` per chiudere): nome, indirizzo o
+  percorso, descrizione, alias, link del gruppo (attivi/esclusi, ordine, aggiunta, rimozione),
+  colore e icona, tag, "chiedi conferma" con il valore ereditato, workspace del progetto
+  (collega/rimuovi) e "fissato in Home", eliminazione. Salvataggio all'uscita dal campo.
+- **Trascinamento**: righe riordinabili e spostabili fra ambito e sezioni (anche sul titolo di una
+  sezione), `Alt+↑/↓` da tastiera; file e cartelle trascinati da Esplora risorse diventano
+  percorsi nel contenitore sotto il puntatore.
+- **Home**: Continua (azioni recenti), Progetti con i fissati in testa e menu "Fissa in Home",
+  Preferiti in questo workspace, risorse e sezioni del workspace. `Ctrl+D` preferito, `F5`
+  ricontrolla i percorsi.
+- **Verifiche**: lint, typecheck, prettier, 32 test frontend, 84 test Rust, clippy puliti. Nel
+  browser (backend simulato) provati pannello di dettaglio, creazione di un gruppo da due
+  indirizzi, riordino con `Alt+↑` e trascinamento di una riga in una sezione.
+
+Non verificato nell'app Tauri reale: trascinamento da Esplora risorse, selettori "File…" /
+"Cartella…" e "Individua…" (esistono solo lì).

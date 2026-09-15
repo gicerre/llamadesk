@@ -73,6 +73,7 @@ const state = {
   edges: [] as Edge[],
   visibility: [] as Visibility[],
   favorites: [] as { profileId: string; nodeId: string }[],
+  tags: new Map<string, string[]>(),
 };
 
 /* ---------------------------------------------------------------- lettura */
@@ -350,10 +351,10 @@ function seed() {
   add(specialhub, 'subproject', it ? 'Documentazione' : 'Documentation');
   add(backend, 'path', 'specialhub-backend', { path: 'C:\\dev\\specialhub\\backend' });
   const devSection = add(backend, 'section', 'DEV');
-  add(devSection, 'link_group', 'SpecialHub DEV');
+  const devGroup = add(devSection, 'link_group', 'SpecialHub DEV');
   const prod = add(backend, 'section', 'PROD');
   (prod as Node).caution = 'confirm';
-  add(prod, 'link_group', 'SpecialHub PROD');
+  const prodGroup = add(prod, 'link_group', 'SpecialHub PROD');
   add(prod, 'section', 'Database');
   add(work, 'project', 'Meeting');
   const client = add(work, 'project', 'Cliente Rossi');
@@ -362,6 +363,34 @@ function seed() {
   add(work, 'link', 'Outlook', { url: 'https://outlook.office.com' });
   add(personal, 'project', 'Casa');
   add(personal, 'project', 'Finanze');
+
+  // Aggiunti in coda per non spostare gli id dei nodi qui sopra.
+  for (const [name, url] of [
+    ['GitHub', 'https://github.com/specialhub/backend'],
+    ['Jira', 'https://specialhub.atlassian.net/jira'],
+    ['Camunda Operate', 'https://operate.dev.specialhub.it'],
+    ['Grafana', 'https://grafana.dev.specialhub.it'],
+    ['API docs', 'https://api.dev.specialhub.it/docs'],
+    ['Confluence', 'https://specialhub.atlassian.net/wiki'],
+  ] as const) {
+    add(devGroup, 'link', name, { url });
+  }
+  for (const [name, url] of [
+    ['Camunda Operate', 'https://operate.specialhub.it'],
+    ['Grafana', 'https://grafana.specialhub.it'],
+    ['Kibana', 'https://kibana.specialhub.it'],
+  ] as const) {
+    add(prodGroup, 'link', name, { url });
+  }
+  add(backend, 'path', 'BPMN condivisi', { path: String.raw`\\nas\processi\specialhub` });
+  const docs = add(backend, 'section', it ? 'Documentazione' : 'Documentation');
+  add(docs, 'link', 'Confluence · Backend', {
+    url: 'https://specialhub.atlassian.net/wiki/backend',
+  });
+  add(docs, 'path', 'Architettura v3.pdf', {
+    path: String.raw`C:\Users\me\Documents\SpecialHub\Architettura v3.pdf`,
+  });
+  add(docs, 'path', 'Postman collection', { path: String.raw`C:\dev\specialhub\postman` });
 }
 
 seed();
@@ -499,7 +528,11 @@ const handlers: Handlers = {
         isOwn: cautionSource?.depth === 0,
         inheritedFrom: cautionSource && cautionSource.depth > 0 ? crumb(cautionSource.node) : null,
       },
-      tags: [],
+      tags: (state.tags.get(id) ?? []).map((name) => ({
+        id: name.toLowerCase(),
+        name,
+        color: null,
+      })),
       isFavorite: state.favorites.some((f) => f.profileId === profileId && f.nodeId === id),
     };
   },
@@ -514,7 +547,38 @@ const handlers: Handlers = {
     node.updatedAt = now();
     return node;
   },
-  move_node: () => null,
+  move_node: ({ id, fromParentId, toParentId, previousId, nextId }) => {
+    const from = fromParentId ?? parentsOf(id)[0]?.id;
+    const edge = state.edges.find((e) => e.parent === from && e.child === id);
+    if (!edge) throw new Error("l'elemento non si trova nel contenitore di partenza");
+    const target = get(toParentId);
+    if (!RULES[target.kind].includes(get(id).kind)) {
+      throw new Error(`${get(id).kind} non puo' stare dentro ${target.kind}`);
+    }
+    const order = (sibling: string | null) =>
+      state.edges.find((e) => e.parent === toParentId && e.child === sibling)?.sortOrder ?? null;
+    const before = order(previousId);
+    const after = order(nextId);
+    const last = Math.max(
+      0,
+      ...state.edges.filter((e) => e.parent === toParentId).map((e) => e.sortOrder),
+    );
+    edge.parent = toParentId;
+    edge.sortOrder =
+      before !== null && after !== null
+        ? (before + after) / 2
+        : before !== null
+          ? before + 1000
+          : after !== null
+            ? after - 1000
+            : last + 1000;
+    return null;
+  },
+  create_link_group: ({ profileId, parentId, name, links }) => {
+    const group = create(profileId, parentId, { kind: 'link_group', name });
+    for (const link of links) create(profileId, group.id, link);
+    return group;
+  },
   share_node: ({ id, parentId }) => {
     attach(parentId, id);
     return null;
@@ -571,8 +635,17 @@ const handlers: Handlers = {
       path: original.path ?? undefined,
     });
   },
-  set_node_tags: () => [],
-  list_tags: () => [],
+  set_node_tags: ({ id, names }) => {
+    const clean = [...new Set(names.map((name) => name.trim().replace(/^#/, '')).filter(Boolean))];
+    state.tags.set(id, clean);
+    return clean.map((name) => ({ id: name.toLowerCase(), name, color: null }));
+  },
+  list_tags: () =>
+    [...new Set([...state.tags.values()].flat())].map((name) => ({
+      id: name.toLowerCase(),
+      name,
+      color: null,
+    })),
 
   toggle_favorite: ({ profileId, nodeId }) => {
     const index = state.favorites.findIndex(
@@ -596,6 +669,30 @@ const handlers: Handlers = {
         workspaceIds: workspacesOf(f.nodeId).map((workspace) => workspace.id),
       })),
   list_recents: () => [],
+
+  // Nessun disco nel browser: tipi plausibili, dedotti dal percorso.
+  inspect_paths: ({ pathsToInspect }) =>
+    pathsToInspect.map((path) => {
+      const lower = path.toLowerCase();
+      const extension = /\.([a-z0-9]+)$/.exec(lower)?.[1] ?? null;
+      const kind = lower.includes('postman')
+        ? 'missing'
+        : extension
+          ? 'file'
+          : /backend|frontend/.test(lower)
+            ? 'repository'
+            : 'directory';
+      return {
+        path,
+        resolved: path,
+        kind,
+        isNetwork: path.startsWith(String.raw`\\`),
+        sizeBytes: kind === 'file' ? 2.4 * 1024 * 1024 : null,
+        modifiedAt: kind === 'missing' ? null : Date.now() / 1000 - 86_400,
+        extension: kind === 'file' ? extension : null,
+        gitBranch: kind === 'repository' ? 'develop' : null,
+      };
+    }),
 };
 
 /** Latenza finta ma realistica: l'interfaccia deve reggere anche l'attesa. */

@@ -12,16 +12,19 @@ import { paths, routeForChain } from '@/lib/routes';
 import { useDialogs, type CreateRequest, type DeleteRequest } from '@/stores/dialogs';
 import { useProfileId, useSession } from '@/stores/session';
 import { toast, toastError } from '@/stores/toasts';
+import { AddDialog } from './AddDialog';
 
 /** I dialoghi condivisi della shell. */
 export function DialogHost() {
   const create = useDialogs((state) => state.create);
+  const add = useDialogs((state) => state.add);
   const remove = useDialogs((state) => state.remove);
   const newProfile = useDialogs((state) => state.newProfile);
 
   return (
     <>
       {create && <CreateNodeDialog key={`${create.kind}-${create.parentId}`} request={create} />}
+      {add && <AddDialog key={add.parentId} request={add} />}
       {remove && <DeleteNodeDialog key={remove.id} request={remove} />}
       {newProfile && <NewProfileDialog />}
     </>

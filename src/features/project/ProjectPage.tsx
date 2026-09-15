@@ -54,9 +54,7 @@ export function ProjectPage() {
 
       {scope.data && scope.data.node.id === scopeId ? (
         <>
-          {scope.data.node.kind !== 'project' && (
-            <ScopeBar view={scope.data} workspaceId={workspaceId} />
-          )}
+          <ScopeBar view={scope.data} workspaceId={workspaceId} />
           <ScopeContent view={scope.data} workspaceId={workspaceId} />
         </>
       ) : (
@@ -137,10 +135,25 @@ function ScopeTabs({
   );
 }
 
-/** Barra dell'ambito: il sottoprogetto o la sezione a fuoco, con le sue azioni. */
+/**
+ * Barra dell'ambito: il sottoprogetto o la sezione a fuoco con le sue azioni.
+ * Sulla panoramica resta solo "Aggiungi", l'azione primaria dell'area.
+ */
 function ScopeBar({ view, workspaceId }: { view: NodeView; workspaceId: string }) {
   const { t } = useTranslation();
+  const openAdd = useDialogs((state) => state.openAdd);
   const { node, caution } = view;
+  const add = (
+    <Button variant="primary" onClick={() => openAdd({ parentId: node.id, workspaceId })}>
+      <Plus />
+      {t('add.title')}
+    </Button>
+  );
+
+  if (node.kind === 'project') {
+    return <div className="-mt-2 mb-4 flex justify-end">{add}</div>;
+  }
+
   return (
     <div className="mb-4 flex items-center gap-2.5">
       <NodeIcon
@@ -158,7 +171,8 @@ function ScopeBar({ view, workspaceId }: { view: NodeView; workspaceId: string }
             : t('states.cautionBy', { name: caution.inheritedFrom?.name ?? '' })}
         </Chip>
       )}
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-1.5">
+        {add}
         <NodeMenu view={view} workspaceId={workspaceId} />
       </div>
     </div>

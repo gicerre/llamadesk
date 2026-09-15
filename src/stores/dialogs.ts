@@ -14,6 +14,14 @@ export interface CreateRequest {
   workspaceId: string | null;
 }
 
+export interface AddRequest {
+  /** Contenitore di destinazione proposto. */
+  parentId: string;
+  workspaceId: string;
+  /** Testo gia' pronto (per esempio incollato o trascinato). */
+  initialText?: string;
+}
+
 export interface DeleteRequest {
   id: string;
   name: string;
@@ -24,20 +32,26 @@ export interface DeleteRequest {
 
 interface DialogState {
   create: CreateRequest | null;
+  add: AddRequest | null;
   remove: DeleteRequest | null;
   newProfile: boolean;
   openCreate: (request: CreateRequest) => void;
+  openAdd: (request: AddRequest) => void;
   openDelete: (request: DeleteRequest) => void;
   openNewProfile: () => void;
   close: () => void;
 }
 
+const CLOSED = { create: null, add: null, remove: null, newProfile: false };
+
 export const useDialogs = create<DialogState>((set) => ({
   create: null,
+  add: null,
   remove: null,
   newProfile: false,
-  openCreate: (request) => set({ create: request, remove: null, newProfile: false }),
-  openDelete: (request) => set({ remove: request, create: null, newProfile: false }),
-  openNewProfile: () => set({ newProfile: true, create: null, remove: null }),
-  close: () => set({ create: null, remove: null, newProfile: false }),
+  openCreate: (request) => set({ ...CLOSED, create: request }),
+  openAdd: (request) => set({ ...CLOSED, add: request }),
+  openDelete: (request) => set({ ...CLOSED, remove: request }),
+  openNewProfile: () => set({ ...CLOSED, newProfile: true }),
+  close: () => set(CLOSED),
 }));

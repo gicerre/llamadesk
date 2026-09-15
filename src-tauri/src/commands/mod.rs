@@ -7,6 +7,7 @@
 pub mod app;
 pub mod library;
 pub mod nodes;
+pub mod paths;
 pub mod workspaces;
 
 use std::sync::MutexGuard;

@@ -73,6 +73,19 @@ pub fn create_node(
     .map_err(fail)
 }
 
+/// Un gruppo di link con i suoi link, in un solo passo.
+#[tauri::command]
+pub fn create_link_group(
+    state: State<'_, AppState>,
+    profile_id: String,
+    parent_id: String,
+    name: String,
+    links: Vec<NewNode>,
+) -> Result<Node, String> {
+    let conn = db(&state)?;
+    hierarchy::create_group(&conn, &profile_id, &parent_id, &name, &links).map_err(fail)
+}
+
 #[tauri::command]
 pub fn update_node(
     state: State<'_, AppState>,

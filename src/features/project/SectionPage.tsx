@@ -1,6 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { useNodeView } from '@/lib/queries';
+import { useDialogs } from '@/stores/dialogs';
 import { NodeMenu } from '../library/NodeMenu';
 import { HeaderSkeleton, MissingNode, NodeHeader, PageFrame } from '../library/parts';
 import { ScopeContent } from './ScopeContent';
@@ -10,6 +13,7 @@ export function SectionPage() {
   const { t } = useTranslation();
   const { workspaceId = '', sectionId = '' } = useParams();
   const view = useNodeView(sectionId, workspaceId);
+  const openAdd = useDialogs((state) => state.openAdd);
 
   if (view.isError) {
     return <MissingNode message={t('errors.nodeMissing')} workspaceId={workspaceId} />;
@@ -28,7 +32,15 @@ export function SectionPage() {
       <NodeHeader
         view={view.data}
         workspaceId={workspaceId}
-        actions={<NodeMenu view={view.data} workspaceId={workspaceId} />}
+        actions={
+          <>
+            <Button variant="primary" onClick={() => openAdd({ parentId: sectionId, workspaceId })}>
+              <Plus />
+              {t('add.title')}
+            </Button>
+            <NodeMenu view={view.data} workspaceId={workspaceId} />
+          </>
+        }
       />
       <div className="mt-7">
         <ScopeContent view={view.data} workspaceId={workspaceId} />

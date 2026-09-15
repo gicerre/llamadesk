@@ -1,6 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Blocks, Box, Ellipsis, Hash, House, Trash2, Unlink } from 'lucide-react';
+import {
+  Blocks,
+  Box,
+  Ellipsis,
+  Hash,
+  House,
+  SlidersHorizontal,
+  Trash2,
+  Unlink,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/components/ui/Menu';
 import { Tip } from '@/components/ui/Tooltip';
@@ -8,6 +17,7 @@ import { api } from '@/lib/ipc';
 import { invalidateLibrary, useSetDefaultWorkspace, useWorkspaces } from '@/lib/queries';
 import { paths, routeForChain } from '@/lib/routes';
 import { useDialogs } from '@/stores/dialogs';
+import { useInspector } from '@/stores/inspector';
 import { toast, toastError } from '@/stores/toasts';
 import type { NodeKind } from '@/types/generated/NodeKind';
 import type { NodeView } from '@/types/generated/NodeView';
@@ -35,6 +45,7 @@ export function NodeMenu({ view, workspaceId }: { view: NodeView; workspaceId: s
   const navigate = useNavigate();
   const openCreate = useDialogs((state) => state.openCreate);
   const openDelete = useDialogs((state) => state.openDelete);
+  const openInspector = useInspector((state) => state.open);
   const workspaces = useWorkspaces();
   const setDefault = useSetDefaultWorkspace();
   const { node, breadcrumb } = view;
@@ -72,6 +83,14 @@ export function NodeMenu({ view, workspaceId }: { view: NodeView; workspaceId: s
         </MenuTrigger>
       </Tip>
       <MenuContent align="end">
+        <MenuItem
+          icon={<SlidersHorizontal />}
+          shortcut="Ctrl+I"
+          onSelect={() => openInspector(node.id, workspaceId)}
+        >
+          {t('inspector.open')}
+        </MenuItem>
+        <MenuSeparator />
         {(CREATABLE[node.kind] ?? []).map((kind) => (
           <MenuItem
             key={kind}

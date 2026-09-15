@@ -8,6 +8,7 @@ import type { Node } from '@/types/generated/Node';
 import type { NodeEntry } from '@/types/generated/NodeEntry';
 import type { NodePatch } from '@/types/generated/NodePatch';
 import type { NodeView } from '@/types/generated/NodeView';
+import type { PathInfo } from '@/types/generated/PathInfo';
 import type { Profile } from '@/types/generated/Profile';
 import type { ProfileDeleteImpact } from '@/types/generated/ProfileDeleteImpact';
 import type { ProfilePatch } from '@/types/generated/ProfilePatch';
@@ -85,6 +86,10 @@ export interface Commands {
     };
     result: Node;
   };
+  create_link_group: {
+    args: { profileId: Id; parentId: Id; name: string; links: NewNode[] };
+    result: Node;
+  };
   update_node: { args: { id: Id; patch: NodePatch }; result: Node };
   move_node: {
     args: {
@@ -119,6 +124,8 @@ export interface Commands {
     args: { profileId: Id; workspaceId: Maybe<Id>; limit?: number };
     result: RecentAction[];
   };
+
+  inspect_paths: { args: { pathsToInspect: string[] }; result: PathInfo[] };
 }
 
 export type CommandName = keyof Commands;
@@ -196,7 +203,24 @@ export const api = {
   children: (id: Id) => call('list_children', { id }),
   createNode: (profileId: Id, parentId: Maybe<Id>, input: NewNode) =>
     call('create_node', { profileId, parentId, input, previousId: null, nextId: null }),
+  createLinkGroup: (profileId: Id, parentId: Id, name: string, links: NewNode[]) =>
+    call('create_link_group', { profileId, parentId, name, links }),
   updateNode: (id: Id, patch: NodePatch) => call('update_node', { id, patch }),
+  moveNode: (
+    id: Id,
+    fromParentId: Maybe<Id>,
+    toParentId: Id,
+    previousId: Maybe<Id>,
+    nextId: Maybe<Id>,
+  ) => call('move_node', { id, fromParentId, toParentId, previousId, nextId }),
+  shareNode: (id: Id, parentId: Id) => call('share_node', { id, parentId }),
+  setPinned: (parentId: Id, childId: Id, pinned: boolean) =>
+    call('set_node_pinned', { parentId, childId, pinned }),
+  archiveNode: (id: Id, archived: boolean) => call('archive_node', { id, archived }),
+  duplicateNode: (profileId: Id, id: Id, parentId: Maybe<Id>, name: Maybe<string>) =>
+    call('duplicate_node', { profileId, id, parentId, name }),
+  setNodeTags: (id: Id, names: string[]) => call('set_node_tags', { id, names }),
+  listTags: () => call('list_tags', none),
   unshareNode: (id: Id, parentId: Id) => call('unshare_node', { id, parentId }),
   deleteImpact: (id: Id) => call('node_delete_impact', { id }),
   deleteNode: (id: Id) => call('delete_node', { id }),
@@ -207,4 +231,6 @@ export const api = {
   favorites: (profileId: Id) => call('list_favorites', { profileId }),
   recents: (profileId: Id, workspaceId: Maybe<Id>, limit = 12) =>
     call('list_recents', { profileId, workspaceId, limit }),
+
+  inspectPaths: (paths: string[]) => call('inspect_paths', { pathsToInspect: paths }),
 };

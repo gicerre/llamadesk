@@ -3,6 +3,7 @@ import { api } from '@/lib/ipc';
 import { useProfileId } from '@/stores/session';
 import type { NewNode } from '@/types/generated/NewNode';
 import type { NodePatch } from '@/types/generated/NodePatch';
+import type { PathInfo } from '@/types/generated/PathInfo';
 
 /* ============================================================================
    Dati della libreria via TanStack Query.
@@ -31,12 +32,14 @@ export const keys = {
   favorites: (profileId: string) => ['favorites', profileId] as const,
   recents: (profileId: string, workspaceId: string | null) =>
     ['recents', profileId, workspaceId] as const,
+  paths: (paths: readonly string[]) => ['paths', ...[...paths].sort()] as const,
+  tags: () => ['tags'] as const,
 };
 
 /** Tutto cio' che una modifica alla libreria puo' aver cambiato. */
 export function invalidateLibrary(client = queryClient) {
   return Promise.all(
-    ['workspaces', 'node', 'children', 'favorites', 'recents'].map((key) =>
+    ['workspaces', 'node', 'children', 'favorites', 'recents', 'tags'].map((key) =>
       client.invalidateQueries({ queryKey: [key] }),
     ),
   );
@@ -122,5 +125,42 @@ export function useSetDefaultWorkspace() {
   return useMutation({
     mutationFn: (workspaceId: string) => api.setDefaultWorkspace(profileId, workspaceId),
     onSuccess: () => client.invalidateQueries({ queryKey: ['workspaces'] }),
+  });
+}
+
+/**
+ * Funzione stabile, fuori dal hook: con un `select` ricreato a ogni render
+ * TanStack Query ricalcola la Map a ogni passaggio e la pagina non si ferma piu'.
+ */
+function indexByPath(infos: PathInfo[]) {
+  return new Map(infos.map((info) => [info.path, info]));
+}
+
+/**
+ * Che cosa c'e' sul disco dietro i percorsi di una pagina, in una sola
+ * richiesta. Si ricontrolla quando la finestra torna in primo piano: nel
+ * frattempo qualcuno puo' aver spostato un file.
+ */
+export function usePathInfos(paths: readonly string[]) {
+  return useQuery({
+    queryKey: keys.paths(paths),
+    queryFn: () => api.inspectPaths([...paths]),
+    enabled: paths.length > 0,
+    staleTime: 10_000,
+    refetchOnWindowFocus: true,
+    select: indexByPath,
+  });
+}
+
+export function useTags() {
+  return useQuery({ queryKey: keys.tags(), queryFn: () => api.listTags() });
+}
+
+/** Una modifica qualsiasi alla libreria, con invalidazione e toast d'errore al chiamante. */
+export function useLibraryMutation<TArgs, TResult>(run: (args: TArgs) => Promise<TResult>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: run,
+    onSuccess: () => invalidateLibrary(client),
   });
 }

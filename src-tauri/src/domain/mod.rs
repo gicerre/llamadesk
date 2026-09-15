@@ -547,3 +547,38 @@ pub struct RecentAction {
     pub last_at: String,
     pub count: u32,
 }
+
+/* ========================================================= percorsi locali */
+
+/// Che cosa c'e' dietro un percorso, secondo il disco in questo momento.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
+pub enum PathKind {
+    File,
+    Directory,
+    /// Cartella con `.git`.
+    Repository,
+    /// Il percorso non esiste.
+    Missing,
+    /// Non ha risposto in tempo (tipicamente un disco di rete spento).
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PathInfo {
+    /// Il percorso come salvato.
+    pub path: String,
+    /// Con le variabili d'ambiente espanse.
+    pub resolved: String,
+    pub kind: PathKind,
+    pub is_network: bool,
+    pub size_bytes: Option<f64>,
+    /// Secondi dall'epoca Unix.
+    pub modified_at: Option<f64>,
+    /// Minuscola, senza punto; solo per i file.
+    pub extension: Option<String>,
+    pub git_branch: Option<String>,
+}

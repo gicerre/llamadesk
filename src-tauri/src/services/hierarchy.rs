@@ -67,6 +67,41 @@ pub fn create(
     })
 }
 
+/// Crea un gruppo di link con i suoi link in un solo passo: o nasce tutto, o
+/// niente (un indirizzo non valido annulla anche il gruppo).
+pub fn create_group(
+    conn: &Connection,
+    profile_id: &str,
+    parent_id: &str,
+    name: &str,
+    links: &[NewNode],
+) -> Result<Node> {
+    atomic(conn, |conn| {
+        let group = create(
+            conn,
+            profile_id,
+            Some(parent_id),
+            &NewNode {
+                kind: NodeKind::LinkGroup,
+                name: name.to_string(),
+                description: None,
+                icon: None,
+                color_main: None,
+                url: None,
+                path: None,
+            },
+            None,
+        )?;
+        for link in links {
+            if link.kind != NodeKind::Link {
+                return Err(anyhow!("un gruppo di link contiene solo link"));
+            }
+            create(conn, profile_id, Some(&group.id), link, None)?;
+        }
+        Ok(group)
+    })
+}
+
 /* ---------------------------------------------------------------- relazioni */
 
 /// Verifica che `child` possa stare dentro `parent`. `leaving` e' il padre da
@@ -649,6 +684,49 @@ mod tests {
         let mut wrong = NewNode::named(NodeKind::Section, "Sezione");
         wrong.url = Some("https://example.com".into());
         assert!(create(&conn, &profile, Some(&ws), &wrong, None).is_err());
+    }
+
+    #[test]
+    fn a_link_group_is_created_whole_or_not_at_all() {
+        let (conn, profile) = database();
+        let ws = workspace(&conn, &profile, "Lavoro");
+        let link = |name: &str, url: &str| {
+            let mut input = NewNode::named(NodeKind::Link, name);
+            input.url = Some(url.into());
+            input
+        };
+
+        let group = create_group(
+            &conn,
+            &profile,
+            &ws,
+            "SpecialHub DEV",
+            &[
+                link("Jira", "https://jira.example.com"),
+                link("Grafana", "https://grafana.example.com"),
+            ],
+        )
+        .unwrap();
+        assert_eq!(names(&conn, &group.id), vec!["Jira", "Grafana"]);
+
+        let before: i64 = conn
+            .query_row("SELECT COUNT(*) FROM nodes", [], |r| r.get(0))
+            .unwrap();
+        let broken = create_group(
+            &conn,
+            &profile,
+            &ws,
+            "Rotto",
+            &[
+                link("Ok", "https://ok.example.com"),
+                link("Script", "javascript:alert(1)"),
+            ],
+        );
+        assert!(broken.is_err());
+        let after: i64 = conn
+            .query_row("SELECT COUNT(*) FROM nodes", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(before, after, "nessun gruppo a meta'");
     }
 
     /* -------------------------------------------------------- condivisione */

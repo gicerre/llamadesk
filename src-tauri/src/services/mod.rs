@@ -3,4 +3,5 @@
 pub mod hierarchy;
 pub mod opener;
 pub mod ordering;
+pub mod paths;
 pub mod resolve;

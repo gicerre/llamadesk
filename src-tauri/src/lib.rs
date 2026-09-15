@@ -155,6 +155,7 @@ pub fn run() {
             commands::nodes::get_node_view,
             commands::nodes::list_children,
             commands::nodes::create_node,
+            commands::nodes::create_link_group,
             commands::nodes::update_node,
             commands::nodes::move_node,
             commands::nodes::share_node,
@@ -171,6 +172,8 @@ pub fn run() {
             commands::library::toggle_favorite,
             commands::library::list_favorites,
             commands::library::list_recents,
+            // percorsi locali
+            commands::paths::inspect_paths,
         ])
         .run(tauri::generate_context!())
         .expect("errore fatale durante l'avvio di LlamaDesk");

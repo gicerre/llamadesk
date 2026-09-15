@@ -2,8 +2,12 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { listen } from '@tauri-apps/api/event';
 import { api, isTauri } from '@/lib/ipc';
-import { keys, queryClient, useWorkspaces } from '@/lib/queries';
-import { paths, workspaceFromPath } from '@/lib/routes';
+import { invalidateLibrary, keys, queryClient, useWorkspaces } from '@/lib/queries';
+import { currentNodeId, parseNodeRoute, paths, workspaceFromPath } from '@/lib/routes';
+import { useDialogs } from '@/stores/dialogs';
+import { useInspector } from '@/stores/inspector';
+import { toast, toastError } from '@/stores/toasts';
+import i18n from '@/lib/i18n';
 import { useProfileId } from '@/stores/session';
 import { useUi } from '@/stores/ui';
 import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
@@ -45,6 +49,21 @@ export function WindowBridge() {
         navigate(1);
         return;
       }
+      if (event.key === 'F5') {
+        // L'unico "aggiorna" sensato in un'app locale: ricontrollare il disco.
+        event.preventDefault();
+        void queryClient.invalidateQueries({ queryKey: ['paths'] });
+        return;
+      }
+      if (
+        event.key === 'Escape' &&
+        useInspector.getState().nodeId &&
+        !isTyping(event.target) &&
+        !document.querySelector('[role="dialog"], [role="menu"]')
+      ) {
+        useInspector.getState().close();
+        return;
+      }
       if (!event.ctrlKey || event.altKey) return;
 
       // Le impostazioni si aprono anche mentre si scrive: Ctrl+, non inserisce testo.
@@ -55,7 +74,31 @@ export function WindowBridge() {
       }
       if (isTyping(event.target)) return;
 
-      if (event.key.toLowerCase() === 'b') {
+      const route = parseNodeRoute(pathname);
+      const pageNode = currentNodeId(route);
+      const inspected = useInspector.getState().nodeId;
+      const key = event.key.toLowerCase();
+
+      if (key === 'n' && pageNode && route.workspaceId) {
+        // Nuovo nel contesto corrente: si incolla o si scrive, il tipo si riconosce.
+        event.preventDefault();
+        useDialogs.getState().openAdd({ parentId: pageNode, workspaceId: route.workspaceId });
+      } else if (key === 'i' && pageNode && route.workspaceId) {
+        event.preventDefault();
+        const inspector = useInspector.getState();
+        if (inspected) inspector.close();
+        else inspector.open(pageNode, route.workspaceId);
+      } else if (key === 'd' && (inspected ?? pageNode) && profileId) {
+        event.preventDefault();
+        const target = (inspected ?? pageNode) as string;
+        void api
+          .toggleFavorite(profileId, target)
+          .then((added) => {
+            toast({ title: i18n.t(added ? 'actions.favoriteAdded' : 'actions.favoriteRemoved') });
+            return invalidateLibrary();
+          })
+          .catch((error) => toastError(i18n.t('actions.favoriteFailed'), error));
+      } else if (key === 'b') {
         event.preventDefault();
         toggleSidebar();
       } else if (/^[1-9]$/.test(event.key)) {
@@ -79,7 +122,7 @@ export function WindowBridge() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, [navigate, toggleSidebar, workspaces.data]);
+  }, [navigate, pathname, profileId, toggleSidebar, workspaces.data]);
 
   // Tray.
   useEffect(() => {
