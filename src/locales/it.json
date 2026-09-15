@@ -97,7 +97,60 @@
     "unshared": "«{{name}}» rimosso da {{workspace}}",
     "unshareFailed": "Il progetto non è stato rimosso dal workspace",
     "favoriteAdded": "Aggiunto ai preferiti",
-    "favoriteRemoved": "Tolto dai preferiti"
+    "favoriteRemoved": "Tolto dai preferiti",
+    "enter": "Invio",
+    "failed": "«{{name}}» non si è aperto",
+    "run": {
+      "open": "Apri",
+      "openAll": "Apri tutti",
+      "openInBrowser": "Apri con",
+      "openAllInBrowser": "Apri tutti con",
+      "openInIde": "Apri nell'IDE",
+      "openInIdeTool": "Apri in {{tool}}",
+      "terminal": "Apri il terminale",
+      "terminalTool": "Terminale · {{tool}}",
+      "terminalFolder": "Terminale nella cartella",
+      "terminalFolderTool": "Terminale nella cartella · {{tool}}",
+      "explorer": "Apri in Esplora risorse",
+      "reveal": "Mostra in Esplora risorse",
+      "openRemote": "Apri il repository remoto",
+      "copyUrl": "Copia indirizzo",
+      "copyPath": "Copia percorso"
+    },
+    "with": {
+      "ide": "Apri con",
+      "terminal": "Terminale con",
+      "browser": "Apri con"
+    },
+    "done": {
+      "opened": "«{{name}}» aperto",
+      "openedMany_one": "{{count}} link aperto da «{{name}}»",
+      "openedMany_other": "{{count}} link aperti da «{{name}}»",
+      "terminal": "Terminale aperto in «{{name}}»",
+      "revealed": "«{{name}}» in Esplora risorse",
+      "in": "in {{tool}}",
+      "inProfile": "in {{tool}}, profilo {{profile}}",
+      "copiedUrl": "Indirizzo copiato",
+      "copiedPath": "Percorso copiato"
+    },
+    "confirm": {
+      "title": "Aprire «{{name}}»?",
+      "one": "Si aprirà «{{name}}»",
+      "many_one": "Si aprirà {{count}} link",
+      "many_other": "Si apriranno {{count}} link",
+      "reason": "Questo elemento chiede conferma prima di aprirsi.",
+      "typeName": "Per continuare scrivi «{{name}}»",
+      "submit": "Apri"
+    },
+    "recent": {
+      "open": "{{kind}} aperto",
+      "open_with": "Aperto con uno strumento",
+      "terminal": "Terminale",
+      "reveal": "Mostrato in Esplora risorse",
+      "open_remote": "Repository remoto",
+      "withTool": "Aperto in {{tool}}"
+    },
+    "space": "Spazio"
   },
   "create": {
     "title": {
@@ -322,7 +375,17 @@
     "shared": "«{{name}}» ora è anche in {{workspace}}",
     "pinned": "Fissato nella Home di questo workspace",
     "workspacesFailed": "I workspace del progetto non sono cambiati",
-    "danger": "Elimina"
+    "danger": "Elimina",
+    "opening": "Apertura",
+    "browser": "Browser",
+    "browserDefault": "Predefinito di Windows",
+    "browserProfile": "Profilo del browser",
+    "browserProfileNone": "Nessun profilo in particolare",
+    "newWindow": "Apri in una nuova finestra",
+    "newWindowHint": "Una nuova finestra richiede un browser preciso: si usa quello preferito in Impostazioni.",
+    "tools": "Strumenti",
+    "toolsHint": "Valgono anche per tutto ciò che contiene, salvo scelte diverse più in basso.",
+    "toolInherit": "Eredita · {{tool}}"
   },
   "resources": {
     "locate": "Individua…",
@@ -344,5 +407,38 @@
     "dropped_one": "Percorso aggiunto",
     "dropped_other": "{{count}} percorsi aggiunti",
     "dropFailed": "Alcuni percorsi non sono stati aggiunti"
+  },
+  "tools": {
+    "title": "Strumenti",
+    "defaultsHint": "Cosa usare quando un progetto non sceglie uno strumento.",
+    "kind": {
+      "ide": "IDE",
+      "terminal": "Terminale",
+      "browser": "Browser"
+    },
+    "kindPlural": {
+      "ide": "IDE ed editor",
+      "terminal": "Terminali",
+      "browser": "Browser"
+    },
+    "kindLabel": "Tipo di strumento",
+    "automatic": "Automatico · {{tool}}",
+    "systemBrowser": "Predefinito di Windows",
+    "noneFound": "Nessuno trovato",
+    "custom": "aggiunto a mano",
+    "missing": "non trovato",
+    "hide": "Nascondi dai menu",
+    "show": "Mostra nei menu",
+    "delete": "Elimina {{name}}",
+    "refresh": "Cerca di nuovo",
+    "refreshed_one": "{{count}} strumento trovato",
+    "refreshed_other": "{{count}} strumenti trovati",
+    "refreshFailed": "La ricerca degli strumenti non è riuscita",
+    "add": "Aggiungi strumento…",
+    "addSubmit": "Aggiungi",
+    "added": "«{{name}}» aggiunto",
+    "exe": "Eseguibile",
+    "args": "Argomenti",
+    "argsHint": "{path} diventa il percorso, {urls} gli indirizzi. Vuoto: il percorso in coda."
   }
 }

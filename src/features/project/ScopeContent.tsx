@@ -38,6 +38,9 @@ import type { PathInfo } from '@/types/generated/PathInfo';
 import { ResourceRow } from '../resources/ResourceRow';
 import { rowGrid, SectionTitle } from '../library/parts';
 import { useFileDropTarget } from '../resources/fileDrop';
+import { ResourceContextMenu, ResourceQuickActions } from '../actions/ActionMenu';
+import { primaryAction } from '../actions/registry';
+import { runAction } from '../actions/run';
 
 interface ScopeContentProps {
   view: NodeView;
@@ -304,8 +307,14 @@ function SortableRow({
   const { node } = entry;
   const isSection = node.kind === 'section';
 
+  // Un launcher: il clic apre. Si configura dal pannello (Spazio, menu).
   const activate = () => {
-    if (isSection) navigate(routeForChain(workspaceId, [...chain, node]));
+    if (isSection) {
+      navigate(routeForChain(workspaceId, [...chain, node]));
+      return;
+    }
+    const primary = primaryAction({ node, pathInfo });
+    if (primary) void runAction({ node, actionId: primary.id, workspaceId });
     else openInspector(node.id, workspaceId);
   };
 
@@ -322,9 +331,12 @@ function SortableRow({
 
   const keyboard = (event: React.KeyboardEvent) => {
     if (event.target !== event.currentTarget) return;
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.key === 'Enter' || (isSection && event.key === ' ')) {
       event.preventDefault();
       activate();
+    } else if (event.key === ' ') {
+      event.preventDefault();
+      openInspector(node.id, workspaceId);
     } else if (event.altKey && event.key === 'ArrowUp' && previousId) {
       event.preventDefault();
       void move(node.id, parentId, parentId, beforePreviousId, previousId);
@@ -369,21 +381,24 @@ function SortableRow({
   }
 
   return (
-    <ResourceRow
-      ref={setNodeRef}
-      style={style}
-      entry={entry}
-      pathInfo={pathInfo}
-      selected={selectedId === node.id}
-      onLocate={canPickPaths() ? () => void locate() : undefined}
-      className={cn(isDragging && 'opacity-40')}
-      {...attributes}
-      {...listeners}
-      onClick={activate}
-      onKeyDown={keyboard}
-      aria-label={`${node.name}, ${t(`kinds.one.${node.kind}`)}`}
-      aria-roledescription={t('resources.draggable')}
-    />
+    <ResourceContextMenu node={node} pathInfo={pathInfo} workspaceId={workspaceId}>
+      <ResourceRow
+        ref={setNodeRef}
+        style={style}
+        entry={entry}
+        pathInfo={pathInfo}
+        selected={selectedId === node.id}
+        onLocate={canPickPaths() ? () => void locate() : undefined}
+        actions={<ResourceQuickActions node={node} pathInfo={pathInfo} workspaceId={workspaceId} />}
+        className={cn(isDragging && 'opacity-40')}
+        {...attributes}
+        {...listeners}
+        onClick={activate}
+        onKeyDown={keyboard}
+        aria-label={`${node.name}, ${t(`kinds.one.${node.kind}`)}`}
+        aria-roledescription={t('resources.draggable')}
+      />
+    </ResourceContextMenu>
   );
 }
 

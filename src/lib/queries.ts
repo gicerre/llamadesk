@@ -1,6 +1,7 @@
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/ipc';
 import { useProfileId } from '@/stores/session';
+import type { ToolKind } from '@/types/generated/ToolKind';
 import type { NewNode } from '@/types/generated/NewNode';
 import type { NodePatch } from '@/types/generated/NodePatch';
 import type { PathInfo } from '@/types/generated/PathInfo';
@@ -34,6 +35,10 @@ export const keys = {
     ['recents', profileId, workspaceId] as const,
   paths: (paths: readonly string[]) => ['paths', ...[...paths].sort()] as const,
   tags: () => ['tags'] as const,
+  tools: (includeHidden: boolean) => ['tools', includeHidden] as const,
+  browserProfiles: (toolId: string) => ['browser-profiles', toolId] as const,
+  toolPreferences: (profileId: string, nodeId: string | null, via: string | null) =>
+    ['tool-preferences', profileId, nodeId, via] as const,
 };
 
 /** Tutto cio' che una modifica alla libreria puo' aver cambiato. */
@@ -162,5 +167,56 @@ export function useLibraryMutation<TArgs, TResult>(run: (args: TArgs) => Promise
   return useMutation({
     mutationFn: run,
     onSuccess: () => invalidateLibrary(client),
+  });
+}
+
+/* ------------------------------------------------------------- strumenti */
+
+export function useTools(includeHidden = false) {
+  return useQuery({
+    queryKey: keys.tools(includeHidden),
+    queryFn: () => api.tools(includeHidden),
+    staleTime: 60_000,
+  });
+}
+
+export function useBrowserProfiles(toolId: string | null | undefined) {
+  return useQuery({
+    queryKey: keys.browserProfiles(toolId ?? ''),
+    queryFn: () => api.browserProfiles(toolId as string),
+    enabled: !!toolId,
+  });
+}
+
+/** Preferenze di strumento del profilo (`nodeId` null) o di un nodo. */
+export function useToolPreferences(nodeId: string | null, via: string | null, enabled = true) {
+  const profileId = useProfileId();
+  return useQuery({
+    queryKey: keys.toolPreferences(profileId, nodeId, via),
+    queryFn: () => api.toolPreferences(profileId, nodeId, via),
+    enabled: enabled && profileId !== '',
+  });
+}
+
+export function invalidateTools(client = queryClient) {
+  return Promise.all(
+    ['tools', 'tool-preferences'].map((key) => client.invalidateQueries({ queryKey: [key] })),
+  );
+}
+
+export function useSetToolPreference() {
+  const profileId = useProfileId();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      nodeId,
+      kind,
+      toolId,
+    }: {
+      nodeId: string | null;
+      kind: ToolKind;
+      toolId: string | null;
+    }) => api.setToolPreference(profileId, nodeId, kind, toolId),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['tool-preferences'] }),
   });
 }

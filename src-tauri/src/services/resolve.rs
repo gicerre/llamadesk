@@ -183,8 +183,6 @@ pub fn breadcrumb(
 
 /// Strumento preferito per un nodo: il piu' vicino lungo il contesto, poi
 /// quello del profilo. Uno strumento nascosto non vale come preferenza.
-// La usera' `execute_action` (Fase 4) per scegliere IDE, terminale e browser.
-#[cfg_attr(not(test), allow(dead_code))]
 pub fn tool_preference(
     conn: &Connection,
     profile_id: &str,

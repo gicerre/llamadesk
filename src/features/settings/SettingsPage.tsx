@@ -1,16 +1,16 @@
-import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { Segmented, Switch } from '@/components/ui/fields';
-import { cn } from '@/lib/cn';
 import { useSession } from '@/stores/session';
 import { toastError } from '@/stores/toasts';
 import type { AppSettings } from '@/types/generated/AppSettings';
 import { PageFrame } from '../library/parts';
+import { Group, Row } from './parts';
+import { ToolsSettings } from './ToolsSettings';
 
 /**
- * Impostazioni essenziali. Strumenti, scorciatoie, protezione e dati arrivano
- * con le fasi che li introducono; qui solo cio' che la shell usa gia'.
+ * Impostazioni essenziali. Scorciatoie, protezione e dati arrivano con le fasi
+ * che li introducono; qui solo cio' che l'app usa gia'.
  */
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -110,6 +110,8 @@ export function SettingsPage() {
         ))}
       </Group>
 
+      <ToolsSettings />
+
       <Group title={t('settings.about')}>
         <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 px-4 py-3 text-sm">
           <dt className="text-ink-3">{t('settings.version')}</dt>
@@ -124,39 +126,5 @@ export function SettingsPage() {
         <p className="border-line text-ink-3 border-t px-4 py-3 text-xs">{t('settings.privacy')}</p>
       </Group>
     </PageFrame>
-  );
-}
-
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-7">
-      <h2 className="text-2xs text-ink-3 mb-2 font-semibold tracking-[0.08em] uppercase">
-        {title}
-      </h2>
-      <div className="divide-line bg-surface shadow-1 divide-y rounded-lg">{children}</div>
-    </section>
-  );
-}
-
-interface RowProps {
-  label: string;
-  hint?: string;
-  note?: string;
-  control: (id: string) => React.ReactNode;
-}
-
-function Row({ label, hint, note, control }: RowProps) {
-  const id = useId();
-  return (
-    <div className={cn('flex min-h-14 items-center gap-4 px-4 py-2.5')}>
-      <div className="min-w-0 flex-1">
-        <label htmlFor={id} className="text-ink block text-sm font-medium">
-          {label}
-        </label>
-        {hint && <p className="text-ink-3 text-xs">{hint}</p>}
-        {note && <p className="text-accent text-xs">{note}</p>}
-      </div>
-      {control(id)}
-    </div>
   );
 }

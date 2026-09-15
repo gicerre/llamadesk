@@ -110,8 +110,6 @@ fn visible_workspace_ids(
 
 /// Registra un'azione che ha aperto qualcosa: "recente" significa "usato",
 /// non "modificato" ne' "visitato".
-// La chiamera' `execute_action` (Fase 4): nessuna azione apre ancora qualcosa.
-#[cfg_attr(not(test), allow(dead_code))]
 pub fn record_usage(
     conn: &Connection,
     profile_id: &str,

@@ -30,7 +30,11 @@ import { toast, toastError } from '@/stores/toasts';
 import type { Caution } from '@/types/generated/Caution';
 import type { NodePatch } from '@/types/generated/NodePatch';
 import type { NodeView } from '@/types/generated/NodeView';
+import { ResourceQuickActions } from '../actions/ActionMenu';
+import { isExecutable, primaryAction } from '../actions/registry';
+import { runAction } from '../actions/run';
 import { InlineField, PanelSection } from './fields';
+import { OpeningSection, ToolPreferencesSection } from './ToolSections';
 
 const INSPECTOR_WIDTH = 360;
 
@@ -143,6 +147,7 @@ function Editor({ view, workspaceId }: { view: NodeView; workspaceId: string }) 
       }}
     >
       <Header view={view} onClose={close} />
+      {isExecutable(node.kind) && <RunBar view={view} workspaceId={workspaceId} />}
 
       <PanelSection title={t('inspector.general')} className="border-t-0 pt-1">
         <InlineField
@@ -176,6 +181,17 @@ function Editor({ view, workspaceId }: { view: NodeView; workspaceId: string }) 
 
       {node.kind === 'link_group' && <GroupLinks groupId={node.id} />}
 
+      {(node.kind === 'link' || node.kind === 'link_group') && (
+        <OpeningSection view={view} onSave={save} />
+      )}
+      {(identity || node.kind === 'path') && (
+        <ToolPreferencesSection
+          view={view}
+          workspaceId={workspaceId}
+          kinds={node.kind === 'path' ? ['ide', 'terminal'] : ['ide', 'terminal', 'browser']}
+        />
+      )}
+
       {identity && <Appearance view={view} onSave={save} />}
 
       <PanelSection title={t('inspector.tags')}>
@@ -205,6 +221,29 @@ function Editor({ view, workspaceId }: { view: NodeView; workspaceId: string }) 
             : t(`delete.action.${node.kind}`)}
         </Button>
       </PanelSection>
+    </div>
+  );
+}
+
+/** L'azione principale a portata di mano anche dal pannello. */
+function RunBar({ view, workspaceId }: { view: NodeView; workspaceId: string }) {
+  const { t } = useTranslation();
+  const { node } = view;
+  const infos = usePathInfos(node.path ? [node.path] : []);
+  const pathInfo = node.path ? infos.data?.get(node.path) : undefined;
+  const primary = primaryAction({ node, pathInfo });
+  if (!primary) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-4 pb-3">
+      <Button
+        variant="primary"
+        onClick={() => void runAction({ node, actionId: primary.id, workspaceId })}
+      >
+        {t(`actions.run.${primary.label}`)}
+      </Button>
+      <span className="flex-1" />
+      <ResourceQuickActions node={node} pathInfo={pathInfo} workspaceId={workspaceId} />
     </div>
   );
 }

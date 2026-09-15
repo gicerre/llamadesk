@@ -12,6 +12,7 @@ import { paths, routeForChain } from '@/lib/routes';
 import { useDialogs, type CreateRequest, type DeleteRequest } from '@/stores/dialogs';
 import { useProfileId, useSession } from '@/stores/session';
 import { toast, toastError } from '@/stores/toasts';
+import { ConfirmActionDialog } from '../actions/ConfirmActionDialog';
 import { AddDialog } from './AddDialog';
 
 /** I dialoghi condivisi della shell. */
@@ -27,6 +28,7 @@ export function DialogHost() {
       {add && <AddDialog key={add.parentId} request={add} />}
       {remove && <DeleteNodeDialog key={remove.id} request={remove} />}
       {newProfile && <NewProfileDialog />}
+      <ConfirmActionDialog />
     </>
   );
 }

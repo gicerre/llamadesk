@@ -142,3 +142,25 @@ export function Switch({ checked, onCheckedChange, id, disabled }: SwitchProps) 
     </SwitchPrimitive.Root>
   );
 }
+
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
+  options: readonly { value: string; label: string }[];
+  onValueChange: (value: string) => void;
+}
+
+/** Elenco a scelta singola: il `select` di sistema, con l'aspetto dei campi. */
+export function Select({ options, onValueChange, className, ...props }: SelectProps) {
+  return (
+    <select
+      {...props}
+      onChange={(event) => onValueChange(event.target.value)}
+      className={cn(inputClass, 'appearance-auto pr-1.5', className)}
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}

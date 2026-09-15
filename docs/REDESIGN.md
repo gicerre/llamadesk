@@ -368,3 +368,47 @@ Aperti:
 
 Non verificato nell'app Tauri reale: trascinamento da Esplora risorse, selettori "File…" /
 "Cartella…" e "Individua…" (esistono solo lì).
+
+### Fase 4 — azioni e strumenti (15 settembre 2026) ✅
+
+- **Rilevamento strumenti** (`services/tools.rs`): percorsi d'installazione noti, cartelle
+  JetBrains (installer e Toolbox), Visual Studio 2022; Windows Terminal, PowerShell 7, Windows
+  PowerShell, CMD, Git Bash, WSL, VS Code, Cursor, Zed, Sublime, Notepad++, IDE JetBrains, Chrome,
+  Edge, Firefox, Brave. Profili dei browser da `Local State` (Chromium) e `profiles.ini`
+  (Firefox). Solo lettura del disco, all'avvio in background e con "Cerca di nuovo". Uno
+  strumento disinstallato resta in tabella (le preferenze tornano valide se lo si reinstalla).
+  Strumenti personalizzati: eseguibile + argomenti con `{path}` / `{urls}`. Verificato su questo
+  PC (terminali, VS Code, Cursor, tre browser con i profili).
+- **Azioni** (`services/actions.rs`): `open`, `open_with`, `terminal`, `reveal`, `open_remote`.
+  Pianificazione pura (testabile) separata dall'esecuzione. Rust applica sempre: visibilità nel
+  profilo, **conferma** (la più severa fra elemento e link del gruppo; "digita il nome" verificato
+  anche lato Rust, errore `confirmation_required`), URL solo http/https/mailto, percorso
+  esistente, **eseguibili e script mai avviati** con "Apri" (`.exe`, `.bat`, `.ps1`, `.lnk`…),
+  strumento del tipo giusto e installato. Processi avviati con argomenti separati, mai una shell
+  (`cmd /c` solo per gli script `.cmd` di Toolbox, senza finestra). Gruppi: schede distanziate
+  di `openDelayMs`, oppure un solo avvio del browser scelto con profilo e nuova finestra.
+  Remoto: `origin` letto da `.git/config`, credenziali tolte dall'indirizzo. L'uso si registra
+  dopo l'apertura riuscita (strumento solo se scelto esplicitamente).
+- **Preferenze**: strumento per tipo sul profilo e su qualunque nodo, ereditato lungo il
+  workspace da cui si arriva; ripiego sul primo disponibile.
+- **Frontend**: registro delle azioni (`features/actions/registry.ts`, azione principale da ciò
+  che dice il disco: repository → IDE, cartella → Esplora risorse, file → Apri); **clic e Invio
+  eseguono**, **Spazio** apre il pannello; menu contestuale e "…" con lo stesso contenuto
+  (strumento effettivo, "Apri con ▸", copia, modifica, preferito, elimina); pulsanti rapidi al
+  passaggio del mouse; dialogo di conferma; toast con strumento e profilo; Continua e Recenti
+  ripetono l'azione identica. Pannello: barra "Apri", sezione **Apertura** (browser, profilo,
+  nuova finestra) per link e gruppi, sezione **Strumenti** per contenitori e percorsi.
+  Impostazioni › **Strumenti**: predefiniti del profilo, elenco con nascondi/elimina, ricerca,
+  aggiunta manuale.
+- **Verifiche**: 101 test Rust, 37 test frontend, clippy/lint/typecheck/prettier puliti. Nel
+  browser: menu contestuale di un repository, conferma di un gruppo PROD e comparsa nei Recenti,
+  Impostazioni › Strumenti, sezione Apertura.
+
+API aggiunta (10 comandi): `list_tools`, `refresh_tools`, `browser_profiles`,
+`add_custom_tool`, `delete_custom_tool`, `set_tool_hidden`, `set_tool_preference`,
+`tool_preferences`, `prepare_action`, `execute_action`.
+
+Non verificato nell'app Tauri reale: avvio effettivo di IDE, terminali e browser con profilo.
+Scelto: senza browser salvato, "nuova finestra" e profilo usano il browser preferito (Windows
+non espone "nuova finestra" per il browser predefinito). Rinviato: lettura del browser
+predefinito dal registro, `vswhere`, `App Paths`/`PATH`.

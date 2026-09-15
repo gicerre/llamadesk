@@ -7,6 +7,8 @@ import type { Node } from '@/types/generated/Node';
 import type { NodeEntry } from '@/types/generated/NodeEntry';
 import type { NodeKind } from '@/types/generated/NodeKind';
 import type { Profile } from '@/types/generated/Profile';
+import type { Tool } from '@/types/generated/Tool';
+import type { ToolKind } from '@/types/generated/ToolKind';
 import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
 
 /* ============================================================================
@@ -74,7 +76,87 @@ const state = {
   visibility: [] as Visibility[],
   favorites: [] as { profileId: string; nodeId: string }[],
   tags: new Map<string, string[]>(),
+  tools: [] as Tool[],
+  /** `<profilo o nodo>:<tipo>` → strumento. */
+  toolPreferences: new Map<string, string>(),
+  usage: [] as {
+    profileId: string;
+    nodeId: string;
+    actionId: string;
+    toolId: string | null;
+    via: string | null;
+    at: string;
+  }[],
 };
+
+state.tools = (
+  [
+    [
+      'terminal:wt',
+      'terminal',
+      'Windows Terminal',
+      String.raw`%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe`,
+    ],
+    [
+      'terminal:pwsh',
+      'terminal',
+      'PowerShell 7',
+      String.raw`C:\Program Files\PowerShell\7\pwsh.exe`,
+    ],
+    ['terminal:cmd', 'terminal', 'Prompt dei comandi', String.raw`C:\Windows\System32\cmd.exe`],
+    [
+      'ide:vscode',
+      'ide',
+      'Visual Studio Code',
+      String.raw`%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe`,
+    ],
+    [
+      'ide:intellij',
+      'ide',
+      'IntelliJ IDEA',
+      String.raw`C:\Program Files\JetBrains\IntelliJ IDEA\bin\idea64.exe`,
+    ],
+    ['ide:cursor', 'ide', 'Cursor', String.raw`%LOCALAPPDATA%\Programs\cursor\Cursor.exe`],
+    [
+      'browser:chrome',
+      'browser',
+      'Google Chrome',
+      String.raw`C:\Program Files\Google\Chrome\Application\chrome.exe`,
+    ],
+    [
+      'browser:edge',
+      'browser',
+      'Microsoft Edge',
+      String.raw`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
+    ],
+    [
+      'browser:firefox',
+      'browser',
+      'Mozilla Firefox',
+      String.raw`C:\Program Files\Mozilla Firefox\firefox.exe`,
+    ],
+  ] as const
+).map(([id, kind, name, exePath]) => ({
+  id,
+  kind,
+  name,
+  exePath,
+  source: 'detected',
+  isHidden: false,
+  available: true,
+}));
+
+const BROWSER_PROFILES: Record<string, { id: string; name: string }[]> = {
+  'browser:chrome': [
+    { id: 'Default', name: 'Personale' },
+    { id: 'Profile 1', name: 'Lavoro' },
+  ],
+  'browser:edge': [{ id: 'Default', name: 'Profilo 1' }],
+  'browser:firefox': [{ id: 'default-release', name: 'default-release' }],
+};
+
+const BLOCKED_EXTENSIONS =
+  /\.(exe|com|bat|cmd|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|msi|msp|scr|lnk|pif|cpl|hta|reg|jar)$/i;
 
 /* ---------------------------------------------------------------- lettura */
 
@@ -160,6 +242,119 @@ function breadcrumb(profileId: string, id: string, via: string | null): Crumb[] 
 }
 
 const SEVERITY: Record<Caution, number> = { none: 0, confirm: 1, type_name: 2 };
+
+/** Conferma effettiva: la piu' vicina, a parita' di distanza la piu' severa. */
+function resolvedCaution(id: string) {
+  const node = get(id);
+  const source = [{ node, depth: 0 }, ...ancestors(id)]
+    .filter((entry) => entry.node.caution)
+    .sort(
+      (a, b) =>
+        a.depth - b.depth ||
+        SEVERITY[b.node.caution as Caution] - SEVERITY[a.node.caution as Caution],
+    )[0];
+  return {
+    level: (source?.node.caution ?? 'none') as Caution,
+    isOwn: source?.depth === 0,
+    inheritedFrom: source && source.depth > 0 ? crumb(source.node) : null,
+  };
+}
+
+/** Preferenza piu' vicina lungo il contesto, poi il profilo, poi il primo disponibile. */
+function effectiveTool(
+  profileId: string,
+  nodeId: string | null,
+  via: string | null,
+  kind: ToolKind,
+): Tool | null {
+  const chain = nodeId ? breadcrumb(profileId, nodeId, via).reverse() : [];
+  const visible = state.tools.filter((tool) => tool.kind === kind && !tool.isHidden);
+  for (const owner of [...chain.map((entry) => entry.id), profileId]) {
+    const id = state.toolPreferences.get(`${owner}:${kind}`);
+    const tool = visible.find((candidate) => candidate.id === id);
+    if (tool) return tool;
+  }
+  return visible[0] ?? null;
+}
+
+function planAction(args: CommandArgs<'prepare_action'>) {
+  const node = get(args.nodeId);
+  const kinds: Record<string, ToolKind | null> = {
+    open_with: node.kind === 'path' ? 'ide' : 'browser',
+    terminal: 'terminal',
+  };
+  const allowed: Record<NodeKind, string[]> = {
+    link: ['open', 'open_with'],
+    link_group: ['open', 'open_with'],
+    path: ['open', 'open_with', 'terminal', 'reveal', 'open_remote'],
+    workspace: [],
+    project: [],
+    subproject: [],
+    section: [],
+  };
+  if (!allowed[node.kind].includes(args.actionId)) {
+    throw new Error(`l'azione '${args.actionId}' non vale per un elemento di tipo ${node.kind}`);
+  }
+  if (node.kind === 'path' && node.path?.toLowerCase().includes('postman')) {
+    throw new Error(`percorso non trovato: ${node.path}`);
+  }
+  if (
+    node.kind === 'path' &&
+    args.actionId === 'open' &&
+    BLOCKED_EXTENSIONS.test(node.path ?? '')
+  ) {
+    throw new Error(
+      'per sicurezza LlamaDesk non avvia programmi e script: usa Mostra in Esplora risorse',
+    );
+  }
+
+  const links =
+    node.kind === 'link_group'
+      ? childrenOf(node.id).filter((entry) => entry.node.kind === 'link' && entry.node.enabled)
+      : [];
+  if (node.kind === 'link_group' && links.length === 0) {
+    throw new Error('il gruppo non ha link attivi');
+  }
+
+  const toolKind =
+    kinds[args.actionId] ??
+    (node.kind !== 'path' && (node.browserToolId || node.openMode === 'new_window')
+      ? 'browser'
+      : null);
+  const tool = !toolKind
+    ? null
+    : args.toolId
+      ? (state.tools.find((candidate) => candidate.id === args.toolId) ?? null)
+      : node.browserToolId && args.actionId === 'open'
+        ? (state.tools.find((candidate) => candidate.id === node.browserToolId) ?? null)
+        : effectiveTool(args.profileId, node.id, args.viaWorkspaceId, toolKind);
+  if (toolKind && !tool) throw new Error('nessuno strumento trovato');
+
+  const levels = [node.id, ...links.map((entry) => entry.node.id)].map(
+    (id) => resolvedCaution(id).level,
+  );
+  const caution =
+    args.actionId === 'reveal'
+      ? 'none'
+      : levels.reduce<Caution>(
+          (max, level) => (SEVERITY[level] > SEVERITY[max] ? level : max),
+          'none',
+        );
+
+  const profile =
+    tool && node.browserProfile && (!node.browserToolId || node.browserToolId === tool.id)
+      ? (BROWSER_PROFILES[tool.id]?.find((entry) => entry.id === node.browserProfile)?.name ?? null)
+      : null;
+
+  return {
+    actionId: args.actionId,
+    nodeName: node.name,
+    caution,
+    count: node.kind === 'link_group' ? links.length : 1,
+    tool,
+    browserProfile: profile,
+  };
+}
 
 /* -------------------------------------------------------------- scrittura */
 
@@ -349,7 +544,7 @@ function seed() {
   add(specialhub, 'subproject', 'Frontend');
   add(specialhub, 'subproject', 'Camunda');
   add(specialhub, 'subproject', it ? 'Documentazione' : 'Documentation');
-  add(backend, 'path', 'specialhub-backend', { path: 'C:\\dev\\specialhub\\backend' });
+  const repo = add(backend, 'path', 'specialhub-backend', { path: 'C:\\dev\\specialhub\\backend' });
   const devSection = add(backend, 'section', 'DEV');
   const devGroup = add(devSection, 'link_group', 'SpecialHub DEV');
   const prod = add(backend, 'section', 'PROD');
@@ -391,6 +586,35 @@ function seed() {
     path: String.raw`C:\Users\me\Documents\SpecialHub\Architettura v3.pdf`,
   });
   add(docs, 'path', 'Postman collection', { path: String.raw`C:\dev\specialhub\postman` });
+
+  // Qualche uso recente, perche' "Continua" e Recenti abbiano qualcosa da mostrare.
+  const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+  state.usage.push(
+    {
+      profileId: p,
+      nodeId: repo.id,
+      actionId: 'open_with',
+      toolId: 'ide:intellij',
+      via: work.id,
+      at: ago(2880),
+    },
+    {
+      profileId: p,
+      nodeId: devGroup.id,
+      actionId: 'open',
+      toolId: null,
+      via: work.id,
+      at: ago(95),
+    },
+    {
+      profileId: p,
+      nodeId: repo.id,
+      actionId: 'terminal',
+      toolId: null,
+      via: work.id,
+      at: ago(18),
+    },
+  );
 }
 
 seed();
@@ -504,14 +728,6 @@ const handlers: Handlers = {
 
   get_node_view: ({ profileId, id, viaWorkspaceId, includeArchived }) => {
     const node = get(id);
-    const nearestCaution = [{ node, depth: 0 }, ...ancestors(id)].filter(
-      (entry) => entry.node.caution,
-    );
-    const cautionSource = nearestCaution.sort(
-      (a, b) =>
-        a.depth - b.depth ||
-        SEVERITY[b.node.caution as Caution] - SEVERITY[a.node.caution as Caution],
-    )[0];
     const protectedSource = ancestors(id).find((entry) => entry.node.isProtected);
     return {
       node,
@@ -523,11 +739,7 @@ const handlers: Handlers = {
         isOwn: node.isProtected,
         inheritedFrom: !node.isProtected && protectedSource ? crumb(protectedSource.node) : null,
       },
-      caution: {
-        level: cautionSource?.node.caution ?? 'none',
-        isOwn: cautionSource?.depth === 0,
-        inheritedFrom: cautionSource && cautionSource.depth > 0 ? crumb(cautionSource.node) : null,
-      },
+      caution: resolvedCaution(id),
       tags: (state.tags.get(id) ?? []).map((name) => ({
         id: name.toLowerCase(),
         name,
@@ -668,7 +880,98 @@ const handlers: Handlers = {
         sortOrder: index * 1000,
         workspaceIds: workspacesOf(f.nodeId).map((workspace) => workspace.id),
       })),
-  list_recents: () => [],
+  list_recents: ({ profileId, workspaceId, limit }) => {
+    const groups = new Map<string, (typeof state.usage)[number] & { count: number }>();
+    for (const event of state.usage) {
+      if (event.profileId !== profileId || !alive(event.nodeId)) continue;
+      if (
+        workspaceId &&
+        event.via !== workspaceId &&
+        !workspacesOf(event.nodeId).some((workspace) => workspace.id === workspaceId)
+      ) {
+        continue;
+      }
+      const key = `${event.nodeId}|${event.actionId}|${event.toolId ?? ''}`;
+      const known = groups.get(key);
+      groups.set(key, { ...event, count: (known?.count ?? 0) + 1 });
+    }
+    return [...groups.values()]
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .slice(0, limit ?? 12)
+      .map((event) => ({
+        node: get(event.nodeId),
+        actionId: event.actionId,
+        toolId: event.toolId,
+        viaWorkspaceId: event.via,
+        lastAt: event.at.slice(0, 19).replace('T', ' '),
+        count: event.count,
+      }));
+  },
+
+  list_tools: ({ includeHidden }) => state.tools.filter((tool) => includeHidden || !tool.isHidden),
+  refresh_tools: () => state.tools,
+  browser_profiles: ({ toolId }) => BROWSER_PROFILES[toolId] ?? [],
+  add_custom_tool: ({ kind, name, exePath }) => {
+    if (!name.trim()) throw new Error('dai un nome allo strumento');
+    if (!/\.(exe|cmd|bat)$/i.test(exePath.trim())) {
+      throw new Error(`eseguibile non trovato: ${exePath}`);
+    }
+    const tool: Tool = {
+      id: `custom:${newId()}`,
+      kind,
+      name: name.trim(),
+      exePath: exePath.trim(),
+      source: 'custom',
+      isHidden: false,
+      available: true,
+    };
+    state.tools.push(tool);
+    return tool;
+  },
+  delete_custom_tool: ({ toolId }) => {
+    state.tools = state.tools.filter((tool) => !(tool.id === toolId && tool.source === 'custom'));
+    return null;
+  },
+  set_tool_hidden: ({ toolId, hidden }) => {
+    const tool = state.tools.find((candidate) => candidate.id === toolId);
+    if (tool) tool.isHidden = hidden;
+    return null;
+  },
+  set_tool_preference: ({ profileId, nodeId, kind, toolId }) => {
+    const key = `${nodeId ?? profileId}:${kind}`;
+    if (toolId) state.toolPreferences.set(key, toolId);
+    else state.toolPreferences.delete(key);
+    return null;
+  },
+  tool_preferences: ({ profileId, nodeId, viaWorkspaceId }) =>
+    (['ide', 'terminal', 'browser'] as const).map((kind) => ({
+      kind,
+      own: state.toolPreferences.get(`${nodeId ?? profileId}:${kind}`) ?? null,
+      effective: effectiveTool(profileId, nodeId, viaWorkspaceId, kind)?.id ?? null,
+    })),
+  prepare_action: (args) => planAction(args),
+  execute_action: ({ confirmation, ...args }) => {
+    const plan = planAction(args);
+    const confirmed =
+      plan.caution === 'none' ||
+      (plan.caution === 'confirm' && confirmation !== null) ||
+      (plan.caution === 'type_name' &&
+        confirmation?.trim().toLowerCase() === plan.nodeName.trim().toLowerCase());
+    if (!confirmed) throw new Error('confirmation_required');
+    state.usage.push({
+      profileId: args.profileId,
+      nodeId: args.nodeId,
+      actionId: args.actionId,
+      toolId: args.toolId,
+      via: args.viaWorkspaceId ?? workspacesOf(args.nodeId)[0]?.id ?? null,
+      at: new Date().toISOString(),
+    });
+    return {
+      opened: plan.count,
+      toolName: plan.tool?.name ?? null,
+      browserProfile: plan.browserProfile,
+    };
+  },
 
   // Nessun disco nel browser: tipi plausibili, dedotti dal percorso.
   inspect_paths: ({ pathsToInspect }) =>

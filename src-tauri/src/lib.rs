@@ -79,6 +79,18 @@ pub fn run() {
                 window_material,
             });
 
+            // Strumenti installati: il rilevamento legge il disco, quindi gira
+            // in background e aggiorna la tabella quando ha finito.
+            let tools_handle = handle.clone();
+            std::thread::spawn(move || {
+                let detected = services::tools::detect(&services::tools::Roots::from_env());
+                if let Some(state) = tools_handle.try_state::<AppState>() {
+                    if let Ok(conn) = state.db.lock() {
+                        let _ = services::tools::sync(&conn, &detected);
+                    }
+                }
+            });
+
             // 3. Scorciatoie globali: si registrano DOPO `manage`, perche' il
             //    gestore ha bisogno dello stato per capire quale ha premuto
             //    l'utente. Un fallimento qui non deve impedire l'avvio.
@@ -174,6 +186,17 @@ pub fn run() {
             commands::library::list_recents,
             // percorsi locali
             commands::paths::inspect_paths,
+            // azioni e strumenti
+            commands::actions::list_tools,
+            commands::actions::refresh_tools,
+            commands::actions::browser_profiles,
+            commands::actions::add_custom_tool,
+            commands::actions::delete_custom_tool,
+            commands::actions::set_tool_hidden,
+            commands::actions::set_tool_preference,
+            commands::actions::tool_preferences,
+            commands::actions::prepare_action,
+            commands::actions::execute_action,
         ])
         .run(tauri::generate_context!())
         .expect("errore fatale durante l'avvio di LlamaDesk");

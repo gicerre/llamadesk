@@ -582,3 +582,70 @@ pub struct PathInfo {
     pub extension: Option<String>,
     pub git_branch: Option<String>,
 }
+
+/* ================================================================ strumenti */
+
+/// Un programma con cui eseguire le azioni: terminale, IDE o browser.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Tool {
+    /// Stabile per gli strumenti rilevati ("ide:vscode"): le preferenze sopravvivono.
+    pub id: String,
+    pub kind: ToolKind,
+    pub name: String,
+    pub exe_path: String,
+    /// `detected` | `custom`
+    pub source: String,
+    pub is_hidden: bool,
+    /// L'eseguibile esiste ancora sul disco.
+    pub available: bool,
+}
+
+/// Un profilo di un browser, letto dai suoi file locali.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct BrowserProfile {
+    /// Cio' che si passa al browser (cartella per Chromium, nome per Firefox).
+    pub id: String,
+    pub name: String,
+}
+
+/// Strumento preferito di un tipo, per un profilo o un nodo.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ToolPreferenceState {
+    pub kind: ToolKind,
+    /// Impostato proprio qui.
+    pub own: Option<String>,
+    /// Quello che verrebbe usato: il proprio, uno ereditato o il primo disponibile.
+    pub effective: Option<String>,
+}
+
+/* =================================================================== azioni */
+
+/// Che cosa succedera' eseguendo un'azione, prima di eseguirla.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ActionPlan {
+    pub action_id: String,
+    pub node_name: String,
+    /// Livello di conferma richiesto (il piu' severo fra gli elementi coinvolti).
+    pub caution: Caution,
+    /// Quante cose si apriranno.
+    pub count: u32,
+    pub tool: Option<Tool>,
+    pub browser_profile: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ActionOutcome {
+    pub opened: u32,
+    pub tool_name: Option<String>,
+    pub browser_profile: Option<String>,
+}

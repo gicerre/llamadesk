@@ -20,6 +20,9 @@ import type { RecentAction } from '@/types/generated/RecentAction';
 import { NodeMenu } from '../library/NodeMenu';
 import { HeaderSkeleton, MissingNode, NodeHeader, PageFrame, SectionTitle } from '../library/parts';
 import { ScopeContent } from '../project/ScopeContent';
+import { rerun, useRecentDescription } from '../actions/recents';
+import { isExecutable } from '../actions/registry';
+import { runAction } from '../actions/run';
 
 /**
  * Home del workspace (D6): tre domande, tre fasce. "Cosa stavo usando?"
@@ -251,13 +254,10 @@ function ProjectCard({
   );
 }
 
-/**
- * Un'azione recente. Le azioni di apertura arrivano con la fase 4, e con loro
- * il rilancio identico; fino ad allora la carta apre il dettaglio dell'elemento.
- */
+/** Un'azione recente: il clic la ripete identica (stesso strumento, stesso workspace). */
 function ContinueCard({ recent, workspaceId }: { recent: RecentAction; workspaceId: string }) {
-  const { t, i18n } = useTranslation();
-  const openInspector = useInspector((state) => state.open);
+  const { i18n } = useTranslation();
+  const describe = useRecentDescription();
   const { node } = recent;
   // L'istante di riferimento si fissa al montaggio: il rendering resta puro.
   const [now] = useState(() => Date.now());
@@ -266,7 +266,7 @@ function ContinueCard({ recent, workspaceId }: { recent: RecentAction; workspace
   return (
     <button
       type="button"
-      onClick={() => openInspector(node.id, workspaceId)}
+      onClick={() => void rerun(recent, workspaceId)}
       className="bg-surface shadow-1 hover:shadow-2 flex flex-col gap-2 rounded-lg p-3 text-left transition-shadow duration-120"
     >
       <NodeIcon
@@ -279,7 +279,7 @@ function ContinueCard({ recent, workspaceId }: { recent: RecentAction; workspace
       <span className="min-w-0">
         <span className="text-ink block truncate text-sm font-semibold">{node.name}</span>
         <span className="text-ink-3 block truncate text-xs">
-          {t(`kinds.one.${node.kind}`)} · {relative}
+          {describe(recent)} · {relative}
         </span>
       </span>
     </button>
@@ -290,12 +290,11 @@ function FavoriteChip({ favorite, workspaceId }: { favorite: Favorite; workspace
   const { t } = useTranslation();
   const navigate = useNavigate();
   const profileId = useProfileId();
-  const openInspector = useInspector((state) => state.open);
   const { node } = favorite;
 
   const open = async () => {
-    if (['link', 'link_group', 'path'].includes(node.kind)) {
-      openInspector(node.id, workspaceId);
+    if (isExecutable(node.kind)) {
+      void runAction({ node, actionId: 'open', workspaceId });
       return;
     }
     try {

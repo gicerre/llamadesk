@@ -1,5 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { ActionOutcome } from '@/types/generated/ActionOutcome';
+import type { ActionPlan } from '@/types/generated/ActionPlan';
 import type { AppSettings } from '@/types/generated/AppSettings';
+import type { BrowserProfile } from '@/types/generated/BrowserProfile';
 import type { BootstrapPayload } from '@/types/generated/BootstrapPayload';
 import type { DeleteImpact } from '@/types/generated/DeleteImpact';
 import type { Favorite } from '@/types/generated/Favorite';
@@ -16,6 +19,9 @@ import type { ProfileSession } from '@/types/generated/ProfileSession';
 import type { RecentAction } from '@/types/generated/RecentAction';
 import type { ShortcutStatus } from '@/types/generated/ShortcutStatus';
 import type { Tag } from '@/types/generated/Tag';
+import type { Tool } from '@/types/generated/Tool';
+import type { ToolKind } from '@/types/generated/ToolKind';
+import type { ToolPreferenceState } from '@/types/generated/ToolPreferenceState';
 import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
 
 /* ============================================================================
@@ -126,6 +132,35 @@ export interface Commands {
   };
 
   inspect_paths: { args: { pathsToInspect: string[] }; result: PathInfo[] };
+
+  list_tools: { args: { includeHidden?: boolean }; result: Tool[] };
+  refresh_tools: { args: Record<string, never>; result: Tool[] };
+  browser_profiles: { args: { toolId: Id }; result: BrowserProfile[] };
+  add_custom_tool: {
+    args: { kind: ToolKind; name: string; exePath: string; args: string };
+    result: Tool;
+  };
+  delete_custom_tool: { args: { toolId: Id }; result: null };
+  set_tool_hidden: { args: { toolId: Id; hidden: boolean }; result: null };
+  set_tool_preference: {
+    args: { profileId: Id; nodeId: Maybe<Id>; kind: ToolKind; toolId: Maybe<Id> };
+    result: null;
+  };
+  tool_preferences: {
+    args: { profileId: Id; nodeId: Maybe<Id>; viaWorkspaceId: Maybe<Id> };
+    result: ToolPreferenceState[];
+  };
+  prepare_action: { args: ActionArgs; result: ActionPlan };
+  execute_action: { args: ActionArgs & { confirmation: Maybe<string> }; result: ActionOutcome };
+}
+
+/** Chi, su che cosa, con quale strumento e da quale workspace. */
+export interface ActionArgs {
+  profileId: Id;
+  nodeId: Id;
+  actionId: string;
+  toolId: Maybe<Id>;
+  viaWorkspaceId: Maybe<Id>;
 }
 
 export type CommandName = keyof Commands;
@@ -233,4 +268,22 @@ export const api = {
     call('list_recents', { profileId, workspaceId, limit }),
 
   inspectPaths: (paths: string[]) => call('inspect_paths', { pathsToInspect: paths }),
+
+  tools: (includeHidden = false) => call('list_tools', { includeHidden }),
+  refreshTools: () => call('refresh_tools', none),
+  browserProfiles: (toolId: Id) => call('browser_profiles', { toolId }),
+  addCustomTool: (kind: ToolKind, name: string, exePath: string, args: string) =>
+    call('add_custom_tool', { kind, name, exePath, args }),
+  deleteCustomTool: (toolId: Id) => call('delete_custom_tool', { toolId }),
+  setToolHidden: (toolId: Id, hidden: boolean) => call('set_tool_hidden', { toolId, hidden }),
+  setToolPreference: (profileId: Id, nodeId: Maybe<Id>, kind: ToolKind, toolId: Maybe<Id>) =>
+    call('set_tool_preference', { profileId, nodeId, kind, toolId }),
+  toolPreferences: (profileId: Id, nodeId: Maybe<Id>, viaWorkspaceId: Maybe<Id>) =>
+    call('tool_preferences', { profileId, nodeId, viaWorkspaceId }),
+  prepareAction: (args: ActionArgs) => call('prepare_action', args),
+  executeAction: (args: ActionArgs, confirmation: Maybe<string> = null) =>
+    call('execute_action', { ...args, confirmation }),
 };
+
+/** Il backend chiede conferma prima di aprire (docs/REDESIGN.md § 8). */
+export const CONFIRMATION_REQUIRED = 'confirmation_required';

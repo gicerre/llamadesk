@@ -4,6 +4,7 @@
 //! (validazione URL, gerarchia, ereditarieta', migrazioni) sono testabili con
 //! `cargo test`. Ogni modulo copre un'area funzionale.
 
+pub mod actions;
 pub mod app;
 pub mod library;
 pub mod nodes;

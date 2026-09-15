@@ -97,7 +97,60 @@
     "unshared": "“{{name}}” removed from {{workspace}}",
     "unshareFailed": "The project was not removed from the workspace",
     "favoriteAdded": "Added to favorites",
-    "favoriteRemoved": "Removed from favorites"
+    "favoriteRemoved": "Removed from favorites",
+    "enter": "Enter",
+    "failed": "“{{name}}” did not open",
+    "run": {
+      "open": "Open",
+      "openAll": "Open all",
+      "openInBrowser": "Open with",
+      "openAllInBrowser": "Open all with",
+      "openInIde": "Open in IDE",
+      "openInIdeTool": "Open in {{tool}}",
+      "terminal": "Open terminal",
+      "terminalTool": "Terminal · {{tool}}",
+      "terminalFolder": "Terminal in folder",
+      "terminalFolderTool": "Terminal in folder · {{tool}}",
+      "explorer": "Open in File Explorer",
+      "reveal": "Show in File Explorer",
+      "openRemote": "Open remote repository",
+      "copyUrl": "Copy address",
+      "copyPath": "Copy path"
+    },
+    "with": {
+      "ide": "Open with",
+      "terminal": "Terminal with",
+      "browser": "Open with"
+    },
+    "done": {
+      "opened": "“{{name}}” opened",
+      "openedMany_one": "{{count}} link opened from “{{name}}”",
+      "openedMany_other": "{{count}} links opened from “{{name}}”",
+      "terminal": "Terminal opened in “{{name}}”",
+      "revealed": "“{{name}}” in File Explorer",
+      "in": "in {{tool}}",
+      "inProfile": "in {{tool}}, profile {{profile}}",
+      "copiedUrl": "Address copied",
+      "copiedPath": "Path copied"
+    },
+    "confirm": {
+      "title": "Open “{{name}}”?",
+      "one": "“{{name}}” will open",
+      "many_one": "{{count}} link will open",
+      "many_other": "{{count}} links will open",
+      "reason": "This item asks for confirmation before opening.",
+      "typeName": "To continue, type “{{name}}”",
+      "submit": "Open"
+    },
+    "recent": {
+      "open": "{{kind}} opened",
+      "open_with": "Opened with a tool",
+      "terminal": "Terminal",
+      "reveal": "Shown in File Explorer",
+      "open_remote": "Remote repository",
+      "withTool": "Opened in {{tool}}"
+    },
+    "space": "Space"
   },
   "create": {
     "title": {
@@ -322,7 +375,17 @@
     "shared": "“{{name}}” is now also in {{workspace}}",
     "pinned": "Pinned to this workspace's Home",
     "workspacesFailed": "The project's workspaces did not change",
-    "danger": "Delete"
+    "danger": "Delete",
+    "opening": "Opening",
+    "browser": "Browser",
+    "browserDefault": "Windows default",
+    "browserProfile": "Browser profile",
+    "browserProfileNone": "No particular profile",
+    "newWindow": "Open in a new window",
+    "newWindowHint": "A new window needs a specific browser: the preferred one in Settings is used.",
+    "tools": "Tools",
+    "toolsHint": "Also applies to everything inside, unless chosen differently further down.",
+    "toolInherit": "Inherit · {{tool}}"
   },
   "resources": {
     "locate": "Locate…",
@@ -344,5 +407,38 @@
     "dropped_one": "Path added",
     "dropped_other": "{{count}} paths added",
     "dropFailed": "Some paths were not added"
+  },
+  "tools": {
+    "title": "Tools",
+    "defaultsHint": "What to use when a project doesn't choose a tool.",
+    "kind": {
+      "ide": "IDE",
+      "terminal": "Terminal",
+      "browser": "Browser"
+    },
+    "kindPlural": {
+      "ide": "IDEs and editors",
+      "terminal": "Terminals",
+      "browser": "Browsers"
+    },
+    "kindLabel": "Tool type",
+    "automatic": "Automatic · {{tool}}",
+    "systemBrowser": "Windows default",
+    "noneFound": "None found",
+    "custom": "added manually",
+    "missing": "not found",
+    "hide": "Hide from menus",
+    "show": "Show in menus",
+    "delete": "Delete {{name}}",
+    "refresh": "Search again",
+    "refreshed_one": "{{count}} tool found",
+    "refreshed_other": "{{count}} tools found",
+    "refreshFailed": "The tool search did not complete",
+    "add": "Add tool…",
+    "addSubmit": "Add",
+    "added": "“{{name}}” added",
+    "exe": "Executable",
+    "args": "Arguments",
+    "argsHint": "{path} becomes the path, {urls} the addresses. Empty: the path goes last."
   }
 }
