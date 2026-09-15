@@ -56,10 +56,11 @@ pub fn run() {
             let (connection, db_path) = db::initialize(&handle)?;
             let settings = db::seed::read_settings(&connection)?;
 
-            // 2. Manutenzione: workspace temporanei scaduti e annotazioni orfane.
-            //    Costa millisecondi e tiene pulito un database che vive per anni.
-            let _ = db::repo::bundles::purge_expired(&connection);
-            let _ = db::repo::library::prune_orphans(&connection);
+            // 2. Manutenzione: il cestino vale per una sessione, la cronologia
+            //    d'uso per 90 giorni. Costa millisecondi e tiene pulito un
+            //    database che vive per anni.
+            let _ = services::hierarchy::empty_trash(&connection);
+            let _ = db::repo::library::prune_usage(&connection);
 
             app.manage(AppState {
                 db: Mutex::new(connection),
@@ -116,7 +117,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // avvio, impostazioni, profili, scorciatoia
+            // avvio, impostazioni, profili, scorciatoie
             commands::app::bootstrap,
             commands::app::complete_onboarding,
             commands::app::get_settings,
@@ -127,71 +128,38 @@ pub fn run() {
             commands::app::activate_profile,
             commands::app::list_profiles,
             commands::app::create_profile,
-            commands::app::rename_profile,
+            commands::app::update_profile,
             commands::app::profile_delete_impact,
             commands::app::delete_profile,
             commands::app::apply_global_shortcut,
             commands::app::get_shortcut_status,
-            // gerarchia
-            commands::tree::list_containers,
-            commands::tree::get_container_view,
-            commands::tree::resolve_sibling_path,
-            commands::tree::create_container,
-            commands::tree::update_container,
-            commands::tree::move_container,
-            commands::tree::container_delete_impact,
-            commands::dashboard::list_widgets,
-            commands::dashboard::update_widget,
-            commands::dashboard::move_widget,
-            commands::dashboard::calendar_links,
-            commands::dashboard::recent_notes,
-            commands::tree::delete_container,
-            commands::tree::duplicate_container,
-            // applicazioni e link
-            commands::items::create_application,
-            commands::items::update_application,
-            commands::items::move_application,
-            commands::items::delete_application,
-            commands::items::duplicate_application,
-            commands::items::create_link,
-            commands::items::update_link,
-            commands::items::move_link,
-            commands::items::delete_link,
-            // apertura e danger zone
-            commands::open::list_danger_prompts,
-            commands::open::prepare_open,
-            commands::open::prepare_open_many,
-            commands::open::open_link,
-            commands::open::open_links,
-            // ricerca, recenti, salute dei link
-            commands::discover::search_all,
-            commands::discover::link_health,
-            commands::discover::recent_applications,
-            commands::discover::favourite_applications,
-            // tag e note
-            commands::library::list_tags,
-            commands::library::tags_for_entity,
-            commands::library::set_entity_tags,
-            commands::library::get_note,
-            commands::library::set_note,
-            // quick workspaces
-            commands::workspaces::list_bundles,
-            commands::workspaces::create_bundle,
-            commands::workspaces::update_bundle,
-            commands::workspaces::delete_bundle,
-            commands::workspaces::add_bundle_link,
-            commands::workspaces::remove_bundle_link,
-            commands::workspaces::reorder_bundle_links,
-            // backup, sfondi, prompt personalizzati
-            commands::data::export_backup,
-            commands::data::preview_backup,
-            commands::data::import_backup,
-            commands::data::list_backgrounds,
-            commands::data::create_background,
-            commands::data::import_background_image,
-            commands::data::delete_background,
-            commands::data::save_danger_prompt,
-            commands::data::delete_danger_prompt,
+            // workspace del profilo
+            commands::workspaces::list_workspaces,
+            commands::workspaces::workspace_profiles,
+            commands::workspaces::set_workspace_visibility,
+            commands::workspaces::reorder_workspace,
+            commands::workspaces::set_default_workspace,
+            commands::workspaces::remember_workspace_route,
+            // libreria
+            commands::nodes::get_node_view,
+            commands::nodes::list_children,
+            commands::nodes::create_node,
+            commands::nodes::update_node,
+            commands::nodes::move_node,
+            commands::nodes::share_node,
+            commands::nodes::unshare_node,
+            commands::nodes::set_node_pinned,
+            commands::nodes::archive_node,
+            commands::nodes::node_delete_impact,
+            commands::nodes::delete_node,
+            commands::nodes::restore_deletion,
+            commands::nodes::duplicate_node,
+            commands::nodes::set_node_tags,
+            commands::nodes::list_tags,
+            // preferiti e recenti
+            commands::library::toggle_favorite,
+            commands::library::list_favorites,
+            commands::library::list_recents,
         ])
         .run(tauri::generate_context!())
         .expect("errore fatale durante l'avvio di LlamaDesk");

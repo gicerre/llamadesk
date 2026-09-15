@@ -1,25 +1,15 @@
 //! Inizializzazione "Plug & Play" al primo avvio.
 //!
 //! Filosofia: l'applicazione nasce VUOTA. Qui si crea solo lo stretto
-//! indispensabile perche' l'interfaccia abbia senso — un profilo, le
-//! impostazioni di default, i tre prompt di conferma predefiniti e i widget
-//! della dashboard. Nessun progetto, nessun ambiente, nessun link: la struttura
-//! la costruisce l'utente.
+//! indispensabile perche' l'interfaccia abbia senso: un profilo e le
+//! impostazioni di default. Nessun workspace, nessun progetto, nessun link:
+//! il primo workspace lo crea l'utente dal benvenuto.
 
 use anyhow::Result;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
 
-use crate::db::repo::widgets;
 use crate::domain::AppSettings;
-
-/// I prompt built-in contengono CHIAVI i18n: il frontend le risolve nella
-/// lingua corrente. Diventano testo letterale solo quando l'utente li modifica.
-const BUILTIN_PROMPTS: [(&str, &str, &str); 3] = [
-    ("warning", "danger.builtin.warning", "Warning"),
-    ("danger", "danger.builtin.danger", "Danger"),
-    ("critical", "danger.builtin.critical", "Critical"),
-];
 
 pub fn new_id() -> String {
     Uuid::now_v7().to_string()
@@ -48,29 +38,9 @@ pub fn ensure_seed(conn: &mut Connection, system_locale: &str) -> Result<()> {
     let tx = conn.transaction()?;
 
     tx.execute(
-        "INSERT INTO profiles (id, name, icon, sort_order) VALUES (?1, ?2, ?3, 1000)",
-        params![profile_id, profile_name, "\u{1F999}"],
+        "INSERT INTO profiles (id, name, sort_order) VALUES (?1, ?2, 1000)",
+        params![profile_id, profile_name],
     )?;
-
-    for (level, key, name) in BUILTIN_PROMPTS {
-        tx.execute(
-            "INSERT INTO danger_prompts
-               (id, profile_id, name, level, title, message, confirm_label, cancel_label, confirm_word, is_builtin)
-             VALUES (?1, NULL, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1)",
-            params![
-                new_id(),
-                name,
-                level,
-                format!("{key}.title"),
-                format!("{key}.message"),
-                format!("{key}.confirm"),
-                format!("{key}.cancel"),
-                if level == "critical" { Some("PROCEED") } else { None },
-            ],
-        )?;
-    }
-
-    widgets::ensure_all(&tx, &profile_id)?;
 
     let settings = AppSettings {
         language: language.to_string(),
@@ -79,7 +49,7 @@ pub fn ensure_seed(conn: &mut Connection, system_locale: &str) -> Result<()> {
     };
     write_settings(&tx, &settings)?;
 
-    // Il flag di onboarding vive fuori da AppSettings: e' uno stato di ciclo di
+    // Il flag di benvenuto vive fuori da AppSettings: e' uno stato di ciclo di
     // vita, non una preferenza, e viene consumato una volta sola.
     tx.execute(
         "INSERT INTO settings (key, value) VALUES ('firstRun', 'true')
@@ -136,17 +106,11 @@ pub fn read_settings(conn: &Connection) -> Result<AppSettings> {
 ///  * le due scorciatoie globali — sono registrate nell'OS da un solo processo,
 ///    e lo stesso tasto non puo' significare cose diverse a seconda del profilo
 ///    attivo dentro l'applicazione;
-///  * avvio automatico, avvio minimizzato e chiusura nella tray — riguardano il
-///    ciclo di vita dell'applicazione, non il contesto di lavoro;
+///  * avvio automatico, avvio minimizzato, chiusura nella tray e animazione di
+///    apertura — riguardano il ciclo di vita dell'applicazione, non il
+///    contesto di lavoro;
 ///  * `activeProfileId`, che per definizione e' globale.
-pub const PROFILE_SCOPED_KEYS: [&str; 6] = [
-    "theme",
-    "language",
-    "backgroundId",
-    "overlayOpacity",
-    "openDelayMs",
-    "staleLinkDays",
-];
+pub const PROFILE_SCOPED_KEYS: [&str; 4] = ["theme", "language", "density", "openDelayMs"];
 
 pub fn is_profile_scoped(key: &str) -> bool {
     PROFILE_SCOPED_KEYS.contains(&key)
@@ -307,7 +271,7 @@ mod tests {
         assert_eq!(profiles, 1);
 
         // L'app nasce vuota: nessun contenuto precaricato.
-        for table in ["containers", "applications", "links", "tags", "bundles"] {
+        for table in ["nodes", "edges", "profile_workspaces", "tags", "tools"] {
             let count: i64 = conn
                 .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))
                 .unwrap();
@@ -425,6 +389,7 @@ mod tests {
             "globalShortcut",
             "captureShortcut",
             "autostart",
+            "openerAnimation",
             "activeProfileId",
         ] {
             assert!(

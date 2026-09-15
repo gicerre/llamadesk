@@ -1,85 +1,84 @@
-//! Comandi per i Quick Workspaces.
+//! Workspace come li vede un profilo: elenco, visibilita', ordine,
+//! predefinito, ultima pagina visitata. La creazione passa da `create_node`.
 
 use tauri::State;
 
 use crate::commands::{db, fail};
-use crate::db::repo::bundles;
-use crate::domain::{Bundle, BundleWithLinks};
+use crate::db::repo::workspaces;
+use crate::domain::WorkspaceEntry;
 use crate::AppState;
 
 #[tauri::command]
-pub fn list_bundles(
+pub fn list_workspaces(
     state: State<'_, AppState>,
     profile_id: String,
-) -> Result<Vec<BundleWithLinks>, String> {
+    include_archived: Option<bool>,
+) -> Result<Vec<WorkspaceEntry>, String> {
     let conn = db(&state)?;
-    bundles::list(&conn, &profile_id).map_err(fail)
+    workspaces::list(&conn, &profile_id, include_archived.unwrap_or(false)).map_err(fail)
 }
 
-/// Crea un workspace. Se `expires_at` è valorizzato il workspace è temporaneo
-/// e viene rimosso automaticamente al primo avvio successivo alla scadenza.
+/// Profili in cui il workspace e' visibile ("Visibile in questi profili").
 #[tauri::command]
-pub fn create_bundle(
+pub fn workspace_profiles(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<String>, String> {
+    let conn = db(&state)?;
+    workspaces::profiles_of(&conn, &workspace_id).map_err(fail)
+}
+
+#[tauri::command]
+pub fn set_workspace_visibility(
     state: State<'_, AppState>,
     profile_id: String,
-    name: String,
-    expires_at: Option<String>,
-) -> Result<Bundle, String> {
+    workspace_id: String,
+    visible: bool,
+) -> Result<(), String> {
     let conn = db(&state)?;
-    bundles::create(
+    if visible {
+        workspaces::show(&conn, &profile_id, &workspace_id).map_err(fail)
+    } else {
+        workspaces::hide(&conn, &profile_id, &workspace_id).map_err(fail)
+    }
+}
+
+#[tauri::command]
+pub fn reorder_workspace(
+    state: State<'_, AppState>,
+    profile_id: String,
+    workspace_id: String,
+    previous_id: Option<String>,
+    next_id: Option<String>,
+) -> Result<(), String> {
+    let conn = db(&state)?;
+    workspaces::reorder(
         &conn,
         &profile_id,
-        &name,
-        expires_at.is_some(),
-        expires_at.as_deref(),
+        &workspace_id,
+        previous_id.as_deref(),
+        next_id.as_deref(),
     )
     .map_err(fail)
 }
 
 #[tauri::command]
-pub fn update_bundle(
+pub fn set_default_workspace(
     state: State<'_, AppState>,
-    id: String,
-    name: Option<String>,
-    icon: Option<String>,
-    open_delay_ms: Option<i64>,
-) -> Result<Bundle, String> {
-    let conn = db(&state)?;
-    bundles::update(&conn, &id, name.as_deref(), icon.as_deref(), open_delay_ms).map_err(fail)
-}
-
-#[tauri::command]
-pub fn delete_bundle(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    let conn = db(&state)?;
-    bundles::delete(&conn, &id).map_err(fail)
-}
-
-#[tauri::command]
-pub fn add_bundle_link(
-    state: State<'_, AppState>,
-    bundle_id: String,
-    link_id: String,
+    profile_id: String,
+    workspace_id: String,
 ) -> Result<(), String> {
     let conn = db(&state)?;
-    bundles::add_link(&conn, &bundle_id, &link_id).map_err(fail)
+    workspaces::set_default(&conn, &profile_id, &workspace_id).map_err(fail)
 }
 
 #[tauri::command]
-pub fn remove_bundle_link(
+pub fn remember_workspace_route(
     state: State<'_, AppState>,
-    bundle_id: String,
-    link_id: String,
+    profile_id: String,
+    workspace_id: String,
+    route: String,
 ) -> Result<(), String> {
     let conn = db(&state)?;
-    bundles::remove_link(&conn, &bundle_id, &link_id).map_err(fail)
-}
-
-#[tauri::command]
-pub fn reorder_bundle_links(
-    state: State<'_, AppState>,
-    bundle_id: String,
-    link_ids: Vec<String>,
-) -> Result<(), String> {
-    let conn = db(&state)?;
-    bundles::reorder(&conn, &bundle_id, &link_ids).map_err(fail)
+    workspaces::remember_route(&conn, &profile_id, &workspace_id, &route).map_err(fail)
 }

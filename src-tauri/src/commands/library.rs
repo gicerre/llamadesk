@@ -1,63 +1,55 @@
-//! Comandi per tag e note.
+//! Preferiti e recenti del profilo.
 
 use tauri::State;
 
 use crate::commands::{db, fail};
 use crate::db::repo::library;
-use crate::domain::{Note, Tag};
+use crate::domain::{Favorite, RecentAction};
 use crate::AppState;
 
+/// Aggiunge o toglie un preferito; restituisce lo stato risultante.
 #[tauri::command]
-pub fn list_tags(state: State<'_, AppState>, profile_id: String) -> Result<Vec<Tag>, String> {
-    let conn = db(&state)?;
-    library::list_tags(&conn, &profile_id).map_err(fail)
-}
-
-#[tauri::command]
-pub fn tags_for_entity(
-    state: State<'_, AppState>,
-    entity_type: String,
-    entity_id: String,
-) -> Result<Vec<Tag>, String> {
-    let conn = db(&state)?;
-    library::tags_for_entity(&conn, &entity_type, &entity_id).map_err(fail)
-}
-
-/// Sostituisce l'intero insieme di tag di un'entità.
-#[tauri::command]
-pub fn set_entity_tags(
+pub fn toggle_favorite(
     state: State<'_, AppState>,
     profile_id: String,
-    entity_type: String,
-    entity_id: String,
-    names: Vec<String>,
-) -> Result<Vec<Tag>, String> {
-    let mut guard = db(&state)?;
-    let tx = guard.transaction().map_err(fail)?;
-    let tags = library::set_entity_tags(&tx, &profile_id, &entity_type, &entity_id, &names)
-        .map_err(fail)?;
-    tx.commit().map_err(fail)?;
-    Ok(tags)
+    node_id: String,
+    action_id: Option<String>,
+    tool_id: Option<String>,
+) -> Result<bool, String> {
+    let conn = db(&state)?;
+    library::toggle_favorite(
+        &conn,
+        &profile_id,
+        &node_id,
+        action_id.as_deref(),
+        tool_id.as_deref(),
+    )
+    .map_err(fail)
 }
 
 #[tauri::command]
-pub fn get_note(
+pub fn list_favorites(
     state: State<'_, AppState>,
-    entity_type: String,
-    entity_id: String,
-) -> Result<Option<Note>, String> {
+    profile_id: String,
+) -> Result<Vec<Favorite>, String> {
     let conn = db(&state)?;
-    library::get_note(&conn, &entity_type, &entity_id).map_err(fail)
+    library::favorites(&conn, &profile_id).map_err(fail)
 }
 
-/// Salva la nota. Un contenuto vuoto la elimina.
+/// Azioni usate di recente; con `workspace_id` solo quelle di quel workspace.
 #[tauri::command]
-pub fn set_note(
+pub fn list_recents(
     state: State<'_, AppState>,
-    entity_type: String,
-    entity_id: String,
-    content: String,
-) -> Result<Option<Note>, String> {
+    profile_id: String,
+    workspace_id: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<RecentAction>, String> {
     let conn = db(&state)?;
-    library::set_note(&conn, &entity_type, &entity_id, &content).map_err(fail)
+    library::recents(
+        &conn,
+        &profile_id,
+        workspace_id.as_deref(),
+        limit.unwrap_or(12),
+    )
+    .map_err(fail)
 }

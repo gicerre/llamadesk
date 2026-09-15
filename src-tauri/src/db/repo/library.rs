@@ -1,365 +1,427 @@
-//! Tag e note: due annotazioni polimorfiche che possono agganciarsi a
-//! qualunque entità della gerarchia.
+//! Cio' che il profilo aggiunge alla libreria: preferiti, cronologia d'uso, tag.
 //!
-//! Sono deliberatamente separate dal resto: aggiungere un tag non modifica
-//! l'elemento taggato, e cancellare l'elemento porta via tag e note con sé
-//! (vincoli di chiave esterna per i tag, pulizia esplicita per le note, che
-//! sono polimorfiche e quindi fuori dalla portata delle foreign key).
+//! La cronologia non lascia mai il computer: nessun URL viene contattato,
+//! nessun dato esce da SQLite.
 
 use anyhow::{anyhow, Result};
-use rusqlite::{params, Connection, Row};
+use rusqlite::{params, Connection, OptionalExtension};
 
+use crate::db::repo::nodes;
 use crate::db::seed::new_id;
-use crate::domain::{Note, NoteInContext, Tag};
+use crate::domain::{Favorite, RecentAction, Tag};
+use crate::services::resolve;
 
-/* -------------------------------------------------------------------- tag */
+/// Giorni di cronologia conservati.
+pub const USAGE_RETENTION_DAYS: i64 = 90;
 
-pub fn map_tag(row: &Row<'_>) -> rusqlite::Result<Tag> {
+/* ----------------------------------------------------------------- preferiti */
+
+pub fn is_favorite(conn: &Connection, profile_id: &str, node_id: &str) -> Result<bool> {
+    Ok(conn
+        .query_row(
+            "SELECT 1 FROM favorites WHERE profile_id = ?1 AND node_id = ?2 AND action_id = ''",
+            params![profile_id, node_id],
+            |_| Ok(()),
+        )
+        .optional()?
+        .is_some())
+}
+
+/// Aggiunge o toglie un preferito. Restituisce lo stato risultante.
+pub fn toggle_favorite(
+    conn: &Connection,
+    profile_id: &str,
+    node_id: &str,
+    action_id: Option<&str>,
+    tool_id: Option<&str>,
+) -> Result<bool> {
+    nodes::get(conn, node_id)?;
+    let action = action_id.unwrap_or("");
+
+    let removed = conn.execute(
+        "DELETE FROM favorites WHERE profile_id = ?1 AND node_id = ?2 AND action_id = ?3",
+        params![profile_id, node_id, action],
+    )?;
+    if removed > 0 {
+        return Ok(false);
+    }
+
+    let sort_order: f64 = conn.query_row(
+        "SELECT COALESCE(MAX(sort_order), 0) + 1000 FROM favorites WHERE profile_id = ?1",
+        [profile_id],
+        |row| row.get(0),
+    )?;
+    conn.execute(
+        "INSERT INTO favorites (profile_id, node_id, action_id, tool_id, sort_order)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![profile_id, node_id, action, tool_id, sort_order],
+    )?;
+    Ok(true)
+}
+
+/// Preferiti del profilo, con i workspace in cui compaiono. Un preferito
+/// finito in un workspace che il profilo non vede piu' non viene mostrato.
+pub fn favorites(conn: &Connection, profile_id: &str) -> Result<Vec<Favorite>> {
+    let rows: Vec<(String, String, Option<String>, f64)> = {
+        let mut statement = conn.prepare(
+            "SELECT f.node_id, f.action_id, f.tool_id, f.sort_order
+               FROM favorites f JOIN nodes n ON n.id = f.node_id
+              WHERE f.profile_id = ?1 AND n.deleted_at IS NULL AND n.archived_at IS NULL
+              ORDER BY f.sort_order",
+        )?;
+        let mapped = statement.query_map([profile_id], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        })?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()?
+    };
+
+    let mut result = Vec::with_capacity(rows.len());
+    for (node_id, action_id, tool_id, sort_order) in rows {
+        let workspace_ids = visible_workspace_ids(conn, profile_id, &node_id)?;
+        if workspace_ids.is_empty() {
+            continue;
+        }
+        result.push(Favorite {
+            node: nodes::get(conn, &node_id)?,
+            action_id: Some(action_id).filter(|action| !action.is_empty()),
+            tool_id,
+            sort_order,
+            workspace_ids,
+        });
+    }
+    Ok(result)
+}
+
+fn visible_workspace_ids(
+    conn: &Connection,
+    profile_id: &str,
+    node_id: &str,
+) -> Result<Vec<String>> {
+    let mut ids = Vec::new();
+    for workspace in resolve::workspaces_of(conn, node_id)? {
+        if crate::db::repo::workspaces::is_visible(conn, profile_id, &workspace.id)? {
+            ids.push(workspace.id);
+        }
+    }
+    Ok(ids)
+}
+
+/* -------------------------------------------------------------------- uso */
+
+/// Registra un'azione che ha aperto qualcosa: "recente" significa "usato",
+/// non "modificato" ne' "visitato".
+// La chiamera' `execute_action` (Fase 4): nessuna azione apre ancora qualcosa.
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn record_usage(
+    conn: &Connection,
+    profile_id: &str,
+    node_id: &str,
+    action_id: &str,
+    tool_id: Option<&str>,
+    via_workspace_id: Option<&str>,
+) -> Result<()> {
+    if action_id.trim().is_empty() {
+        return Err(anyhow!("azione mancante"));
+    }
+    conn.execute(
+        "INSERT INTO usage_events (profile_id, node_id, action_id, tool_id, via_workspace_id)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![profile_id, node_id, action_id, tool_id, via_workspace_id],
+    )?;
+    Ok(())
+}
+
+struct RecentRow {
+    node_id: String,
+    action_id: String,
+    tool_id: Option<String>,
+    via_workspace_id: Option<String>,
+    last_at: String,
+    count: u32,
+}
+
+/// Azioni recenti del profilo, una riga per combinazione nodo + azione +
+/// strumento, dalla piu' recente. Con `workspace_id` restano solo quelle i cui
+/// nodi compaiono in quel workspace.
+pub fn recents(
+    conn: &Connection,
+    profile_id: &str,
+    workspace_id: Option<&str>,
+    limit: u32,
+) -> Result<Vec<RecentAction>> {
+    let rows: Vec<RecentRow> = {
+        let mut statement = conn.prepare(
+            "SELECT u.node_id, u.action_id, u.tool_id,
+                    (SELECT u2.via_workspace_id FROM usage_events u2
+                      WHERE u2.profile_id = u.profile_id AND u2.node_id = u.node_id
+                        AND u2.action_id = u.action_id AND u2.tool_id IS u.tool_id
+                      ORDER BY u2.at DESC, u2.id DESC LIMIT 1) AS via_workspace_id,
+                    MAX(u.at) AS last_at, COUNT(*) AS uses
+               FROM usage_events u JOIN nodes n ON n.id = u.node_id
+              WHERE u.profile_id = ?1 AND n.deleted_at IS NULL AND n.archived_at IS NULL
+              GROUP BY u.node_id, u.action_id, u.tool_id
+              ORDER BY last_at DESC, MAX(u.id) DESC",
+        )?;
+        let mapped = statement.query_map([profile_id], |row| {
+            Ok(RecentRow {
+                node_id: row.get(0)?,
+                action_id: row.get(1)?,
+                tool_id: row.get(2)?,
+                via_workspace_id: row.get(3)?,
+                last_at: row.get(4)?,
+                count: row.get(5)?,
+            })
+        })?;
+        mapped.collect::<rusqlite::Result<Vec<_>>>()?
+    };
+
+    let mut result = Vec::new();
+    for row in rows {
+        if result.len() as u32 >= limit {
+            break;
+        }
+        let visible = visible_workspace_ids(conn, profile_id, &row.node_id)?;
+        let in_scope = match workspace_id {
+            Some(workspace_id) => visible.iter().any(|id| id == workspace_id),
+            None => !visible.is_empty(),
+        };
+        if !in_scope {
+            continue;
+        }
+        result.push(RecentAction {
+            node: nodes::get(conn, &row.node_id)?,
+            action_id: row.action_id,
+            tool_id: row.tool_id,
+            via_workspace_id: row.via_workspace_id,
+            last_at: row.last_at,
+            count: row.count,
+        });
+    }
+    Ok(result)
+}
+
+/// Dimentica la cronologia piu' vecchia della finestra di conservazione.
+pub fn prune_usage(conn: &Connection) -> Result<usize> {
+    Ok(conn.execute(
+        "DELETE FROM usage_events WHERE at < datetime('now', ?1)",
+        [format!("-{USAGE_RETENTION_DAYS} days")],
+    )?)
+}
+
+/* ---------------------------------------------------------------------- tag */
+
+fn map_tag(row: &rusqlite::Row<'_>) -> rusqlite::Result<Tag> {
     Ok(Tag {
         id: row.get("id")?,
-        profile_id: row.get("profile_id")?,
         name: row.get("name")?,
         color: row.get("color")?,
     })
 }
 
-pub fn list_tags(conn: &Connection, profile_id: &str) -> Result<Vec<Tag>> {
-    let mut statement = conn.prepare("SELECT * FROM tags WHERE profile_id = ?1 ORDER BY name")?;
-    let rows = statement.query_map([profile_id], map_tag)?;
+pub fn tags(conn: &Connection) -> Result<Vec<Tag>> {
+    let mut statement = conn.prepare("SELECT * FROM tags ORDER BY name COLLATE NOCASE")?;
+    let rows = statement.query_map([], map_tag)?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
-/// Crea il tag se non esiste, altrimenti restituisce quello esistente.
-/// L'utente scrive un nome, non gestisce un'anagrafica di tag.
-pub fn ensure_tag(
-    conn: &Connection,
-    profile_id: &str,
-    name: &str,
-    color: Option<&str>,
-) -> Result<Tag> {
-    let name = name.trim();
-    if name.is_empty() {
-        return Err(anyhow!("il nome del tag non puo' essere vuoto"));
-    }
-
-    if let Ok(existing) = conn.query_row(
-        "SELECT * FROM tags WHERE profile_id = ?1 AND name = ?2 COLLATE NOCASE",
-        params![profile_id, name],
-        map_tag,
-    ) {
-        return Ok(existing);
-    }
-
-    let id = new_id();
-    conn.execute(
-        "INSERT INTO tags (id, profile_id, name, color) VALUES (?1, ?2, ?3, ?4)",
-        params![id, profile_id, name, color],
-    )?;
-
-    Ok(conn.query_row("SELECT * FROM tags WHERE id = ?1", [&id], map_tag)?)
-}
-
-pub fn tags_for_entity(conn: &Connection, entity_type: &str, entity_id: &str) -> Result<Vec<Tag>> {
+pub fn tags_of(conn: &Connection, node_id: &str) -> Result<Vec<Tag>> {
     let mut statement = conn.prepare(
-        "SELECT t.* FROM tags t
-           JOIN taggables g ON g.tag_id = t.id
-          WHERE g.entity_type = ?1 AND g.entity_id = ?2
-          ORDER BY t.name",
+        "SELECT t.* FROM tags t JOIN node_tags nt ON nt.tag_id = t.id
+          WHERE nt.node_id = ?1 ORDER BY t.name COLLATE NOCASE",
     )?;
-    let rows = statement.query_map(params![entity_type, entity_id], map_tag)?;
+    let rows = statement.query_map([node_id], map_tag)?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
-/// Sostituisce l'intero insieme di tag di un'entità: la UI lavora per liste,
-/// non per singole aggiunte e rimozioni.
-pub fn set_entity_tags(
-    conn: &Connection,
-    profile_id: &str,
-    entity_type: &str,
-    entity_id: &str,
-    names: &[String],
-) -> Result<Vec<Tag>> {
-    conn.execute(
-        "DELETE FROM taggables WHERE entity_type = ?1 AND entity_id = ?2",
-        params![entity_type, entity_id],
-    )?;
+/// Sostituisce i tag di un nodo con quelli indicati per nome, creando quelli
+/// nuovi. I tag rimasti senza nodi vengono rimossi.
+pub fn set_tags(conn: &Connection, node_id: &str, names: &[String]) -> Result<Vec<Tag>> {
+    nodes::get(conn, node_id)?;
+    crate::db::atomic(conn, |conn| {
+        conn.execute("DELETE FROM node_tags WHERE node_id = ?1", [node_id])?;
 
-    for name in names {
-        let tag = ensure_tag(conn, profile_id, name, None)?;
+        for name in names {
+            let name = name.trim().trim_start_matches('#').trim();
+            if name.is_empty() {
+                continue;
+            }
+            let existing: Option<String> = conn
+                .query_row("SELECT id FROM tags WHERE name = ?1", [name], |row| {
+                    row.get(0)
+                })
+                .optional()?;
+            let tag_id = match existing {
+                Some(id) => id,
+                None => {
+                    let id = new_id();
+                    conn.execute(
+                        "INSERT INTO tags (id, name) VALUES (?1, ?2)",
+                        params![id, name],
+                    )?;
+                    id
+                }
+            };
+            conn.execute(
+                "INSERT OR IGNORE INTO node_tags (tag_id, node_id) VALUES (?1, ?2)",
+                params![tag_id, node_id],
+            )?;
+        }
+
         conn.execute(
-            "INSERT OR IGNORE INTO taggables (tag_id, entity_type, entity_id) VALUES (?1, ?2, ?3)",
-            params![tag.id, entity_type, entity_id],
+            "DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM node_tags)",
+            [],
         )?;
-    }
-
-    // Un tag rimasto senza alcun elemento sparisce: nessuna anagrafica morta.
-    conn.execute(
-        "DELETE FROM tags
-          WHERE profile_id = ?1
-            AND id NOT IN (SELECT tag_id FROM taggables)",
-        [profile_id],
-    )?;
-
-    tags_for_entity(conn, entity_type, entity_id)
-}
-
-/* ------------------------------------------------------------------- note */
-
-pub fn map_note(row: &Row<'_>) -> rusqlite::Result<Note> {
-    Ok(Note {
-        id: row.get("id")?,
-        entity_type: row.get("entity_type")?,
-        entity_id: row.get("entity_id")?,
-        content: row.get("content")?,
-        updated_at: row.get("updated_at")?,
+        tags_of(conn, node_id)
     })
-}
-
-pub fn get_note(conn: &Connection, entity_type: &str, entity_id: &str) -> Result<Option<Note>> {
-    Ok(conn
-        .query_row(
-            "SELECT * FROM notes WHERE entity_type = ?1 AND entity_id = ?2",
-            params![entity_type, entity_id],
-            map_note,
-        )
-        .ok())
-}
-
-/// Salva la nota. Un contenuto vuoto la elimina: una nota svuotata è una nota
-/// cancellata, non una riga vuota da trascinarsi dietro.
-pub fn set_note(
-    conn: &Connection,
-    entity_type: &str,
-    entity_id: &str,
-    content: &str,
-) -> Result<Option<Note>> {
-    if content.trim().is_empty() {
-        conn.execute(
-            "DELETE FROM notes WHERE entity_type = ?1 AND entity_id = ?2",
-            params![entity_type, entity_id],
-        )?;
-        return Ok(None);
-    }
-
-    conn.execute(
-        "INSERT INTO notes (id, entity_type, entity_id, content, updated_at)
-         VALUES (?1, ?2, ?3, ?4, datetime('now'))
-         ON CONFLICT(entity_type, entity_id)
-           DO UPDATE SET content = excluded.content, updated_at = excluded.updated_at",
-        params![new_id(), entity_type, entity_id, content],
-    )?;
-
-    get_note(conn, entity_type, entity_id)
-}
-
-/// Le note non vuote del profilo, dalla più recente: alimentano il widget
-/// "Note". Ognuna porta il nome di ciò che annota e dove ritrovarla.
-pub fn recent_notes(conn: &Connection, profile_id: &str, limit: u32) -> Result<Vec<NoteInContext>> {
-    // La relazione è polimorfica: si risolve un tipo di entità alla volta, e
-    // la condizione sul profilo filtra via anche eventuali orfani.
-    let mut statement = conn.prepare(
-        "SELECT n.*, owner.title, owner.container_id
-           FROM notes n
-           JOIN (
-             SELECT 'container' AS entity_type, id AS entity_id, name AS title, id AS container_id
-               FROM containers WHERE profile_id = ?1
-             UNION ALL
-             SELECT 'application', id, name, container_id
-               FROM applications WHERE profile_id = ?1
-             UNION ALL
-             SELECT 'link', l.id, a.name || ' › ' || l.name, a.container_id
-               FROM links l JOIN applications a ON a.id = l.application_id
-              WHERE a.profile_id = ?1
-             UNION ALL
-             SELECT 'profile', id, name, NULL
-               FROM profiles WHERE id = ?1
-           ) owner ON owner.entity_type = n.entity_type AND owner.entity_id = n.entity_id
-          WHERE trim(n.content) <> ''
-          ORDER BY n.updated_at DESC, n.id
-          LIMIT ?2",
-    )?;
-    let rows = statement.query_map(params![profile_id, limit], |row| {
-        Ok(NoteInContext {
-            note: map_note(row)?,
-            title: row.get("title")?,
-            container_id: row.get("container_id")?,
-        })
-    })?;
-    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
-}
-
-/// Note e tag di entità ormai cancellate: le foreign key non possono coprire
-/// una relazione polimorfica, quindi ripuliamo noi all'avvio.
-pub fn prune_orphans(conn: &Connection) -> Result<usize> {
-    let notes = conn.execute(
-        "DELETE FROM notes WHERE
-           (entity_type = 'profile'     AND entity_id NOT IN (SELECT id FROM profiles))
-        OR (entity_type = 'container'   AND entity_id NOT IN (SELECT id FROM containers))
-        OR (entity_type = 'application' AND entity_id NOT IN (SELECT id FROM applications))
-        OR (entity_type = 'link'        AND entity_id NOT IN (SELECT id FROM links))",
-        [],
-    )?;
-
-    let taggables = conn.execute(
-        "DELETE FROM taggables WHERE
-           (entity_type = 'container'   AND entity_id NOT IN (SELECT id FROM containers))
-        OR (entity_type = 'application' AND entity_id NOT IN (SELECT id FROM applications))
-        OR (entity_type = 'link'        AND entity_id NOT IN (SELECT id FROM links))",
-        [],
-    )?;
-
-    Ok(notes + taggables)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{migrator, seed};
-    use std::path::Path;
+    use crate::db::repo::workspaces;
+    use crate::db::testing::{child, database, workspace};
+    use crate::domain::NodeKind;
+    use crate::services::hierarchy;
 
-    fn fixture() -> (Connection, String) {
-        let mut conn = Connection::open_in_memory().unwrap();
-        conn.pragma_update(None, "foreign_keys", true).unwrap();
-        migrator::run(&mut conn, Path::new("memory.db")).unwrap();
-        seed::ensure_seed(&mut conn, "en-US").unwrap();
-
-        let profile: String = conn
-            .query_row("SELECT id FROM profiles LIMIT 1", [], |r| r.get(0))
-            .unwrap();
-
+    #[test]
+    fn favorites_belong_to_the_profile_not_to_the_node() {
+        let (conn, me) = database();
         conn.execute(
-            "INSERT INTO containers (id, profile_id, kind, name) VALUES ('c1', ?1, 'project', 'ACME')",
-            [&profile],
+            "INSERT INTO profiles (id, name) VALUES ('demo', 'Presentazione')",
+            [],
+        )
+        .unwrap();
+        let ws = workspace(&conn, &me, "Lavoro");
+        workspaces::show(&conn, "demo", &ws).unwrap();
+        let jira = child(&conn, &me, &ws, NodeKind::Link, "jira");
+
+        assert!(toggle_favorite(&conn, &me, &jira, None, None).unwrap());
+        assert!(is_favorite(&conn, &me, &jira).unwrap());
+        assert!(!is_favorite(&conn, "demo", &jira).unwrap());
+        assert!(favorites(&conn, "demo").unwrap().is_empty());
+
+        // "Oggetto + azione" e' un preferito distinto dal nodo in se'.
+        assert!(toggle_favorite(&conn, &me, &jira, Some("open-with"), None).unwrap());
+        assert_eq!(favorites(&conn, &me).unwrap().len(), 2);
+
+        assert!(!toggle_favorite(&conn, &me, &jira, None, None).unwrap());
+        let left = favorites(&conn, &me).unwrap();
+        assert_eq!(left.len(), 1);
+        assert_eq!(left[0].action_id.as_deref(), Some("open-with"));
+        assert_eq!(left[0].workspace_ids, vec![ws]);
+    }
+
+    /// Un progetto condiviso si marca una volta e compare in entrambi i workspace.
+    #[test]
+    fn a_shared_favorite_lists_every_visible_workspace() {
+        let (conn, me) = database();
+        let work = workspace(&conn, &me, "Lavoro");
+        let dev = workspace(&conn, &me, "Sviluppo");
+        let project = child(&conn, &me, &work, NodeKind::Project, "SpecialHub");
+        hierarchy::share(&conn, &project, &dev, None).unwrap();
+
+        toggle_favorite(&conn, &me, &project, None, None).unwrap();
+        let mut ids = favorites(&conn, &me).unwrap()[0].workspace_ids.clone();
+        ids.sort();
+        let mut expected = vec![work, dev];
+        expected.sort();
+        assert_eq!(ids, expected);
+    }
+
+    #[test]
+    fn recents_group_by_action_and_follow_the_workspace() {
+        let (conn, me) = database();
+        let work = workspace(&conn, &me, "Lavoro");
+        let home = workspace(&conn, &me, "Casa");
+        let repo = child(&conn, &me, &work, NodeKind::Path, "backend");
+        let bills = child(&conn, &me, &home, NodeKind::Link, "bollette");
+        conn.execute(
+            "INSERT INTO tools (id, kind, name, exe_path, source)
+             VALUES ('ide:idea', 'ide', 'IntelliJ IDEA', 'idea64.exe', 'detected')",
+            [],
         )
         .unwrap();
 
-        (conn, profile)
-    }
-
-    #[test]
-    fn tags_are_created_once_and_reused() {
-        let (conn, profile) = fixture();
-
-        let first = ensure_tag(&conn, &profile, "urgente", None).unwrap();
-        let again = ensure_tag(&conn, &profile, "  URGENTE ", None).unwrap();
-
-        assert_eq!(first.id, again.id, "il tag non deve essere duplicato");
-        assert_eq!(list_tags(&conn, &profile).unwrap().len(), 1);
-    }
-
-    #[test]
-    fn setting_tags_replaces_the_whole_set() {
-        let (conn, profile) = fixture();
-
-        set_entity_tags(
+        record_usage(
             &conn,
-            &profile,
-            "container",
-            "c1",
-            &["a".into(), "b".into()],
+            &me,
+            &repo,
+            "open-with",
+            Some("ide:idea"),
+            Some(&work),
         )
         .unwrap();
-        let after = set_entity_tags(
+        record_usage(
             &conn,
-            &profile,
-            "container",
-            "c1",
-            &["b".into(), "c".into()],
+            &me,
+            &repo,
+            "open-with",
+            Some("ide:idea"),
+            Some(&work),
+        )
+        .unwrap();
+        record_usage(&conn, &me, &repo, "terminal-here", None, Some(&work)).unwrap();
+        record_usage(&conn, &me, &bills, "open", None, Some(&home)).unwrap();
+
+        let all = recents(&conn, &me, None, 10).unwrap();
+        assert_eq!(all.len(), 3);
+        let ide = all
+            .iter()
+            .find(|recent| recent.action_id == "open-with")
+            .unwrap();
+        assert_eq!(ide.count, 2);
+        assert_eq!(ide.tool_id.as_deref(), Some("ide:idea"));
+
+        let at_work = recents(&conn, &me, Some(&work), 10).unwrap();
+        assert_eq!(at_work.len(), 2);
+        assert!(at_work.iter().all(|recent| recent.node.id == repo));
+
+        assert_eq!(recents(&conn, &me, None, 1).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn old_usage_is_forgotten() {
+        let (conn, me) = database();
+        let ws = workspace(&conn, &me, "Lavoro");
+        let link = child(&conn, &me, &ws, NodeKind::Link, "jira");
+        record_usage(&conn, &me, &link, "open", None, None).unwrap();
+        conn.execute(
+            "INSERT INTO usage_events (profile_id, node_id, action_id, at)
+             VALUES (?1, ?2, 'open', datetime('now', '-120 days'))",
+            params![me, link],
         )
         .unwrap();
 
-        let names: Vec<_> = after.iter().map(|tag| tag.name.as_str()).collect();
-        assert_eq!(names, vec!["b", "c"]);
-
-        // "a" non è più usato da nessuno: non deve restare nell'anagrafica.
-        assert!(list_tags(&conn, &profile)
-            .unwrap()
-            .iter()
-            .all(|tag| tag.name != "a"));
+        assert_eq!(prune_usage(&conn).unwrap(), 1);
+        assert_eq!(recents(&conn, &me, None, 10).unwrap()[0].count, 1);
     }
 
     #[test]
-    fn emptying_a_note_deletes_it() {
-        let (conn, _) = fixture();
+    fn tags_are_shared_by_name_and_cleaned_up() {
+        let (conn, me) = database();
+        let ws = workspace(&conn, &me, "Lavoro");
+        let a = child(&conn, &me, &ws, NodeKind::Project, "A");
+        let b = child(&conn, &me, &ws, NodeKind::Project, "B");
 
-        set_note(&conn, "container", "c1", "promemoria").unwrap();
-        assert!(get_note(&conn, "container", "c1").unwrap().is_some());
-
-        let removed = set_note(&conn, "container", "c1", "   ").unwrap();
-        assert!(removed.is_none());
-        assert!(get_note(&conn, "container", "c1").unwrap().is_none());
-    }
-
-    #[test]
-    fn notes_survive_updates_without_duplicating() {
-        let (conn, _) = fixture();
-
-        set_note(&conn, "container", "c1", "prima").unwrap();
-        let updated = set_note(&conn, "container", "c1", "dopo").unwrap().unwrap();
-
-        assert_eq!(updated.content, "dopo");
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(count, 1);
-    }
-
-    /// Le relazioni polimorfiche non hanno foreign key: se non ripulissimo,
-    /// la nota di un progetto cancellato resterebbe lì per sempre.
-    #[test]
-    fn orphans_are_pruned() {
-        let (conn, profile) = fixture();
-
-        set_note(&conn, "container", "c1", "nota").unwrap();
-        set_entity_tags(&conn, &profile, "container", "c1", &["x".into()]).unwrap();
-        conn.execute("DELETE FROM containers WHERE id = 'c1'", [])
-            .unwrap();
-
-        assert_eq!(prune_orphans(&conn).unwrap(), 2);
-        assert!(get_note(&conn, "container", "c1").unwrap().is_none());
-    }
-
-    #[test]
-    fn recent_notes_resolve_what_they_annotate() {
-        let (conn, profile) = fixture();
-        conn.execute_batch(&format!(
-            "INSERT INTO applications (id, profile_id, container_id, name) VALUES ('a1', '{profile}', 'c1', 'Camunda');
-             INSERT INTO links (id, application_id, name, url) VALUES ('l1', 'a1', 'Admin', 'https://a.example');
-             INSERT INTO notes (id, entity_type, entity_id, content, updated_at) VALUES
-               ('n1', 'container',   'c1',        'progetto', '2026-01-01 10:00:00'),
-               ('n2', 'link',        'l1',        'password nel vault', '2026-01-03 10:00:00'),
-               ('n3', 'profile',     '{profile}', 'del profilo', '2026-01-02 10:00:00'),
-               ('n4', 'application', 'a1',        '   ', '2026-01-04 10:00:00'),
-               ('n5', 'container',   'altrove',   'orfana', '2026-01-05 10:00:00');"
-        ))
+        set_tags(
+            &conn,
+            &a,
+            &["#camunda".into(), "Cliente".into(), " ".into()],
+        )
         .unwrap();
-
-        let profile_name: String = conn
-            .query_row("SELECT name FROM profiles WHERE id = ?1", [&profile], |r| {
-                r.get(0)
-            })
-            .unwrap();
-        let notes = recent_notes(&conn, &profile, 10).unwrap();
-        let summary: Vec<(&str, &str, Option<&str>)> = notes
-            .iter()
-            .map(|n| {
-                (
-                    n.note.id.as_str(),
-                    n.title.as_str(),
-                    n.container_id.as_deref(),
-                )
-            })
-            .collect();
-
-        // La più recente prima; vuote e orfane escluse.
+        set_tags(&conn, &b, &["CAMUNDA".into()]).unwrap();
         assert_eq!(
-            summary,
-            [
-                ("n2", "Camunda › Admin", Some("c1")),
-                ("n3", profile_name.as_str(), None),
-                ("n1", "ACME", Some("c1")),
-            ]
+            tags(&conn).unwrap().len(),
+            2,
+            "stesso tag, maiuscole diverse"
         );
-        assert_eq!(recent_notes(&conn, &profile, 1).unwrap().len(), 1);
+
+        set_tags(&conn, &a, &[]).unwrap();
+        let names: Vec<String> = tags(&conn)
+            .unwrap()
+            .into_iter()
+            .map(|tag| tag.name)
+            .collect();
+        assert_eq!(names, vec!["camunda"]);
     }
 }

@@ -9,7 +9,10 @@ use tauri_plugin_autostart::ManagerExt;
 use crate::commands::{db, fail};
 use crate::db::repo::profiles;
 use crate::db::seed;
-use crate::domain::{AppSettings, BootstrapPayload, Profile, ProfileDeleteImpact, ShortcutStatus};
+use crate::domain::{
+    AppSettings, BootstrapPayload, Profile, ProfileDeleteImpact, ProfilePatch, ProfileSession,
+    ShortcutStatus,
+};
 use crate::shortcuts;
 use crate::AppState;
 
@@ -176,16 +179,6 @@ pub fn profile_scoped_keys() -> Vec<String> {
 
 /* ---------------------------------------------------------------- profili -- */
 
-/// Tutto quello che serve per entrare in un profilo: chi è, come si presenta,
-/// e che cosa personalizza rispetto alle impostazioni globali.
-#[derive(Debug, Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProfileSession {
-    pub profile: Profile,
-    pub settings: AppSettings,
-    pub overrides: Vec<String>,
-}
-
 /// Rende attivo un profilo e ne restituisce il contesto completo.
 ///
 /// Il profilo attivo è una preferenza globale: appartiene all'applicazione,
@@ -220,23 +213,19 @@ pub fn list_profiles(state: State<'_, AppState>) -> Result<Vec<Profile>, String>
 }
 
 #[tauri::command]
-pub fn create_profile(
-    state: State<'_, AppState>,
-    name: String,
-    icon: Option<String>,
-) -> Result<Profile, String> {
+pub fn create_profile(state: State<'_, AppState>, name: String) -> Result<Profile, String> {
     let conn = db(&state)?;
-    profiles::create(&conn, &name, icon.as_deref()).map_err(fail)
+    profiles::create(&conn, &name).map_err(fail)
 }
 
 #[tauri::command]
-pub fn rename_profile(
+pub fn update_profile(
     state: State<'_, AppState>,
     id: String,
-    name: String,
+    patch: ProfilePatch,
 ) -> Result<Profile, String> {
     let conn = db(&state)?;
-    profiles::rename(&conn, &id, &name).map_err(fail)
+    profiles::update(&conn, &id, &patch).map_err(fail)
 }
 
 #[tauri::command]
@@ -248,9 +237,9 @@ pub fn profile_delete_impact(
     profiles::delete_impact(&conn, &id).map_err(fail)
 }
 
-/// Elimina un profilo e restituisce il contesto in cui l'applicazione si
-/// ritrova: se era quello attivo si passa al primo rimasto, altrimenti si
-/// resta dove si era.
+/// Elimina un profilo (e i workspace che solo lui vedeva) e restituisce il
+/// contesto in cui l'applicazione si ritrova: se era quello attivo si passa
+/// al primo rimasto, altrimenti si resta dove si era.
 #[tauri::command]
 pub fn delete_profile(state: State<'_, AppState>, id: String) -> Result<ProfileSession, String> {
     let mut guard = db(&state)?;

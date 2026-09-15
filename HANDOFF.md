@@ -1,5 +1,14 @@
 # HANDOFF — LlamaDesk
 
+> **15 settembre 2026 — riprogettazione 2.0 avviata.** Le decisioni sono in
+> [`docs/REDESIGN.md`](docs/REDESIGN.md), che da ora prevale su questo file per
+> modello, UX e piano. Lo stato descritto qui sotto è la versione 1, congelata
+> nel commit `6f2a01d` con tag `legacy-v1`. Il lavoro nuovo avviene sul branch
+> `redesign`. **Fase 1 (modello dati) completata, non committata**: vedi
+> `docs/REDESIGN.md` § 13. Il frontend v1 non funziona più con il nuovo
+> backend finché la Fase 2 non lo riscrive. Prossimo passo: **Fase 2 — design
+> system e shell**.
+
 > Documento di ripresa lavori. Aggiornato all'**11 settembre 2026**, fine
 > sessione: Fase 4 quasi completa (vedi § 7).
 > Chi riprende (persona o assistente) dovrebbe leggere **solo questo file** per

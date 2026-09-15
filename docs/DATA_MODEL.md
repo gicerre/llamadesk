@@ -1,91 +1,99 @@
-# Data model
+# Data model (schema v2)
 
-The full DDL lives in [`src-tauri/src/db/migrations/0001_init.sql`](../src-tauri/src/db/migrations/0001_init.sql),
-which is the authoritative source. This document explains the three decisions behind it.
+The full DDL lives in [`src-tauri/src/db/migrations/0003_schema_v2.sql`](../src-tauri/src/db/migrations/0003_schema_v2.sql),
+which is the authoritative source. The product decisions behind it are in
+[`REDESIGN.md`](REDESIGN.md); this document explains the technical ones.
 
-## 1. One table for the hierarchy
+Schema versions 1 and 2 belonged to LlamaDesk 1 (git tag `legacy-v1`). Migration 3 replaces them
+instead of converting them: the migrator copies the old file to `llamadesk.backup.vN.db` first.
 
-Profile → Project / Workspace → Environment → Context → Group are all rows in **`containers`**,
-an adjacency list with a `kind` discriminator. The leaves are typed: `applications` (the logical
-tool) and `links` (its concrete destinations).
+## 1. Nodes and edges
 
-Why: reordering, moving, duplicating a subtree, building a breadcrumb, resolving danger
-inheritance and searching become **one** generic algorithm instead of five parallel ones. Adding
-a level later is a row in `allowed_child_kinds`, not a migration.
+Every object is a row in **`nodes`**, with a `kind`: `workspace`, `project`, `subproject`,
+`section`, `link`, `link_group`, `path`. Membership is a row in **`edges`**
+(`parent_id`, `child_id`, `sort_order`, `is_pinned`).
 
-The nesting rules are enforced in Rust against that table, so the hierarchy stays strict even
-though the schema is generic:
+Why: moving, reordering, sharing, deleting with undo, duplicating, resolving inheritance and
+searching are **one** algorithm for every level. Kind-specific columns (`url`, `path`, `cover_*`,
+`open_mode`…) are nullable and guarded by `CHECK` constraints, so a link without a URL or a
+section with a cover cannot be written.
 
-```
-root        → project, workspace
-project     → environment, group
-environment → context, group
-context     → group
-workspace   → group
-group       → group
-```
-
-## 2. `danger_level NULL` means "inherit"
-
-Every container, application and link has a nullable `danger_level`. `NULL` inherits from the
-parent; a value is an explicit override.
-
-**Resolution rule: the nearest explicit override to the leaf wins.**
+Nesting rules are data, in **`allowed_children`** (`parent_kind`, `child_kind`, `shared`):
 
 ```
-link → application → group → context → environment → project → profile default
+workspace  → project (shared), section, link, link_group, path
+project    → subproject, section, link, link_group, path
+subproject → section, link, link_group, path
+section    → section, link, link_group, path
+link_group → link
 ```
 
-This satisfies both requirements at once: marking an environment `critical` protects everything
-beneath it, while a single link can set `normal` to opt out (or set `critical` to opt in on an
-otherwise ordinary branch). The UI always shows where the level came from
-("inherited from 🔴 PRODUCTION").
+`services::hierarchy` enforces them in Rust, together with the rules the table cannot express:
 
-## 3. `sort_order` is a REAL, not an INTEGER
+- a child may have several parents only if its rule is `shared` and all parents share a kind
+  (today: a project in several workspaces — one entity, never a copy);
+- no node can end up inside one of its own descendants (sections nest without limit);
+- removing the last parent of a node is refused: that is a deletion.
 
-Drag & drop writes `(previous + next) / 2` — **one** UPDATE per move instead of rewriting the
-whole list. When the gap between two neighbours drops below `1e-6` the list is rebalanced.
+Workspaces are roots: they have no parent edge. Which profiles see them is `profile_workspaces`.
 
-## 4. Profile settings are an overlay, not columns
+## 2. Ordering and pinning belong to the edge
 
-Migration 0002 adds `profile_settings (profile_id, key, value)`. The effective
-settings of a profile are the global `settings` table overlaid with that
-profile's rows — so a profile with no rows behaves exactly as before the feature
-existed, which is every profile's starting state.
+`sort_order` and `is_pinned` live on the edge, not on the node: a shared project has a different
+position (and may be pinned) in each workspace. `sort_order` is a REAL: a move writes
+`(previous + next) / 2`, one UPDATE; when two neighbours get closer than `1e-6` the scope is
+rebalanced. `services::ordering::OrderedList` implements this once for every ordered list
+(`edges` by parent, `profile_workspaces` by profile).
 
-Why an overlay rather than `profiles.theme`, `profiles.language`, …: making a
-new preference customisable per profile is then a one-line change to
-`PROFILE_SCOPED_KEYS` in `db/seed.rs`, not a migration. It is the same choice as
-`allowed_child_kinds`: rules as data.
+## 3. What depends on who is looking
 
-**Not everything can be overridden.** `PROFILE_SCOPED_KEYS` is deliberately
-short — theme, language, wallpaper, overlay opacity, open delay, dormancy
-threshold. The two global shortcuts are excluded because the OS registers them
-once for the whole process: the same key cannot mean different things depending
-on which profile is active inside the app. Autostart, start-minimised and
-close-to-tray are excluded because they belong to the application's lifecycle,
-not to a working context. Rust rejects an attempt to override any of them, and a
-test pins that behaviour.
+The library is shared by all profiles (decision D1). Everything that depends on the viewer is
+keyed by profile:
 
-`profiles.background_id` predates the overlay. Migration 0002 copies its values
-into `profile_settings` and the column is no longer read: two mechanisms for the
-same thing is one too many.
+| Table | Holds |
+|---|---|
+| `profile_workspaces` | which workspaces a profile sees, their order, the default one, the last route visited |
+| `favorites` | a node, or a node + action shortcut ("Backend with IntelliJ") |
+| `usage_events` | every action that opened something; 90 days, never exported |
+| `tool_preferences` | preferred IDE / terminal / browser on the profile, or as a node override |
+| `profile_settings` | the settings overlay (theme, language, density, open delay) |
+
+A workspace must stay visible in at least one profile. Deleting a profile deletes (without
+trash) the workspaces only that profile could see.
+
+Tags are global, like the library: a shared workspace shows the same tags to every profile.
+
+## 4. Inheritance
+
+Resolved in `services::resolve`, never stored:
+
+- **Protection** — a node is protected if it or *any* ancestor, along *any* path, is. A shared
+  project is protected if one of its workspaces is. Children can add protection, never remove it.
+- **Caution** ("ask before opening") — `NULL` inherits; the nearest explicit value wins; at equal
+  distance (a shared project's workspaces) the strictest wins. A single link can opt out with
+  `none`.
+- **Breadcrumb and tool preference** — follow the workspace the user came from (`via`), falling
+  back to the first workspace visible to the profile.
+
+Protection and caution are context-independent on purpose: a safety rule cannot depend on which
+workspace you happen to be looking from.
+
+## 5. Trash
+
+Deleting marks `deleted_at` and a shared `deletion_id` on the node and on every descendant left
+without parents; shared projects survive in their other workspaces. Every read in `repo::nodes`
+filters deleted rows. `restore(deletion_id)` undoes it; the trash is emptied at startup, and the
+foreign keys then remove edges, favorites, usage and tags of the purged nodes.
 
 ## Other notes
 
-- **Ids are UUIDv7** text: time-sortable, collision-free, which makes export/import and
-  duplication trivial (no integer remapping).
-- **Built-in danger prompts store i18n keys**, not literal text, so they follow the interface
-  language. Editing one produces a copy with `is_builtin = 0` and literal text.
-- **`usage_events`** feeds "Recent" and the frecency ranking of the command palette. It never
-  leaves the machine and is excluded from exports by default.
-- **`bundles`** (Quick Workspaces) are cross-cutting sets of links: they can pull from different
-  projects and environments, which is why they are not part of the `containers` tree.
-- **Search has no FTS5 index**, deliberately. A personal workspace holds hundreds of links, not
-  millions: a `LIKE` scan over that is sub-millisecond, and in exchange we avoid an index to keep
-  in sync on every write and a hard dependency on FTS5 being compiled into the SQLite binary.
-  Ranking (text relevance + frecency) is computed in Rust, in `db/repo/search.rs` — that is the
-  single place to change if the numbers ever justify an index.
-- **`sort_order` writes are validated by `scripts/check-sql.mjs`**, which extracts every SQL
-  literal from the Rust sources and prepares it against the real schema. It runs in CI without a
-  Rust toolchain, so a typo in a query fails the build rather than the first launch.
+- **Ids are UUIDv7** text. Detected tools use stable ids (`ide:vscode`) so preferences survive a
+  new detection.
+- **The lock password is never serialised**: `Profile` exposes only `hasLock`.
+- **Partial updates** (`NodePatch`, `ProfilePatch`) distinguish an absent field (leave it) from
+  `null` (clear it) with `domain::nullable`.
+- **TypeScript types are generated** from `domain` by `ts-rs` into `src/types/generated` when
+  `cargo test` runs; CI fails if they are not committed.
+- **Search has no FTS5 index**, as before: hundreds of nodes, not millions.
+- **SQL literals are validated** by `scripts/check-sql.mjs` against the real schema, without a
+  Rust toolchain.

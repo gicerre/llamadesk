@@ -12,11 +12,15 @@ React (TypeScript)  ──invoke()──▶  Tauri commands (Rust)  ──▶  S
 
 The frontend never issues SQL. Everything goes through typed commands, which means:
 
-- critical logic (Danger Zone resolution, URL validation, migrations, subtree duplication) is
-  unit-testable with `cargo test`;
+- critical logic (hierarchy rules, inheritance of protection and caution, URL validation,
+  migrations, deletion with undo) is unit-testable with `cargo test`;
 - a compromised npm dependency cannot reach the database;
-- the TypeScript types in `src/types/domain.ts` mirror the serde structs in `src-tauri/src/domain`
-  (Phase 2 will generate them with `ts-rs` to make drift impossible).
+- the TypeScript types in `src/types/generated` are generated from the serde structs in
+  `src-tauri/src/domain` by `ts-rs` during `cargo test`, so they cannot drift.
+
+Inside Rust: `commands/` orchestrates, `db/repo/` talks to SQLite, `services/` applies rules
+(`hierarchy`, `resolve`, `ordering`, `opener`). Multi-row writes go through `db::atomic`, a
+SAVEPOINT that composes inside an outer transaction.
 
 ## Startup sequence
 
@@ -28,11 +32,12 @@ The frontend never issues SQL. Everything goes through typed commands, which mea
 3. `migrator::run` — reads `PRAGMA user_version`, backs up a populated database, then applies each
    pending migration inside its own transaction.
 4. `seed::ensure_seed` — only if `profiles` is empty: one profile named from the system locale,
-   the three built-in danger prompts, the default dashboard widgets, the default settings and
-   `firstRun = true`. No projects, no environments, no links.
-5. Global shortcut registration — **failure here is not fatal**; the status is stored and surfaced
+   the default settings and `firstRun = true`. No workspaces, no projects, no links.
+5. Maintenance — the trash is emptied (undo lasts one session) and usage events older than 90
+   days are forgotten.
+6. Global shortcut registration — **failure here is not fatal**; the status is stored and surfaced
    to the UI.
-6. System tray, then the window is shown (it is created hidden to avoid a white flash and to
+7. System tray, then the window is shown (it is created hidden to avoid a white flash and to
    support "start minimized").
 
 ## Windows integration
@@ -56,9 +61,10 @@ declared with `class-variance-authority` so states never fork the JSX.
 `bouncy`, `gentle`), shared variants, and the `layoutId` registry used by the sliding sidebar
 pill and the palette highlight.
 
-## Rendering and glass
+## Rendering and glass (LlamaDesk 1 — replaced in redesign phase 2)
 
 Windows WebView2 cannot blur the desktop behind the window with `backdrop-filter`. The in-app
 wallpaper (`src/app/providers/Wallpaper.tsx`) is therefore the layer every glass panel samples.
 An overlay of configurable opacity sits between the wallpaper and the UI to guarantee contrast.
-A "system transparency" mode using native Acrylic is planned as an opt-in in Settings.
+The redesign (decision D8) drops the wallpaper and glass for solid surfaces, with native Mica on
+the sidebar only; this section will be rewritten with phase 2.

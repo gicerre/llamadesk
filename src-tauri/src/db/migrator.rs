@@ -20,18 +20,14 @@ pub struct Migration {
     pub sql: &'static str,
 }
 
-pub const MIGRATIONS: &[Migration] = &[
-    Migration {
-        version: 1,
-        name: "init",
-        sql: include_str!("migrations/0001_init.sql"),
-    },
-    Migration {
-        version: 2,
-        name: "profile_settings",
-        sql: include_str!("migrations/0002_profile_settings.sql"),
-    },
-];
+/// Le versioni 1 e 2 appartenevano a LlamaDesk 1 (tag git `legacy-v1`): la 3
+/// le sostituisce con lo schema della riprogettazione. Un database nuovo parte
+/// direttamente dalla 3.
+pub const MIGRATIONS: &[Migration] = &[Migration {
+    version: 3,
+    name: "schema_v2",
+    sql: include_str!("migrations/0003_schema_v2.sql"),
+}];
 
 pub fn current_version(conn: &Connection) -> Result<i32> {
     let version: i32 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
@@ -95,6 +91,17 @@ fn backup(conn: &Connection, db_path: &Path, version: i32) -> Result<PathBuf> {
 mod tests {
     use super::*;
 
+    fn table_exists(conn: &Connection, table: &str) -> bool {
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                [table],
+                |row| row.get(0),
+            )
+            .unwrap();
+        count == 1
+    }
+
     /// Il migratore deve essere idempotente e portare uno schema vuoto a target.
     #[test]
     fn applies_all_migrations_once() {
@@ -109,7 +116,6 @@ mod tests {
         assert_eq!(current_version(&conn).unwrap(), target_version());
     }
 
-    /// Le tabelle cardine devono esistere dopo la 0001.
     #[test]
     fn creates_core_tables() {
         let mut conn = Connection::open_in_memory().unwrap();
@@ -117,25 +123,65 @@ mod tests {
 
         for table in [
             "settings",
-            "profile_settings",
+            "assets",
             "profiles",
-            "containers",
-            "applications",
-            "links",
+            "profile_settings",
+            "tools",
+            "nodes",
+            "edges",
+            "allowed_children",
+            "launch_steps",
+            "profile_workspaces",
+            "favorites",
+            "usage_events",
+            "tool_preferences",
             "tags",
-            "notes",
-            "bundles",
-            "dashboard_widgets",
-            "danger_prompts",
+            "node_tags",
         ] {
-            let count: i32 = conn
-                .query_row(
-                    "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
-                    [table],
-                    |row| row.get(0),
-                )
-                .unwrap();
-            assert_eq!(count, 1, "tabella mancante: {table}");
+            assert!(table_exists(&conn, table), "tabella mancante: {table}");
         }
+    }
+
+    /// Un database di LlamaDesk 1 (versione 2) viene sostituito, non convertito:
+    /// le tabelle legacy spariscono anche con le foreign key attive.
+    #[test]
+    fn replaces_a_legacy_database() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.pragma_update(None, "foreign_keys", true).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             CREATE TABLE backgrounds (id TEXT PRIMARY KEY);
+             CREATE TABLE profiles (id TEXT PRIMARY KEY,
+               background_id TEXT REFERENCES backgrounds(id));
+             CREATE TABLE containers (id TEXT PRIMARY KEY,
+               profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+               parent_id TEXT REFERENCES containers(id) ON DELETE CASCADE);
+             CREATE TABLE applications (id TEXT PRIMARY KEY,
+               container_id TEXT NOT NULL REFERENCES containers(id) ON DELETE CASCADE);
+             CREATE TABLE links (id TEXT PRIMARY KEY,
+               application_id TEXT NOT NULL REFERENCES applications(id) ON DELETE CASCADE);
+             INSERT INTO backgrounds VALUES ('b');
+             INSERT INTO profiles VALUES ('p', 'b');
+             INSERT INTO containers VALUES ('c', 'p', NULL);
+             INSERT INTO applications VALUES ('a', 'c');
+             INSERT INTO links VALUES ('l', 'a');
+             INSERT INTO settings VALUES ('theme', '\"dark\"');
+             PRAGMA user_version = 2;",
+        )
+        .unwrap();
+
+        run(&mut conn, Path::new("memory.db")).unwrap();
+
+        assert_eq!(current_version(&conn).unwrap(), 3);
+        for legacy in ["containers", "applications", "links", "backgrounds"] {
+            assert!(
+                !table_exists(&conn, legacy),
+                "tabella legacy rimasta: {legacy}"
+            );
+        }
+        let settings: i32 = conn
+            .query_row("SELECT COUNT(*) FROM settings", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(settings, 0, "le impostazioni v1 non devono sopravvivere");
     }
 }

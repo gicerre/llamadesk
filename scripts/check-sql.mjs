@@ -35,6 +35,9 @@ function extractQueries(path) {
       // Le query costruite con `format!` contengono segnaposto: sono verificate
       // dai test Rust di `ordering`, non qui.
       .filter((sql) => !sql.includes('{'))
+      // Le fixture dei test creano tabelle proprie (per esempio un database
+      // legacy da migrare): non sono query dell'applicazione.
+      .filter((sql) => !/\bCREATE TABLE\b/i.test(sql))
       .map((sql) => ({ path, sql: sql.replace(/\\n/g, '\n').replace(/\\"/g, '"') }))
   );
 }

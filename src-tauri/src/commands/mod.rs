@@ -1,17 +1,12 @@
 //! L'API che React vede.
 //!
 //! Nessun SQL vive nel frontend: passa tutto da qui, dove le regole critiche
-//! (validazione URL, Danger Zone, migrazioni, duplicazione) sono testabili con
+//! (validazione URL, gerarchia, ereditarieta', migrazioni) sono testabili con
 //! `cargo test`. Ogni modulo copre un'area funzionale.
 
 pub mod app;
-pub mod dashboard;
-pub mod data;
-pub mod discover;
-pub mod items;
 pub mod library;
-pub mod open;
-pub mod tree;
+pub mod nodes;
 pub mod workspaces;
 
 use std::sync::MutexGuard;

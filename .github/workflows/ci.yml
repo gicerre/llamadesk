@@ -48,6 +48,10 @@ jobs:
       - name: Tests
         working-directory: src-tauri
         run: cargo test --locked
+      # `cargo test` rigenera i tipi TypeScript: se cambiano, qualcuno ha
+      # modificato `domain` senza committare i tipi aggiornati.
+      - name: Generated types are committed
+        run: git diff --exit-code -- src/types/generated
 
   # Guardia sulla promessa "zero telemetria": nessun client HTTP puo' entrare
   # nell'albero delle dipendenze Rust senza che questo job fallisca.

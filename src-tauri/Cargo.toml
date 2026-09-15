@@ -35,6 +35,11 @@ anyhow = "1"
 url = "2"
 sys-locale = "0.3"
 
+# Genera i tipi TypeScript di `src/types/generated` dalle struct di `domain`
+# (con `cargo test`): Rust e React non possono piu' divergere. Solo macro e
+# generazione di file, nessun effetto a runtime.
+ts-rs = { version = "10.1.0", features = ["no-serde-warnings"] }
+
 # NOTA DI PRIVACY: qui dentro non esiste, e non deve mai esistere, un client
 # HTTP (reqwest, ureq, ...). Il Cargo.lock e' la prova verificabile che
 # LlamaDesk non puo' effettuare alcuna chiamata di rete.
