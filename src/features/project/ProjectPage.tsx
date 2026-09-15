@@ -14,6 +14,7 @@ import { useDialogs } from '@/stores/dialogs';
 import type { NodeView } from '@/types/generated/NodeView';
 import { NodeMenu } from '../library/NodeMenu';
 import { Chip, HeaderSkeleton, MissingNode, NodeHeader, PageFrame } from '../library/parts';
+import { LockedPanel } from '../protection/parts';
 import { ScopeContent } from './ScopeContent';
 
 /**
@@ -38,13 +39,19 @@ export function ProjectPage() {
         <NodeHeader
           view={project.data}
           workspaceId={workspaceId}
-          actions={<NodeMenu view={project.data} workspaceId={workspaceId} />}
+          actions={
+            project.data.locked ? undefined : (
+              <NodeMenu view={project.data} workspaceId={workspaceId} />
+            )
+          }
         />
       ) : (
         <HeaderSkeleton />
       )}
 
-      {project.data && (
+      {project.data?.locked && <LockedPanel view={project.data} />}
+
+      {project.data && !project.data.locked && (
         <ScopeTabs
           project={project.data}
           workspaceId={workspaceId}
@@ -52,11 +59,15 @@ export function ProjectPage() {
         />
       )}
 
-      {scope.data && scope.data.node.id === scopeId ? (
-        <>
-          <ScopeBar view={scope.data} workspaceId={workspaceId} />
-          <ScopeContent view={scope.data} workspaceId={workspaceId} />
-        </>
+      {project.data?.locked ? null : scope.data && scope.data.node.id === scopeId ? (
+        scope.data.locked ? (
+          <LockedPanel view={scope.data} className="mt-2" />
+        ) : (
+          <>
+            <ScopeBar view={scope.data} workspaceId={workspaceId} />
+            <ScopeContent view={scope.data} workspaceId={workspaceId} />
+          </>
+        )
       ) : (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-row" />

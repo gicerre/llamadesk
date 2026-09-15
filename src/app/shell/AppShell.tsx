@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { DialogHost } from '@/features/create/DialogHost';
 import { InspectorPanel } from '@/features/inspector/InspectorPanel';
 import { CommandPalette } from '@/features/palette/CommandPalette';
+import { LockBridge } from '@/features/protection/LockBridge';
+import { LockDialogs } from '@/features/protection/LockDialogs';
 import { FileDropBridge } from '@/features/resources/FileDropBridge';
 import { pageVariants } from '@/lib/motion';
 import { Sidebar } from '../sidebar/Sidebar';
@@ -37,6 +39,8 @@ export function AppShell() {
       </div>
       <DialogHost />
       <CommandPalette />
+      <LockDialogs />
+      <LockBridge />
       <FileDropBridge />
     </div>
   );

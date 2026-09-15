@@ -101,21 +101,23 @@ export function NodeHeader({ view, workspaceId, actions }: NodeHeaderProps) {
         </div>
       </div>
       <div className="flex items-center gap-1.5">
-        <Tip label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}>
-          <Button
-            variant="ghost"
-            iconOnly
-            aria-pressed={view.isFavorite}
-            aria-label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}
-            onClick={() =>
-              toggleFavorite.mutate(node.id, {
-                onError: (error) => toastError(t('actions.favoriteFailed'), error),
-              })
-            }
-          >
-            <Star className={cn(view.isFavorite && 'fill-caution text-caution')} />
-          </Button>
-        </Tip>
+        {!view.locked && (
+          <Tip label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}>
+            <Button
+              variant="ghost"
+              iconOnly
+              aria-pressed={view.isFavorite}
+              aria-label={view.isFavorite ? t('actions.unfavorite') : t('actions.favorite')}
+              onClick={() =>
+                toggleFavorite.mutate(node.id, {
+                  onError: (error) => toastError(t('actions.favoriteFailed'), error),
+                })
+              }
+            >
+              <Star className={cn(view.isFavorite && 'fill-caution text-caution')} />
+            </Button>
+          </Tip>
+        )}
         {actions}
       </div>
     </header>

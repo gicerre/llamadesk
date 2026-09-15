@@ -6,6 +6,7 @@ import { useNodeView } from '@/lib/queries';
 import { useDialogs } from '@/stores/dialogs';
 import { NodeMenu } from '../library/NodeMenu';
 import { HeaderSkeleton, MissingNode, NodeHeader, PageFrame } from '../library/parts';
+import { LockedPanel } from '../protection/parts';
 import { ScopeContent } from './ScopeContent';
 
 /** Sezione a fuoco che sta direttamente in un workspace (fuori dai progetti). */
@@ -33,18 +34,27 @@ export function SectionPage() {
         view={view.data}
         workspaceId={workspaceId}
         actions={
-          <>
-            <Button variant="primary" onClick={() => openAdd({ parentId: sectionId, workspaceId })}>
-              <Plus />
-              {t('add.title')}
-            </Button>
-            <NodeMenu view={view.data} workspaceId={workspaceId} />
-          </>
+          view.data.locked ? undefined : (
+            <>
+              <Button
+                variant="primary"
+                onClick={() => openAdd({ parentId: sectionId, workspaceId })}
+              >
+                <Plus />
+                {t('add.title')}
+              </Button>
+              <NodeMenu view={view.data} workspaceId={workspaceId} />
+            </>
+          )
         }
       />
-      <div className="mt-7">
-        <ScopeContent view={view.data} workspaceId={workspaceId} />
-      </div>
+      {view.data.locked ? (
+        <LockedPanel view={view.data} />
+      ) : (
+        <div className="mt-7">
+          <ScopeContent view={view.data} workspaceId={workspaceId} />
+        </div>
+      )}
     </PageFrame>
   );
 }

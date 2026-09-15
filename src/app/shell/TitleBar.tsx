@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Kbd } from '@/components/ui/Kbd';
 import { Tip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
+import { LockButton } from '@/features/protection/parts';
 import { usePalette } from '@/stores/palette';
 import { useUi } from '@/stores/ui';
 import { SIDEBAR_WIDTH } from './layout';
@@ -83,6 +84,7 @@ export function TitleBar() {
 
       <div data-tauri-drag-region className="h-full min-w-6 flex-1" />
 
+      <LockButton />
       <SearchTrigger />
       <WindowControls />
     </header>

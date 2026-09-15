@@ -32,6 +32,8 @@ pub struct Query<'a> {
     /// Pagina aperta: la destinazione di una richiesta fatta di soli verbi.
     pub context_id: Option<&'a str>,
     pub limit: usize,
+    /// Sessione sbloccata: altrimenti i contenuti protetti non si cercano.
+    pub unlocked: bool,
 }
 
 /* ------------------------------------------------------------- testo */
@@ -524,6 +526,9 @@ pub fn search(conn: &Connection, query: &Query<'_>) -> Result<Vec<SearchHit>> {
 
     for entry in &index.entries {
         let kind = entry.node.kind;
+        if !query.unlocked && is_protected(entry, &index) {
+            continue;
+        }
         if containers_only && !kind_is_container(kind) {
             continue;
         }
@@ -683,6 +688,18 @@ fn offer<'a>(best: &mut HashMap<&'a str, Candidate<'a>>, candidate: Candidate<'a
     best.insert(id, candidate);
 }
 
+/// Protetto lungo una qualunque delle sue strade (la stessa regola di `resolve`).
+fn is_protected(entry: &Entry, index: &Index) -> bool {
+    entry.node.is_protected
+        || entry.trails.iter().any(|trail| {
+            trail
+                .ancestors
+                .iter()
+                .filter_map(|id| index.names.get(id))
+                .any(|ancestor| ancestor.is_protected)
+        })
+}
+
 fn kind_is_container(kind: NodeKind) -> bool {
     matches!(
         kind,
@@ -742,6 +759,7 @@ mod tests {
                 workspace_id: None,
                 context_id: None,
                 limit: 20,
+                unlocked: true,
             },
         )
         .unwrap()
@@ -885,6 +903,7 @@ mod tests {
                 workspace_id: Some(&ws),
                 context_id: Some(&camunda),
                 limit: 5,
+                unlocked: true,
             },
         )
         .unwrap();
@@ -914,11 +933,53 @@ mod tests {
                 workspace_id: Some(&dev),
                 context_id: None,
                 limit: 5,
+                unlocked: true,
             },
         )
         .unwrap();
         assert_eq!(hits.len(), 1, "un solo risultato per un progetto condiviso");
         assert_eq!(hits[0].workspace_id, dev);
         assert_eq!(hits[0].breadcrumb[0].name, "Sviluppo");
+    }
+
+    #[test]
+    fn a_locked_session_does_not_find_protected_content() {
+        let (conn, profile) = database();
+        let clients = workspace(&conn, &profile, "Clienti");
+        let work = workspace(&conn, &profile, "Lavoro");
+        let project = child(&conn, &profile, &work, NodeKind::Project, "Portale Rossi");
+        hierarchy::share(&conn, &project, &clients, None).unwrap();
+        child(&conn, &profile, &project, NodeKind::Link, "Portale admin");
+        nodes::update(
+            &conn,
+            &clients,
+            &NodePatch {
+                is_protected: Some(true),
+                ..NodePatch::default()
+            },
+        )
+        .unwrap();
+
+        let find = |unlocked: bool| {
+            search(
+                &conn,
+                &Query {
+                    profile_id: &profile,
+                    text: "portale",
+                    workspace_id: Some(&work),
+                    context_id: None,
+                    limit: 10,
+                    unlocked,
+                },
+            )
+            .unwrap()
+            .len()
+        };
+        assert_eq!(find(true), 2);
+        assert_eq!(
+            find(false),
+            0,
+            "protetti lungo l'altra strada, anche i figli"
+        );
     }
 }

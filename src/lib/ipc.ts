@@ -6,6 +6,7 @@ import type { BrowserProfile } from '@/types/generated/BrowserProfile';
 import type { BootstrapPayload } from '@/types/generated/BootstrapPayload';
 import type { DeleteImpact } from '@/types/generated/DeleteImpact';
 import type { Favorite } from '@/types/generated/Favorite';
+import type { LockStatus } from '@/types/generated/LockStatus';
 import type { NewNode } from '@/types/generated/NewNode';
 import type { Node } from '@/types/generated/Node';
 import type { NodeEntry } from '@/types/generated/NodeEntry';
@@ -23,6 +24,7 @@ import type { Tag } from '@/types/generated/Tag';
 import type { Tool } from '@/types/generated/Tool';
 import type { ToolKind } from '@/types/generated/ToolKind';
 import type { ToolPreferenceState } from '@/types/generated/ToolPreferenceState';
+import type { UnlockOutcome } from '@/types/generated/UnlockOutcome';
 import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
 
 /* ============================================================================
@@ -164,6 +166,16 @@ export interface Commands {
     };
     result: SearchHit[];
   };
+
+  lock_status: { args: { profileId: Id }; result: LockStatus };
+  unlock_profile: { args: { profileId: Id; password: string }; result: UnlockOutcome };
+  set_lock_password: {
+    args: { profileId: Id; current: Maybe<string>; password: string };
+    result: null;
+  };
+  remove_lock: { args: { profileId: Id }; result: number };
+  lock_session: { args: Record<string, never>; result: null };
+  touch_session: { args: { profileId: Id }; result: null };
 }
 
 /** Chi, su che cosa, con quale strumento e da quale workspace. */
@@ -298,7 +310,24 @@ export const api = {
 
   search: (profileId: Id, text: string, workspaceId: Maybe<Id>, contextId: Maybe<Id>, limit = 30) =>
     call('search_library', { profileId, text, workspaceId, contextId, limit }),
+
+  lockStatus: (profileId: Id) => call('lock_status', { profileId }),
+  unlock: (profileId: Id, password: string) => call('unlock_profile', { profileId, password }),
+  setLockPassword: (profileId: Id, current: Maybe<string>, password: string) =>
+    call('set_lock_password', { profileId, current, password }),
+  removeLock: (profileId: Id) => call('remove_lock', { profileId }),
+  lockSession: () => call('lock_session', none),
+  touchSession: (profileId: Id) => call('touch_session', { profileId }),
 };
+
+/** Contenuto protetto e sessione bloccata (docs/REDESIGN.md § 9). */
+export const LOCKED = 'locked';
+/** Per proteggere serve prima una password di blocco. */
+export const NO_LOCK = 'no_lock';
+
+export function isBackendCode(error: unknown, code: string) {
+  return error instanceof Error && error.message === code;
+}
 
 /** Il backend chiede conferma prima di aprire (docs/REDESIGN.md § 8). */
 export const CONFIRMATION_REQUIRED = 'confirmation_required';

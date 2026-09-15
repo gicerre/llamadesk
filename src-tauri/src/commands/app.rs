@@ -204,6 +204,8 @@ pub fn activate_profile(
     profile_id: String,
 ) -> Result<ProfileSession, String> {
     let conn = db(&state)?;
+    // Cambiare profilo richiude i contenuti protetti di tutti.
+    state.lock.lock().map_err(fail)?.lock_all();
     enter_profile(&conn, &profile_id)
 }
 

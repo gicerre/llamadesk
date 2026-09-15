@@ -35,6 +35,7 @@ export const keys = {
     ['recents', profileId, workspaceId] as const,
   paths: (paths: readonly string[]) => ['paths', ...[...paths].sort()] as const,
   tags: () => ['tags'] as const,
+  lock: (profileId: string) => ['lock', profileId] as const,
   tools: (includeHidden: boolean) => ['tools', includeHidden] as const,
   browserProfiles: (toolId: string) => ['browser-profiles', toolId] as const,
   toolPreferences: (profileId: string, nodeId: string | null, via: string | null) =>
@@ -219,4 +220,27 @@ export function useSetToolPreference() {
     }) => api.setToolPreference(profileId, nodeId, kind, toolId),
     onSuccess: () => client.invalidateQueries({ queryKey: ['tool-preferences'] }),
   });
+}
+
+/* ------------------------------------------------------------ protezione */
+
+/**
+ * Stato del blocco. Mentre e' sbloccato si ricontrolla ogni 30 secondi: il
+ * blocco per inattivita' lo decide Rust, e l'interfaccia deve accorgersene.
+ */
+export function useLockStatus() {
+  const profileId = useProfileId();
+  return useQuery({
+    queryKey: keys.lock(profileId),
+    queryFn: () => api.lockStatus(profileId),
+    enabled: profileId !== '',
+    staleTime: 0,
+    refetchInterval: (query) =>
+      query.state.data?.hasLock && query.state.data.unlocked ? 30_000 : false,
+  });
+}
+
+/** Dopo uno sblocco o un blocco cambia cosa si vede ovunque: si rilegge tutto. */
+export function invalidateEverything(client = queryClient) {
+  return client.invalidateQueries();
 }

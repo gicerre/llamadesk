@@ -35,6 +35,7 @@ import type { SuggestedAction } from '@/types/generated/SuggestedAction';
 import { rerun, useRecentDescription } from '../actions/recents';
 import { actionsFor, isExecutable, primaryAction, type ActionId } from '../actions/registry';
 import { runAction } from '../actions/run';
+import { ProtectedNotice } from '../protection/parts';
 import { buildCommands, SUGGESTED_COMMANDS, type CommandDef } from './commands';
 
 /* ============================================================================
@@ -473,6 +474,10 @@ function PaletteBody({ initialText }: { initialText: string }) {
           ))
         )}
       </div>
+
+      {!actionItem && trimmed !== '' && !commandMode && (
+        <ProtectedNotice className="border-line border-t px-4 py-2" />
+      )}
 
       <footer className="border-line text-2xs text-ink-3 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-2">
         <span className="flex items-center gap-1.5">

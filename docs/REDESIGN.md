@@ -440,3 +440,41 @@ predefinito dal registro, `vswhere`, `App Paths`/`PATH`.
 
 Rinviato alla Fase 6: la ricerca non nasconde ancora i contenuti protetti (non esiste ancora
 lo stato di blocco). Nell'anteprima nel browser la ricerca è un'imitazione semplificata.
+
+### Fase 6 — protezione (15 settembre 2026) ✅
+
+- **Password per profilo** (`services/protection.rs`): Argon2id con i parametri OWASP (19 MiB,
+  2 passaggi), sale dal generatore del sistema operativo, almeno 4 caratteri; per cambiarla
+  serve quella attuale. L'hash non esce mai da Rust. In sviluppo `argon2`/`blake2` si compilano
+  ottimizzati (altrimenti la verifica richiederebbe secondi).
+- **Sessione in memoria** (`LockBook` in `AppState`): lo sblocco vale per il profilo finché non
+  si blocca con `Ctrl+L` o il lucchetto nella barra del titolo, si chiude o si riduce la finestra
+  nella tray, si cambia profilo, si riavvia, o si resta inattivi oltre `lock_auto_minutes`
+  (predefinito 10, "mai" possibile; l'interfaccia segnala l'attività al massimo ogni 20 s e
+  ricontrolla lo stato ogni 30 s). Tre errori, poi attese di 30 s raddoppiate fino a 5 minuti,
+  durante le quali la password non viene nemmeno verificata.
+- **Il cancello** (`Gate`): a sessione bloccata un nodo protetto — per flag proprio o ereditato
+  lungo *qualunque* strada — arriva senza contenuto (`NodeView.locked`, niente figli, tag,
+  indirizzo, percorso, descrizione, alias); nelle liste resta nome e lucchetto. Rifiutati con
+  `locked`: creazione dentro, modifica, spostamento, condivisione, fissaggio, archiviazione,
+  eliminazione, duplicazione, tag, preferito, preferenze di strumento, azioni. Esclusi da ricerca,
+  preferiti e recenti. Proteggere senza password risponde `no_lock`.
+- **Password dimenticata / da togliere**: toglie la password e la protezione da tutto ciò che il
+  profilo vede, con avvertenza e conteggio.
+- **Interfaccia**: pannello "«nome» è protetto" con sblocco al posto del contenuto (workspace,
+  progetto, sottoprogetto, sezione, pannello di dettaglio); interruttore **Proteggi** nel
+  pannello (la prima volta chiede la password e poi protegge); dialoghi di sblocco, password e
+  rimozione; Impostazioni › **Protezione** (stato, blocca ora, cambia, blocco automatico,
+  rimozione, nota "riservatezza, non cifratura"); riga "N elementi protetti nascosti · Sblocca"
+  in palette, Preferiti e Recenti; un'azione su un elemento bloccato apre lo sblocco.
+- **Verifiche**: 116 test Rust (tentativi e attese, cambio password, inattività, cancello anche
+  lungo un'altra strada, rimozione limitata al profilo, ricerca), 40 test frontend, clippy, lint,
+  typecheck, prettier puliti. Nel browser (password dell'anteprima: `llama`): pannello bloccato,
+  password errata, sblocco, `Ctrl+L`, Impostazioni, Recenti.
+
+Scelte e limiti:
+- Un profilo senza password vede i contenuti protetti come bloccati e può sbloccarli solo
+  impostando una propria password: i profili sono lenti della stessa persona (D1), non utenti
+  separati. Il blocco è di riservatezza (D2), come dice l'interfaccia.
+- Rinviato: blocco quando si blocca la sessione di Windows (richiede le notifiche WTS della
+  finestra nativa). Non verificato nell'app Tauri reale: blocco alla chiusura nella tray.

@@ -35,6 +35,11 @@ anyhow = "1"
 url = "2"
 sys-locale = "0.3"
 
+# Password di blocco dei profili (Argon2id). Il sale viene dal generatore del
+# sistema operativo: nessuna rete, nessun servizio esterno.
+argon2 = "0.5"
+rand_core = { version = "0.6", features = ["getrandom"] }
+
 # Genera i tipi TypeScript di `src/types/generated` dalle struct di `domain`
 # (con `cargo test`): Rust e React non possono piu' divergere. Solo macro e
 # generazione di file, nessun effetto a runtime.
@@ -47,6 +52,14 @@ windows-version = "0.1"
 # NOTA DI PRIVACY: qui dentro non esiste, e non deve mai esistere, un client
 # HTTP (reqwest, ureq, ...). Il Cargo.lock e' la prova verificabile che
 # LlamaDesk non puo' effettuare alcuna chiamata di rete.
+
+# Argon2 non ottimizzato impiega secondi a verificare una password: anche in
+# sviluppo le sue dipendenze si compilano ottimizzate.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
 
 [profile.release]
 codegen-units = 1

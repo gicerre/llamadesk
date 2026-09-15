@@ -6,7 +6,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
-use crate::commands::{db, fail};
+use crate::commands::{db, fail, gate};
 use crate::db::repo::library;
 use crate::db::seed;
 use crate::domain::{
@@ -86,6 +86,11 @@ pub fn set_tool_preference(
     tool_id: Option<String>,
 ) -> Result<(), String> {
     let conn = db(&state)?;
+    if let Some(node) = node_id.as_deref() {
+        gate(&state, &conn, Some(&profile_id))?
+            .ensure(&conn, node)
+            .map_err(fail)?;
+    }
     tools::set_preference(
         &conn,
         &profile_id,
@@ -126,6 +131,9 @@ pub fn prepare_action(
     via_workspace_id: Option<String>,
 ) -> Result<ActionPlan, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, Some(&profile_id))?
+        .ensure(&conn, &node_id)
+        .map_err(fail)?;
     let request = Request {
         profile_id: &profile_id,
         node_id: &node_id,
@@ -155,6 +163,9 @@ pub async fn execute_action(
 
     let (plan, delay) = {
         let conn = db(&state)?;
+        gate(&state, &conn, Some(&profile_id))?
+            .ensure(&conn, &node_id)
+            .map_err(fail)?;
         let request = Request {
             profile_id: &profile_id,
             node_id: &node_id,

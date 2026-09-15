@@ -472,6 +472,9 @@ pub struct NodeView {
     pub caution: ResolvedCaution,
     pub tags: Vec<Tag>,
     pub is_favorite: bool,
+    /// Protetto e sessione bloccata: il nodo arriva senza contenuto (niente
+    /// figli, indirizzo, percorso, descrizione, tag).
+    pub locked: bool,
 }
 
 /* ===================================================== workspace e profili */
@@ -680,4 +683,29 @@ pub struct SearchHit {
     /// Campo che ha deciso la corrispondenza (`name`, `alias`, `tag`, `path`...).
     pub matched: String,
     pub action: Option<SuggestedAction>,
+}
+
+/* =============================================================== protezione */
+
+/// Stato del blocco per il profilo attivo. La password non esce mai da Rust.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct LockStatus {
+    pub has_lock: bool,
+    pub unlocked: bool,
+    /// Elementi protetti visibili al profilo (compresi quelli dentro un contenitore protetto).
+    pub protected_count: u32,
+    /// Secondi prima di poter riprovare, dopo troppi tentativi sbagliati.
+    pub retry_after_seconds: u32,
+    /// Minuti di inattivita' prima del blocco automatico; 0 = mai.
+    pub auto_minutes: u32,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct UnlockOutcome {
+    pub unlocked: bool,
+    pub retry_after_seconds: u32,
 }

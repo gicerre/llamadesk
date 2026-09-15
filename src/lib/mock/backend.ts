@@ -243,6 +243,40 @@ function breadcrumb(profileId: string, id: string, via: string | null): Crumb[] 
 
 const SEVERITY: Record<Caution, number> = { none: 0, confirm: 1, type_name: 2 };
 
+/* Protezione: nell'anteprima la password e' in chiaro (in Rust e' Argon2id). */
+const lock = {
+  passwords: new Map<string, string>(),
+  unlocked: new Set<string>(),
+  failures: new Map<string, number>(),
+};
+
+function isProtectedDeep(id: string) {
+  return get(id).isProtected || ancestors(id).some((entry) => entry.node.isProtected);
+}
+
+function hidden(profileId: string | null, id: string) {
+  return !lock.unlocked.has(profileId ?? '') && isProtectedDeep(id);
+}
+
+function ensure(profileId: string | null, id: string) {
+  if (hidden(profileId, id)) throw new Error('locked');
+}
+
+function redacted<T extends Node>(node: T): T {
+  return { ...node, url: null, path: null, description: null, aliases: null };
+}
+
+function visibleChildren(profileId: string | null, id: string, includeArchived = false) {
+  if (hidden(profileId, id)) return [];
+  return childrenOf(id, includeArchived).map((entry) =>
+    hidden(profileId, entry.node.id)
+      ? { ...entry, node: redacted({ ...entry.node, isProtected: true }), childCount: 0 }
+      : entry,
+  );
+}
+
+const active = () => state.settings.activeProfileId;
+
 /** Conferma effettiva: la piu' vicina, a parita' di distanza la piu' severa. */
 function resolvedCaution(id: string) {
   const node = get(id);
@@ -554,6 +588,8 @@ function seed() {
   add(work, 'project', 'Meeting');
   const client = add(work, 'project', 'Cliente Rossi');
   (client as Node).isProtected = true;
+  // Password dell'anteprima, per provare lo sblocco: "llama".
+  lock.passwords.set(profile.id, 'llama');
   add(work, 'project', 'Onboarding');
   add(work, 'link', 'Outlook', { url: 'https://outlook.office.com' });
   add(personal, 'project', 'Casa');
@@ -654,7 +690,10 @@ const handlers: Handlers = {
   },
   get_profile_overrides: ({ profileId }) => [...(state.overrides.get(profileId)?.keys() ?? [])],
   profile_scoped_keys: () => ['theme', 'language', 'density', 'openDelayMs'],
-  activate_profile: ({ profileId }) => session(profileId),
+  activate_profile: ({ profileId }) => {
+    lock.unlocked.clear();
+    return session(profileId);
+  },
   list_profiles: () => state.profiles,
   create_profile: ({ name }) => {
     const profile: Profile = {
@@ -671,6 +710,7 @@ const handlers: Handlers = {
     if (!profile) throw new Error('profilo non trovato');
     if (patch.name) profile.name = patch.name.trim();
     if (patch.colorMain !== undefined) profile.colorMain = patch.colorMain;
+    if (patch.lockAutoMinutes !== undefined) profile.lockAutoMinutes = patch.lockAutoMinutes;
     return profile;
   },
   profile_delete_impact: () => ({ workspacesDeleted: [], workspacesKept: 0, nodesDeleted: 0 }),
@@ -729,18 +769,20 @@ const handlers: Handlers = {
   get_node_view: ({ profileId, id, viaWorkspaceId, includeArchived }) => {
     const node = get(id);
     const protectedSource = ancestors(id).find((entry) => entry.node.isProtected);
+    const locked = hidden(profileId, id);
     return {
-      node,
+      node: locked ? redacted(node) : node,
+      locked,
       breadcrumb: breadcrumb(profileId, id, viaWorkspaceId),
       workspaces: workspacesOf(id).map(crumb),
-      children: childrenOf(id, includeArchived ?? false),
+      children: visibleChildren(profileId, id, includeArchived ?? false),
       protection: {
         isProtected: node.isProtected || !!protectedSource,
         isOwn: node.isProtected,
         inheritedFrom: !node.isProtected && protectedSource ? crumb(protectedSource.node) : null,
       },
       caution: resolvedCaution(id),
-      tags: (state.tags.get(id) ?? []).map((name) => ({
+      tags: (locked ? [] : (state.tags.get(id) ?? [])).map((name) => ({
         id: name.toLowerCase(),
         name,
         color: null,
@@ -748,9 +790,12 @@ const handlers: Handlers = {
       isFavorite: state.favorites.some((f) => f.profileId === profileId && f.nodeId === id),
     };
   },
-  list_children: ({ id, includeArchived }) => childrenOf(id, includeArchived ?? false),
+  list_children: ({ id, includeArchived }) =>
+    visibleChildren(active(), id, includeArchived ?? false),
   create_node: ({ profileId, parentId, input }) => create(profileId, parentId, input),
   update_node: ({ id, patch }) => {
+    ensure(active(), id);
+    if (patch.isProtected && !lock.passwords.has(active() ?? '')) throw new Error('no_lock');
     const node = get(id) as Node;
     for (const [key, value] of Object.entries(patch)) {
       if (value === undefined) continue;
@@ -860,6 +905,7 @@ const handlers: Handlers = {
     })),
 
   toggle_favorite: ({ profileId, nodeId }) => {
+    ensure(profileId, nodeId);
     const index = state.favorites.findIndex(
       (f) => f.profileId === profileId && f.nodeId === nodeId,
     );
@@ -872,7 +918,7 @@ const handlers: Handlers = {
   },
   list_favorites: ({ profileId }) =>
     state.favorites
-      .filter((f) => f.profileId === profileId && alive(f.nodeId))
+      .filter((f) => f.profileId === profileId && alive(f.nodeId) && !hidden(profileId, f.nodeId))
       .map((f, index) => ({
         node: get(f.nodeId),
         actionId: null,
@@ -884,6 +930,7 @@ const handlers: Handlers = {
     const groups = new Map<string, (typeof state.usage)[number] & { count: number }>();
     for (const event of state.usage) {
       if (event.profileId !== profileId || !alive(event.nodeId)) continue;
+      if (hidden(profileId, event.nodeId)) continue;
       if (
         workspaceId &&
         event.via !== workspaceId &&
@@ -949,8 +996,12 @@ const handlers: Handlers = {
       own: state.toolPreferences.get(`${nodeId ?? profileId}:${kind}`) ?? null,
       effective: effectiveTool(profileId, nodeId, viaWorkspaceId, kind)?.id ?? null,
     })),
-  prepare_action: (args) => planAction(args),
+  prepare_action: (args) => {
+    ensure(args.profileId, args.nodeId);
+    return planAction(args);
+  },
   execute_action: ({ confirmation, ...args }) => {
+    ensure(args.profileId, args.nodeId);
     const plan = planAction(args);
     const confirmed =
       plan.caution === 'none' ||
@@ -1014,6 +1065,7 @@ const handlers: Handlers = {
     for (const node of state.nodes.values()) {
       if (node.deletion || node.archivedAt) continue;
       if (containersOnly && !isContainer(node.kind)) continue;
+      if (hidden(profileId, node.id)) continue;
       const workspaces = workspacesOf(node.id).filter((workspace) => visible.has(workspace.id));
       if (workspaces.length === 0) continue;
       const via =
@@ -1083,6 +1135,64 @@ const handlers: Handlers = {
       .sort((a, b) => b.score - a.score || a.node.name.localeCompare(b.node.name))
       .slice(0, limit ?? 30);
   },
+
+  lock_status: ({ profileId }) => {
+    const failures = lock.failures.get(profileId) ?? 0;
+    return {
+      hasLock: lock.passwords.has(profileId),
+      unlocked: lock.unlocked.has(profileId),
+      protectedCount: [...state.nodes.values()].filter(
+        (node) =>
+          !node.deletion &&
+          workspacesOf(node.id).some((workspace) =>
+            state.visibility.some(
+              (v) => v.profileId === profileId && v.workspaceId === workspace.id,
+            ),
+          ) &&
+          isProtectedDeep(node.id),
+      ).length,
+      retryAfterSeconds: failures >= 3 ? 30 : 0,
+      autoMinutes:
+        state.profiles.find((profile) => profile.id === profileId)?.lockAutoMinutes ?? 10,
+    };
+  },
+  unlock_profile: ({ profileId, password }) => {
+    const ok = lock.passwords.get(profileId) === password;
+    if (ok) {
+      lock.unlocked.add(profileId);
+      lock.failures.delete(profileId);
+    } else {
+      lock.failures.set(profileId, (lock.failures.get(profileId) ?? 0) + 1);
+    }
+    return { unlocked: ok, retryAfterSeconds: (lock.failures.get(profileId) ?? 0) >= 3 ? 30 : 0 };
+  },
+  set_lock_password: ({ profileId, current, password }) => {
+    if (password.length < 4) throw new Error('la password deve avere almeno 4 caratteri');
+    const known = lock.passwords.get(profileId);
+    if (known !== undefined && known !== current) {
+      throw new Error("la password attuale non e' corretta");
+    }
+    lock.passwords.set(profileId, password);
+    lock.unlocked.add(profileId);
+    return null;
+  },
+  remove_lock: ({ profileId }) => {
+    let cleared = 0;
+    for (const node of state.nodes.values()) {
+      if (node.isProtected && !node.deletion) {
+        node.isProtected = false;
+        cleared += 1;
+      }
+    }
+    lock.passwords.delete(profileId);
+    lock.unlocked.delete(profileId);
+    return cleared;
+  },
+  lock_session: () => {
+    lock.unlocked.clear();
+    return null;
+  },
+  touch_session: () => null,
 
   // Nessun disco nel browser: tipi plausibili, dedotti dal percorso.
   inspect_paths: ({ pathsToInspect }) =>

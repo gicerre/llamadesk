@@ -6,6 +6,7 @@ import { toastError } from '@/stores/toasts';
 import type { AppSettings } from '@/types/generated/AppSettings';
 import { PageFrame } from '../library/parts';
 import { Group, Row } from './parts';
+import { ProtectionSettings } from './ProtectionSettings';
 import { ToolsSettings } from './ToolsSettings';
 
 /**
@@ -109,6 +110,8 @@ export function SettingsPage() {
           />
         ))}
       </Group>
+
+      <ProtectionSettings />
 
       <ToolsSettings />
 

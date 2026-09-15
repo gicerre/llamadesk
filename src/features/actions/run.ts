@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import i18n from '@/lib/i18n';
-import { api, CONFIRMATION_REQUIRED, type ActionArgs } from '@/lib/ipc';
+import { api, CONFIRMATION_REQUIRED, isBackendCode, LOCKED, type ActionArgs } from '@/lib/ipc';
 import { queryClient } from '@/lib/queries';
+import { useLockDialogs } from '@/stores/lock';
 import { useSession } from '@/stores/session';
 import { toast, toastError } from '@/stores/toasts';
 import type { ActionOutcome } from '@/types/generated/ActionOutcome';
@@ -70,6 +71,10 @@ export async function runAction(request: RunRequest): Promise<void> {
     const outcome = await api.executeAction(args);
     announce(request.actionId, request.node.name, outcome);
   } catch (error) {
+    if (isBackendCode(error, LOCKED)) {
+      useLockDialogs.getState().openUnlock();
+      return;
+    }
     if (!isConfirmationRequired(error)) {
       toastError(t('actions.failed', { name: request.node.name }), error);
       return;

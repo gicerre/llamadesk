@@ -18,4 +18,9 @@ breadcrumb: Array<Crumb>,
  * Tutti i workspace in cui il nodo compare (piu' di uno se il suo
  * progetto e' condiviso).
  */
-workspaces: Array<Crumb>, children: Array<NodeEntry>, protection: ResolvedProtection, caution: ResolvedCaution, tags: Array<Tag>, isFavorite: boolean, };
+workspaces: Array<Crumb>, children: Array<NodeEntry>, protection: ResolvedProtection, caution: ResolvedCaution, tags: Array<Tag>, isFavorite: boolean, 
+/**
+ * Protetto e sessione bloccata: il nodo arriva senza contenuto (niente
+ * figli, indirizzo, percorso, descrizione, tag).
+ */
+locked: boolean, };

@@ -2,7 +2,7 @@
 
 use tauri::State;
 
-use crate::commands::{db, fail};
+use crate::commands::{db, fail, gate};
 use crate::domain::SearchHit;
 use crate::services::search::{self, Query};
 use crate::AppState;
@@ -17,7 +17,9 @@ pub fn search_library(
     limit: Option<u32>,
 ) -> Result<Vec<SearchHit>, String> {
     let conn = db(&state)?;
+    let unlocked = gate(&state, &conn, Some(&profile_id))?.unlocked;
     let query = Query {
+        unlocked,
         profile_id: &profile_id,
         text: &text,
         workspace_id: workspace_id.as_deref(),

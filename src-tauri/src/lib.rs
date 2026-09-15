@@ -14,7 +14,7 @@ mod window;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use tauri::{Manager, WindowEvent};
+use tauri::{Emitter, Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::ShortcutState;
 
@@ -24,6 +24,8 @@ pub struct AppState {
     pub db: Mutex<rusqlite::Connection>,
     pub db_path: PathBuf,
     pub shortcuts: Mutex<shortcuts::Registry>,
+    /// Chi e' sbloccato. Solo in memoria: un riavvio blocca tutto.
+    pub lock: Mutex<services::protection::LockBook>,
     /// Materiale della finestra (`mica` | `solid`), deciso all'avvio.
     pub window_material: &'static str,
 }
@@ -76,6 +78,7 @@ pub fn run() {
                 db: Mutex::new(connection),
                 db_path,
                 shortcuts: Mutex::new(shortcuts::Registry::default()),
+                lock: Mutex::new(services::protection::LockBook::default()),
                 window_material,
             });
 
@@ -133,6 +136,14 @@ pub fn run() {
                             api.prevent_close();
                             let _ = window.hide();
                         }
+                        // La finestra sparisce (tray) o si chiude: i contenuti
+                        // protetti si richiudono.
+                        if let Some(state) = close_handle.try_state::<AppState>() {
+                            if let Ok(mut book) = state.lock.lock() {
+                                book.lock_all();
+                            }
+                        }
+                        let _ = close_handle.emit(commands::protection::LOCKED_EVENT, ());
                     }
                 });
             }
@@ -199,6 +210,13 @@ pub fn run() {
             commands::actions::execute_action,
             // command palette
             commands::search::search_library,
+            // protezione
+            commands::protection::lock_status,
+            commands::protection::unlock_profile,
+            commands::protection::set_lock_password,
+            commands::protection::remove_lock,
+            commands::protection::lock_session,
+            commands::protection::touch_session,
         ])
         .run(tauri::generate_context!())
         .expect("errore fatale durante l'avvio di LlamaDesk");

@@ -5,6 +5,7 @@ import { NodeIcon } from '@/components/NodeIcon';
 import { EmptyState, ErrorPanel, Skeleton } from '@/components/ui/feedback';
 import { useRecents } from '@/lib/queries';
 import { rerun, useRecentDescription } from '../actions/recents';
+import { ProtectedNotice } from '../protection/parts';
 import { PageFrame } from './parts';
 
 /**
@@ -26,6 +27,7 @@ export function RecentsPage() {
       <h1 className="font-display text-ink text-2xl font-semibold tracking-[-0.015em]">
         {t('nav.recents')}
       </h1>
+      <ProtectedNotice className="mt-3" />
       <div className="mt-6">
         {recents.isLoading ? (
           <Skeleton className="h-row" />

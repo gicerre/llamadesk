@@ -34,6 +34,8 @@ import { ResourceQuickActions } from '../actions/ActionMenu';
 import { isExecutable, primaryAction } from '../actions/registry';
 import { runAction } from '../actions/run';
 import { InlineField, PanelSection } from './fields';
+import { UnlockForm } from '../protection/UnlockForm';
+import { ProtectionSection } from './ProtectionSection';
 import { OpeningSection, ToolPreferencesSection } from './ToolSections';
 
 const INSPECTOR_WIDTH = 360;
@@ -86,6 +88,16 @@ function InspectorContent({ nodeId, workspaceId }: { nodeId: string; workspaceId
         <Skeleton className="h-6 w-40" />
         <Skeleton className="h-8" />
         <Skeleton className="h-16" />
+      </div>
+    );
+  }
+
+  if (view.data.locked) {
+    return (
+      <div className="flex flex-col gap-3 pb-4">
+        <Header view={view.data} onClose={close} />
+        <p className="text-ink-2 px-4 text-sm">{t('lock.lockedDescription')}</p>
+        <UnlockForm className="px-4" />
       </div>
     );
   }
@@ -197,6 +209,8 @@ function Editor({ view, workspaceId }: { view: NodeView; workspaceId: string }) 
       <PanelSection title={t('inspector.tags')}>
         <TagEditor view={view} />
       </PanelSection>
+
+      <ProtectionSection view={view} />
 
       <CautionSection view={view} onSave={save} />
 

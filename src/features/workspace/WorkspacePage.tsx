@@ -20,6 +20,7 @@ import type { RecentAction } from '@/types/generated/RecentAction';
 import { NodeMenu } from '../library/NodeMenu';
 import { HeaderSkeleton, MissingNode, NodeHeader, PageFrame, SectionTitle } from '../library/parts';
 import { ScopeContent } from '../project/ScopeContent';
+import { LockedPanel } from '../protection/parts';
 import { rerun, useRecentDescription } from '../actions/recents';
 import { isExecutable } from '../actions/registry';
 import { runAction } from '../actions/run';
@@ -47,22 +48,29 @@ export function WorkspacePage() {
           view={view.data}
           workspaceId={workspaceId}
           actions={
-            <>
-              <Button
-                variant="primary"
-                onClick={() => openAdd({ parentId: workspaceId, workspaceId })}
-              >
-                <Plus />
-                {t('add.title')}
-              </Button>
-              <NodeMenu view={view.data} workspaceId={workspaceId} />
-            </>
+            view.data.locked ? undefined : (
+              <>
+                <Button
+                  variant="primary"
+                  onClick={() => openAdd({ parentId: workspaceId, workspaceId })}
+                >
+                  <Plus />
+                  {t('add.title')}
+                </Button>
+                <NodeMenu view={view.data} workspaceId={workspaceId} />
+              </>
+            )
           }
         />
       ) : (
         <HeaderSkeleton />
       )}
-      {view.data && <WorkspaceContent view={view.data} workspaceId={workspaceId} />}
+      {view.data &&
+        (view.data.locked ? (
+          <LockedPanel view={view.data} />
+        ) : (
+          <WorkspaceContent view={view.data} workspaceId={workspaceId} />
+        ))}
     </PageFrame>
   );
 }

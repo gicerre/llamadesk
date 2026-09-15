@@ -12,6 +12,7 @@ import { useProfileId } from '@/stores/session';
 import { toastError } from '@/stores/toasts';
 import type { Favorite } from '@/types/generated/Favorite';
 import { PageFrame } from './parts';
+import { ProtectedNotice } from '../protection/parts';
 
 /**
  * Preferiti del profilo (docs/REDESIGN.md, "Recenti e preferiti"): quelli del
@@ -43,6 +44,7 @@ export function FavoritesPage() {
           ]}
         />
       </header>
+      <ProtectedNotice className="mt-3" />
 
       <div className="mt-6">
         {favorites.isLoading ? (

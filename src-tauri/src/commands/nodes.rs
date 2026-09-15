@@ -1,11 +1,15 @@
 //! Nodi della libreria: lettura di una pagina, creazione, modifica,
 //! spostamento, condivisione, cestino, duplicazione, tag.
+//!
+//! Ogni comando passa dal cancello della protezione: a sessione bloccata un
+//! nodo protetto non mostra il suo contenuto e non si modifica.
 
 use tauri::State;
 
-use crate::commands::{db, fail};
+use crate::commands::{db, fail, gate};
 use crate::db::repo::{library, nodes};
 use crate::domain::{DeleteImpact, NewNode, Node, NodeEntry, NodePatch, NodeView, Tag};
+use crate::services::protection::{self, NO_LOCK};
 use crate::services::{hierarchy, resolve};
 use crate::AppState;
 
@@ -26,19 +30,34 @@ pub fn get_node_view(
     }
 
     let via = via_workspace_id.as_deref();
+    let gate = gate(&state, &conn, Some(&profile_id))?;
+    let locked = gate.hides(&conn, &id).map_err(fail)?;
+
+    let mut node = nodes::get(&conn, &id).map_err(fail)?;
+    let mut children = Vec::new();
+    let mut tags = Vec::new();
+    if locked {
+        protection::redact(&mut node);
+    } else {
+        children = nodes::children(&conn, &id, include_archived.unwrap_or(false)).map_err(fail)?;
+        gate.redact_children(&conn, &mut children).map_err(fail)?;
+        tags = library::tags_of(&conn, &id).map_err(fail)?;
+    }
+
     Ok(NodeView {
-        node: nodes::get(&conn, &id).map_err(fail)?,
+        node,
         breadcrumb: resolve::breadcrumb(&conn, &profile_id, &id, via).map_err(fail)?,
         workspaces: resolve::workspaces_of(&conn, &id)
             .map_err(fail)?
             .iter()
             .map(Into::into)
             .collect(),
-        children: nodes::children(&conn, &id, include_archived.unwrap_or(false)).map_err(fail)?,
+        children,
         protection: resolve::protection(&conn, &id).map_err(fail)?,
         caution: resolve::caution(&conn, &id).map_err(fail)?,
-        tags: library::tags_of(&conn, &id).map_err(fail)?,
+        tags,
         is_favorite: library::is_favorite(&conn, &profile_id, &id).map_err(fail)?,
+        locked,
     })
 }
 
@@ -49,7 +68,14 @@ pub fn list_children(
     include_archived: Option<bool>,
 ) -> Result<Vec<NodeEntry>, String> {
     let conn = db(&state)?;
-    nodes::children(&conn, &id, include_archived.unwrap_or(false)).map_err(fail)
+    let gate = gate(&state, &conn, None)?;
+    if gate.hides(&conn, &id).map_err(fail)? {
+        return Ok(Vec::new());
+    }
+    let mut children =
+        nodes::children(&conn, &id, include_archived.unwrap_or(false)).map_err(fail)?;
+    gate.redact_children(&conn, &mut children).map_err(fail)?;
+    Ok(children)
 }
 
 /// Crea un nodo. Senza `parent_id` si crea un workspace, visibile al profilo.
@@ -63,6 +89,11 @@ pub fn create_node(
     next_id: Option<String>,
 ) -> Result<Node, String> {
     let conn = db(&state)?;
+    if let Some(parent) = parent_id.as_deref() {
+        gate(&state, &conn, Some(&profile_id))?
+            .ensure(&conn, parent)
+            .map_err(fail)?;
+    }
     hierarchy::create(
         &conn,
         &profile_id,
@@ -83,6 +114,9 @@ pub fn create_link_group(
     links: Vec<NewNode>,
 ) -> Result<Node, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, Some(&profile_id))?
+        .ensure(&conn, &parent_id)
+        .map_err(fail)?;
     hierarchy::create_group(&conn, &profile_id, &parent_id, &name, &links).map_err(fail)
 }
 
@@ -93,6 +127,19 @@ pub fn update_node(
     patch: NodePatch,
 ) -> Result<Node, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
+    if patch.is_protected == Some(true) {
+        // Proteggere senza password non proteggerebbe: prima la password.
+        let profile = crate::db::seed::read_settings(&conn)
+            .map_err(fail)?
+            .active_profile_id
+            .unwrap_or_default();
+        if !protection::has_lock(&conn, &profile).map_err(fail)? {
+            return Err(NO_LOCK.into());
+        }
+    }
     nodes::update(&conn, &id, &patch).map_err(fail)
 }
 
@@ -107,6 +154,9 @@ pub fn move_node(
     next_id: Option<String>,
 ) -> Result<(), String> {
     let conn = db(&state)?;
+    let gate = gate(&state, &conn, None)?;
+    gate.ensure(&conn, &id).map_err(fail)?;
+    gate.ensure(&conn, &to_parent_id).map_err(fail)?;
     hierarchy::move_node(
         &conn,
         &id,
@@ -121,6 +171,9 @@ pub fn move_node(
 #[tauri::command]
 pub fn share_node(state: State<'_, AppState>, id: String, parent_id: String) -> Result<(), String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
     hierarchy::share(&conn, &id, &parent_id, None).map_err(fail)
 }
 
@@ -132,6 +185,9 @@ pub fn unshare_node(
     parent_id: String,
 ) -> Result<(), String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
     hierarchy::unshare(&conn, &id, &parent_id).map_err(fail)
 }
 
@@ -143,6 +199,9 @@ pub fn set_node_pinned(
     pinned: bool,
 ) -> Result<(), String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &child_id)
+        .map_err(fail)?;
     nodes::set_pinned(&conn, &parent_id, &child_id, pinned).map_err(fail)
 }
 
@@ -153,12 +212,18 @@ pub fn archive_node(
     archived: bool,
 ) -> Result<Node, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
     nodes::set_archived(&conn, &id, archived).map_err(fail)
 }
 
 #[tauri::command]
 pub fn node_delete_impact(state: State<'_, AppState>, id: String) -> Result<DeleteImpact, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
     hierarchy::delete_impact(&conn, &id).map_err(fail)
 }
 
@@ -167,6 +232,9 @@ pub fn node_delete_impact(state: State<'_, AppState>, id: String) -> Result<Dele
 #[tauri::command]
 pub fn delete_node(state: State<'_, AppState>, id: String) -> Result<String, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
     hierarchy::delete(&conn, &id).map_err(fail)
 }
 
@@ -185,6 +253,9 @@ pub fn duplicate_node(
     name: Option<String>,
 ) -> Result<Node, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, Some(&profile_id))?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
     hierarchy::duplicate(
         &conn,
         &profile_id,
@@ -202,6 +273,9 @@ pub fn set_node_tags(
     names: Vec<String>,
 ) -> Result<Vec<Tag>, String> {
     let conn = db(&state)?;
+    gate(&state, &conn, None)?
+        .ensure(&conn, &id)
+        .map_err(fail)?;
     library::set_tags(&conn, &id, &names).map_err(fail)
 }
 
