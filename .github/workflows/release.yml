@@ -1,35 +1,83 @@
 name: Release
 
 # Un tag `v*` produce gli installer Windows e li pubblica in GitHub Releases.
-# Nessun altro trigger: le build di verifica vivono in ci.yml.
+# L'avvio manuale esiste per ripetere una build, e chiede il tag in modo
+# esplicito: senza, `github.ref_name` sarebbe il nome del branch e nascerebbe
+# una release con un nome che non corrisponde a nessuna versione.
+# Nessun altro trigger: le build di verifica vivono in ci.yml, e una pull
+# request non puo' in nessun caso arrivare qui.
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag esistente da pubblicare, nella forma vX.Y.Z"
+        required: true
+        type: string
 
+# In sola lettura per impostazione predefinita: il permesso di scrittura vive
+# solo nel job che pubblica la release.
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   build-windows:
     runs-on: windows-latest
 
+    # L'unico job che scrive: crea la release e vi allega gli installer.
+    permissions:
+      contents: write
+
     steps:
+      - name: Tag da pubblicare
+        id: release
+        shell: bash
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag non valido: '$tag'. Atteso vX.Y.Z (con eventuale suffisso, es. v0.1.0-beta.1)."
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      # Il tag deve descrivere ciò che si sta compilando: se i tre file non
+      # concordano, gli installer avrebbero un nome diverso dalla release.
+      - name: Versione coerente nei tre file
+        shell: bash
+        run: |
+          version="${{ steps.release.outputs.version }}"
+          package=$(node -p "require('./package.json').version")
+          tauri=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          cargo=$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
+          echo "tag=$version package.json=$package tauri.conf.json=$tauri Cargo.toml=$cargo"
+          if [ "$package" != "$version" ] || [ "$tauri" != "$version" ] || [ "$cargo" != "$version" ]; then
+            echo "::error::La versione del tag non corrisponde a quella dichiarata nei file del progetto."
+            exit 1
+          fi
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: npm
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
 
       - name: Cache Rust
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: './src-tauri -> target'
 
@@ -49,12 +97,12 @@ jobs:
         run: cargo test --locked
 
       - name: Build installers and publish release
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'LlamaDesk ${{ github.ref_name }}'
+          tagName: ${{ steps.release.outputs.tag }}
+          releaseName: 'LlamaDesk ${{ steps.release.outputs.tag }}'
           releaseBody: |
             Installer per Windows 10/11 (beta).
 
@@ -72,3 +120,42 @@ jobs:
           releaseDraft: true
           prerelease: true
           args: --target x86_64-pc-windows-msvc
+
+      # Le impronte degli artefatti appena costruiti, cosi' chi scarica puo'
+      # verificare di avere lo stesso file uscito da questo workflow.
+      - name: Checksum SHA-256
+        id: checksums
+        shell: pwsh
+        run: |
+          $bundle = 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle'
+          $files = Get-ChildItem -Path $bundle -Recurse -Include *.exe, *.msi -File
+          if (-not $files) { throw "Nessun installer trovato in $bundle" }
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($file.Name)"
+          }
+          $lines | Set-Content -Path SHA256SUMS.txt
+          $lines | Write-Host
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "checksums<<EOF"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value $lines
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "EOF"
+
+      - name: Allega i checksum alla bozza di release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: gh release upload "$TAG" SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Riepilogo
+        shell: bash
+        run: |
+          {
+            echo "### LlamaDesk ${{ steps.release.outputs.tag }}"
+            echo
+            echo "La release e' una **bozza pre-release**: va pubblicata a mano."
+            echo
+            echo '```'
+            echo "${{ steps.checksums.outputs.checksums }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

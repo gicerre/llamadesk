@@ -85,6 +85,29 @@ The browser preview must keep working: if you add a command, add its mock in
 - Repository-facing documents (README, this file, SECURITY) are in English; the design record
   `docs/REDESIGN.md` and the manual checklist are in Italian.
 
+## How a change reaches a release
+
+Nobody pushes to `main` or `develop`, maintainers included: everything goes through a pull
+request, and the repository rulesets enforce it.
+
+```
+your fork → feature branch → pull request → CI → review → develop → pull request → main → tag v* → installers
+```
+
+1. **Fork** the repository and branch off `develop`, not `main`. Name the branch for the change:
+   `fix/empty-launch-step`, `feat/tag-filters`.
+2. **Open the pull request against `develop`.** CI runs the same three jobs a maintainer sees:
+   `frontend`, `backend`, `privacy-guard`. Pull requests from forks never receive secrets and
+   cannot publish anything.
+3. **Review.** One approval is required, and the maintainer listed in
+   [`.github/CODEOWNERS`](.github/CODEOWNERS) has to review anything that touches workflows,
+   packaging, dependencies or the release procedure. Conversations must be resolved, and the
+   branch must be up to date with `develop` before merging.
+4. **`develop` → `main`** is a maintainer's pull request, when a version is ready.
+5. **Releases** are a maintainer's job: only they can create a `v*` tag, which is what starts
+   [the release workflow](.github/workflows/release.yml) — see [docs/RELEASE.md](docs/RELEASE.md).
+   Nothing is published automatically: the workflow leaves a draft.
+
 ## Commits and pull requests
 
 - One logical change per pull request; describe the user-visible effect, with screenshots for UI
