@@ -8,11 +8,13 @@ presses the button.
 
 | | |
 | --- | --- |
-| Trigger | Pushing a tag that matches `v*`, or running the workflow by hand (`workflow_dispatch`) |
+| Trigger | Pushing a tag that matches `v*`, or running the workflow by hand (`workflow_dispatch`), which asks for the tag as an input |
+| Who can trigger it | Only someone who can create a `v*` tag — the `protected-release-tags` ruleset reserves that to repository admins |
 | Runner | `windows-latest`, Node 20, Rust stable, cached Cargo target directory |
-| Gates | `npm run lint`, `npm run typecheck`, `npm run test`, then `cargo test --locked` |
-| Build | `tauri-apps/tauri-action@v0` with `--target x86_64-pc-windows-msvc` |
-| Result | A GitHub Release named `LlamaDesk <tag>`, created as a **draft** and marked **pre-release**, with both installers attached |
+| Permissions | `contents: read` for the workflow, `contents: write` only on the job that publishes |
+| Gates | Tag shaped `vX.Y.Z`, the same version in the three files below, then `npm run lint`, `npm run typecheck`, `npm run test` and `cargo test --locked` |
+| Build | `tauri-apps/tauri-action` (pinned to a commit) with `--target x86_64-pc-windows-msvc` |
+| Result | A GitHub Release named `LlamaDesk <tag>`, created as a **draft** and marked **pre-release**, with both installers and `SHA256SUMS.txt` attached |
 
 Artifacts:
 
@@ -20,13 +22,15 @@ Artifacts:
 | --- | --- |
 | `LlamaDesk_<version>_x64-setup.exe` | NSIS, per-user install, no administrator rights, English/Italian selector |
 | `LlamaDesk_<version>_x64_en-US.msi` | MSI package for managed deployment |
+| `SHA256SUMS.txt` | SHA-256 of both installers, computed by the workflow on the runner |
 
 No updater artifacts are produced: the app never checks for updates.
 
 ## Before releasing
 
-- [ ] The branch that carries the release is merged into `main` — the tag must point at what
-      people will read.
+- [ ] The work is merged into `main` **through a pull request** (nobody pushes to `main`
+      directly; see [`.github/rulesets/`](../.github/rulesets/README.md)) — the tag must point at
+      what people will read.
 - [ ] [`CHECKLIST.md`](CHECKLIST.md) walked through in the **installed** app, not the browser
       preview.
 - [ ] [`CHANGELOG.md`](../CHANGELOG.md) has a section for the version, with an honest
@@ -53,16 +57,20 @@ git commit -am "Version 0.0.1"
 ## 2. Tag and push
 
 ```bash
+git checkout main && git pull
 git tag -a v0.0.1 -m "LlamaDesk 0.0.1 beta"
-git push origin main --follow-tags
+git push origin v0.0.1
 ```
+
+Only a repository admin can push a `v*` tag. Pushing it starts the workflow; nothing else does.
 
 ## 3. Finish the draft
 
 1. Paste the matching section of `CHANGELOG.md` as the release notes.
 2. Say plainly that it is a beta, that the installers are **unsigned** (SmartScreen will warn),
    and where the data lives (`%APPDATA%\com.llamadesk.app`).
-3. Publish the checksums so people can verify the download:
+3. The checksums are already attached as `SHA256SUMS.txt`. Verify one against the file you
+   downloaded before publishing:
 
    ```powershell
    Get-FileHash .\LlamaDesk_0.0.1_x64-setup.exe -Algorithm SHA256

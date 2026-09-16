@@ -1,0 +1,34 @@
+# Chi deve rivedere che cosa.
+#
+# GitHub chiede la revisione del proprietario elencato qui su ogni pull request
+# che tocca questi percorsi. I ruleset in `.github/rulesets/` rendono quella
+# revisione obbligatoria su `main` e `develop`: insieme, impediscono che la
+# catena di distribuzione (workflow, versioni, dipendenze, installer) cambi
+# senza che un maintainer l'abbia letta.
+#
+# L'ultima regola che corrisponde vince: le righe piu' specifiche stanno in fondo.
+
+# Tutto il resto del progetto: revisione del maintainer come rete di sicurezza.
+*                               @gicerre
+
+# Automazione e configurazione del repository.
+/.github/                       @gicerre
+/.github/workflows/             @gicerre
+/.github/CODEOWNERS             @gicerre
+/.github/rulesets/              @gicerre
+
+# Pubblicazione: versione, packaging, installer, procedura di rilascio.
+/package.json                   @gicerre
+/package-lock.json              @gicerre
+/src-tauri/tauri.conf.json      @gicerre
+/src-tauri/Cargo.toml           @gicerre
+/src-tauri/Cargo.lock           @gicerre
+/src-tauri/capabilities/        @gicerre
+/scripts/                       @gicerre
+/docs/RELEASE.md                @gicerre
+/docs/BUILD.md                  @gicerre
+
+# Configurazione della build del frontend.
+/vite.config.ts                 @gicerre
+/tsconfig.json                  @gicerre
+/eslint.config.js               @gicerre
