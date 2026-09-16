@@ -1,20 +1,24 @@
 <div align="center">
 
-<img src="docs/brand/app-icon.svg" width="96" alt="LlamaDesk" />
+<img src="docs/assets/brand/app-icon.svg" width="104" alt="LlamaDesk" />
 
 # LlamaDesk
 
-**A local-first launcher and workspace manager for your links, files, tools and project contexts.**
+### Open your project, not your bookmarks.
 
-No account. No cloud. No telemetry. Your data never leaves your computer.
+A local-first launcher and workspace manager for Windows: it keeps the links, files, folders and
+repositories of a project together, and opens each of them with the right tool.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/gicerre/llamadesk?include_prereleases&sort=semver)](../../releases)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4)
-![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB)
-![Zero telemetry](https://img.shields.io/badge/telemetry-zero-success)
-![Status](https://img.shields.io/badge/status-beta-9A6212)
+![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB)
+![No telemetry](https://img.shields.io/badge/telemetry-none-success)
 
-<img src="docs/images/home.jpg" width="880" alt="Workspace home: Continue, projects and workspace resources" />
+[Download](../../releases) · [Documentation](docs/README.md) ·
+[Getting started](docs/GETTING_STARTED.md) · [Issues](../../issues)
+
+<img src="docs/assets/screenshots/home.jpg" width="900" alt="Workspace home with Continue, projects and workspace resources" />
 
 </div>
 
@@ -22,163 +26,240 @@ No account. No cloud. No telemetry. Your data never leaves your computer.
 
 ## What it is
 
-A day of work is spread across a repository, a Jira board, three Camunda consoles, a shared
-folder and two browser profiles. LlamaDesk keeps those together — by project, not by kind — and
-opens them the way you actually open them: this repository in **IntelliJ**, that group of links
-in the **work profile of Chrome**, this folder in **Windows Terminal**.
+LlamaDesk is a desktop application that holds the **context of a project**: its links, its web
+consoles, its local folders, its Git repositories — and the tools those things open with.
 
-It is not a bookmark folder and not a note-taking app. It is the place you open first in the
-morning and the thing that opens everything else.
+Instead of a bookmark bar, a folder of shortcuts and a terminal history, you get one place where
+a project says: *this repository opens in IntelliJ, this group of links opens in the work profile
+of Chrome, this folder opens in Windows Terminal.* One click, or one search.
 
-## Highlights
+Everything is local: one SQLite file in your user folder, no account, no cloud, no telemetry. The
+Rust side of the app contains no HTTP client at all, and the build fails if one is ever added.
+
+## The problem it solves
+
+A single working day is spread across a repository, a Jira board, three Camunda consoles, a
+shared folder and two browser profiles. Three things go wrong:
+
+- **Scattering** — the same project lives in bookmarks, in Explorer, in the terminal history and
+  in your head.
+- **Wrong tool, wrong place** — the link opens in the personal browser profile; the repository
+  opens in the wrong editor.
+- **The expensive mistake** — the production console opens when you meant the test one.
+
+LlamaDesk answers with a hierarchy that matches how work is actually organised, a tool preference
+that is inherited down that hierarchy, and a confirmation you can put on anything — enforced in
+the backend, not in a dialog you can click past.
+
+## How it works
+
+```
+Workspace          Work, Personal, Studies — an area of your life
+└─ Project         SpecialHub, Client Rossi — what you work on
+   ├─ Subproject   Backend, Frontend — shown as tabs
+   └─ Section      DEV, PROD, Documentation — nestable as deep as you want
+      └─ Links · link groups · local paths
+```
+
+- A **project can live in several workspaces at once** — the same project, not a copy.
+- A **click opens the row**: a link in the browser, a group all at once, a folder in Explorer, a
+  repository in your preferred IDE, a file in its program.
+- **Tools are detected** on your machine — terminals, IDEs, browsers, including browser profiles —
+  and a project can prefer one; everything inside it inherits that choice.
+- **Sequences**: a project can define a *Launch* — repository in the IDE, then a terminal, then the
+  DEV link group — and run it with one button.
+- **Search does the navigating**: `Ctrl+K`, type a few letters, add a verb (`camunda term`) to do
+  something instead of just going there.
+- **Protection**: a per-profile password hides protected items completely while the app is locked.
+
+## Features
 
 | | |
 | --- | --- |
-| **A hierarchy that matches reality** | Workspace → Project → Subproject → Sections, nested as deep as you want. A project can live in several workspaces at once — the same project, not a copy. |
-| **Open with the right tool** | LlamaDesk finds your terminals, IDEs and browsers (including browser profiles) and remembers which one a project prefers. Subprojects and sections inherit that choice. |
-| **Launch** | A project can define a sequence: open the repository in the IDE, then a terminal, then the DEV link group. One button. |
-| **Ask before opening** | Mark anything "ask before opening" — a whole PROD section, or a single link. The confirmation is enforced in Rust, so it applies to clicks, the palette and Launch alike. |
-| **Protection** | A per-profile lock password (Argon2id). While locked, protected items show only their name: no content, no search results, no recents, and the backend refuses to open them. |
-| **Command palette** | `Ctrl+K`. Fuzzy search over names, aliases, tags, parent names, addresses and paths, ranked by what you actually use. Object + verb: `camunda term` opens a terminal in Camunda's repository. |
-| **Local paths that tell the truth** | A path row shows what the disk says right now: file, folder, Git repository (with branch), missing, or unreachable network share. |
-| **Two profiles, one library** | Profiles are lenses on the same library: each one chooses which workspaces it sees and keeps its own favorites, recents and appearance. |
-| **Backups you can trust** | One daily automatic copy of the database (last seven kept), manual copies anywhere, and a restore that verifies the file and keeps the previous database next to it. |
+| **Library** | Workspaces, projects, subprojects, sections nested without limit; links, link groups and local paths; drag & drop from File Explorer and inside the app; tags, favorites, recents; deletion with an impact summary and undo |
+| **Local paths that tell the truth** | Each path row shows what the disk says now: file with size, folder, Git repository with its branch, network share, *not found* or *unreachable* — with **Locate…** to fix a moved path |
+| **Actions** | Open, open with another IDE or browser, terminal here, show in File Explorer, open the remote repository (read from `origin`), copy address or path |
+| **Tools** | Detects Windows Terminal, PowerShell 7, Windows PowerShell, Command Prompt, Git Bash, WSL, VS Code, Cursor, Zed, Sublime Text, Notepad++, JetBrains IDEs, Visual Studio, Chrome, Edge, Firefox, Brave, plus browser profiles; preferences inherited per profile and per node; custom tools |
+| **Launch** | An ordered sequence of actions per project, subproject or section; a failing step never stops the others |
+| **Command palette** | `Ctrl+K` or a global shortcut; fuzzy search over names, aliases, tags, parent names, addresses and paths, ranked by use; object + verb; `>` commands, `@` containers, `#tag` |
+| **Ask before opening** | Inheritable confirmation, with a "type the name" level, enforced in Rust for every entry point |
+| **Protection** | Argon2id password per profile; locked content is stripped before it reaches the interface, and disappears from search, recents and favorites |
+| **Profiles** | Lenses on one library: each chooses the workspaces it sees and keeps its own favorites, recents and appearance |
+| **Backups** | One automatic copy per day (last seven), manual copies anywhere, verified restore that keeps the previous database |
+| **Windows-native feel** | Custom title bar, Mica on Windows 11, light/dark/system themes, two densities, tray, autostart, Italian and English |
 
-<div align="center">
-<img src="docs/images/project.jpg" width="880" alt="Project page with subproject tabs, sections and resources" />
-<br /><em>A project: subprojects as tabs, sections with their resources, Launch in the header.</em>
-<br /><br />
-<img src="docs/images/palette.jpg" width="880" alt="Command palette searching special term" />
-<br /><em>The palette: "special term" proposes a terminal in the repository of SpecialHub.</em>
-</div>
+## Screenshots
 
-## Philosophy
+### A project
 
-| Principle | What it means in practice |
-| --- | --- |
-| **Local only** | One SQLite file in your user folder. That is the whole database. |
-| **Zero cloud** | No sign-up, no sync, no backend, no remote database. |
-| **Zero telemetry** | No analytics, no crash reporting, no update pings. The Rust dependency tree contains **no HTTP client at all** — `src-tauri/Cargo.lock` is the proof, and CI fails if one is ever added. |
-| **Plug & play** | A single installer. No Node.js, no Python, no Docker, no database server. SQLite is compiled into the executable and the database is created on first launch. |
-| **No hardcoded data** | The app starts empty. Every workspace, project and link is yours. |
-| **Nothing runs behind your back** | The clipboard is read only when you press the capture shortcut. Paths are inspected only for what is on screen. `.exe`, `.bat` and `.ps1` files are never launched by "Open". |
-| **Calendars are just links** | No Google/Microsoft OAuth, no calendar API, no scraping. A calendar is a URL that opens in your browser. |
+Subprojects as tabs, sections with their rows, **Launch** in the header. The PROD section is
+marked *Asks before opening*; the last path is missing and says so.
+
+<img src="docs/assets/screenshots/project.jpg" width="900" alt="Project page with subproject tabs, sections and resources" />
+
+### Search that also acts
+
+`special term` proposes opening a terminal in the repository of SpecialHub. The line at the bottom
+says one protected item is hidden because the session is locked.
+
+<img src="docs/assets/screenshots/palette.jpg" width="900" alt="Command palette showing results with a suggested terminal action" />
+
+### The details panel
+
+Every setting of an item in one place: here a link group, with the links that can be switched off
+and the browser, profile and window it opens in.
+
+<img src="docs/assets/screenshots/inspector.jpg" width="900" alt="Details panel of a link group" />
+
+### Protection
+
+While LlamaDesk is locked, a protected project keeps only its name.
+
+<img src="docs/assets/screenshots/protection.jpg" width="900" alt="A protected project with the unlock panel" />
+
+### Settings
+
+Detected tools with their paths, the default per kind, and the backups.
+
+<img src="docs/assets/screenshots/settings-tools.jpg" width="900" alt="Settings: tools, data and backups" />
 
 ## Installation
 
-> **Beta.** The first public build is `0.0.1`. Expect rough edges, and keep a backup
-> (Settings → Data) before updating.
+**Requirements:** Windows 10 (up to date) or Windows 11, 64-bit. WebView2 is already present on
+both. No account, no internet connection.
 
-Download the latest installer from [Releases](../../releases):
+Download from the [Releases page](../../releases):
 
-- `LlamaDesk_x.y.z_x64-setup.exe` — NSIS installer, **installs per user, no administrator rights needed**
-- `LlamaDesk_x.y.z_x64_en-US.msi` — MSI package for managed deployment
+| File | When |
+| --- | --- |
+| `LlamaDesk_<version>_x64-setup.exe` | **Recommended** — NSIS installer, per user, no administrator rights |
+| `LlamaDesk_<version>_x64_en-US.msi` | MSI package for managed deployment |
 
-Windows SmartScreen will warn you: the installer is not signed with a paid certificate yet.
-Choose *More info → Run anyway* if you trust the source, or build it yourself (below).
+The installers are not signed yet, so SmartScreen warns on first run: *More info → Run anyway*, or
+verify the SHA-256 checksum published with the release, or [build it yourself](docs/BUILD.md).
 
-Your data lives in `%APPDATA%\com.llamadesk.app\` — **not** in the installation folder, so it
-survives updates and reinstalls:
+Your data lives in `%APPDATA%\com.llamadesk.app\` (database, backups, covers), never in the
+installation folder, so updates and reinstalls leave it alone. There is no automatic update: to
+update, run a newer installer. Full details in [Installation](docs/INSTALLATION.md).
 
-```
-llamadesk.db      the whole library
-backups/          automatic and manual backups
-covers/           cover images you chose
-```
+## Getting started
 
-The app ships in **Italian and English** and follows your Windows language on first run.
+1. First launch asks for the name and colour of your first **workspace**.
+2. Create a **project** inside it (`+` next to PROJECTS, or **Add**).
+3. Press **Add** (`Ctrl+N`) and paste an address, several addresses, or a path — LlamaDesk works
+   out what it is. Or drag files and folders from File Explorer.
+4. Click a row to open it; right-click for every other action.
+5. Press `Ctrl+K` to search instead of navigating.
+
+The ten-minute version is in [Getting started](docs/GETTING_STARTED.md); every screen is described
+in the [User guide](docs/USER_GUIDE.md).
+
+## Configuration
+
+Everything is configured in **Settings** (`Ctrl+,`): appearance, startup behaviour, profiles, the
+two global shortcuts, the lock password and its idle timeout, tools, and backups. There is no
+configuration file to edit and no environment variable — see [Configuration](docs/CONFIGURATION.md).
+
+## Documentation
+
+| For users | For developers |
+| --- | --- |
+| [Installation](docs/INSTALLATION.md) | [Development](docs/DEVELOPMENT.md) |
+| [Getting started](docs/GETTING_STARTED.md) | [Architecture](docs/ARCHITECTURE.md) |
+| [User guide](docs/USER_GUIDE.md) | [Data model](docs/DATA_MODEL.md) |
+| [Configuration](docs/CONFIGURATION.md) | [Build and packaging](docs/BUILD.md) |
+| [Troubleshooting](docs/TROUBLESHOOTING.md) | [Release process](docs/RELEASE.md) |
+| [FAQ](docs/FAQ.md) | [Brand](docs/BRAND.md) |
+| [Privacy and data](docs/PRIVACY.md) | [Changelog](CHANGELOG.md) |
+
+The documentation index is [docs/README.md](docs/README.md).
 
 ## Development
 
-### Prerequisites
-
-```powershell
-# Rust toolchain
-winget install --id Rustlang.Rustup -e
-
-# MSVC C++ build tools (required by Rust on Windows)
-winget install --id Microsoft.VisualStudio.2022.BuildTools -e `
-  --override "--quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-
-# Node.js 20+
-node --version
-```
-
-WebView2 is already present on Windows 11 and on up-to-date Windows 10.
-
-### Running
-
 ```bash
 npm install
-npm run dev          # Tauri + Vite, hot reload on both sides
-npm run dev:vite     # frontend only, in a browser, with an in-memory mock backend
+npm run dev          # the app: Vite + Rust backend, hot reload on both sides
+npm run dev:vite     # the interface alone in a browser, with an example library
 ```
 
-The browser preview is useful for UI work: it starts with the example library used in the
-screenshots. `?vuoto` starts empty, `?tema=scuro|chiaro` forces a theme, and the preview lock
-password is `llama`.
+`npm run dev:vite` is the quickest way to see the interface: it runs against an in-memory mock
+backend. Add `?vuoto` for an empty library, `?lingua=en|it`, `?tema=scuro|chiaro`; the preview
+lock password is `llama`.
 
-### Quality gates
+Requirements: Node.js 20+, the Rust stable toolchain and the MSVC 2022 build tools. The repository
+layout, the conventions and how a click travels from React to SQLite are in
+[Development](docs/DEVELOPMENT.md).
+
+## Building
 
 ```bash
-npm run lint && npm run typecheck && npm run test    # ESLint, TypeScript strict, Vitest + SQL check
+npm run build        # NSIS and MSI installers in src-tauri/target/release/bundle/
+npm run icons        # regenerates icons and brand SVGs from one geometry file
+```
+
+See [Build and packaging](docs/BUILD.md).
+
+## Testing
+
+```bash
+npm run lint && npm run typecheck && npm run test     # ESLint, TypeScript strict, Vitest + SQL check
 cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
-`cargo test` also regenerates the TypeScript types in `src/types/generated` from the Rust
-structs; CI fails if they are not committed.
+127 Rust tests cover the rules (hierarchy, inheritance, actions, tools, search, the lock, backups,
+migrations) against a real in-memory database; 45 frontend tests cover routing, search helpers,
+the action registry and translation parity; `check:sql` prepares every SQL string in the Rust
+sources against the real schema. CI runs all of it, plus a job that fails if a network crate ever
+appears in the dependency tree.
 
-### Building installers
+## Releases
 
-```bash
-npm run build        # .exe (NSIS) and .msi in src-tauri/target/release/bundle/
-npm run icons        # regenerates the whole icon set from src/components/brand/geometry.json
-```
-
-Pushing a `v*` tag triggers the release workflow, which builds both installers and publishes a
-draft GitHub Release. See [docs/RELEASE.md](docs/RELEASE.md).
-
-## Architecture
-
-```
-src/                    React 19 + TypeScript + Tailwind v4 + Framer Motion
-├─ app/                 shell: router, title bar, sidebar, opener animation
-├─ components/          UI kit and shared pieces (no domain logic)
-├─ features/            vertical slices: workspace, project, actions, launch,
-│                       palette, protection, inspector, settings
-├─ lib/                 IPC layer, queries, motion, search helpers, i18n
-└─ stores/              Zustand (session, ui, dialogs, palette, lock)
-
-src-tauri/              Rust + Tauri 2
-├─ src/db/              connection, versioned migrations, repositories
-├─ src/domain/          serde structs shared with the frontend (ts-rs)
-├─ src/commands/        the API React can call — no SQL ever reaches the frontend
-└─ src/services/        hierarchy, inheritance, actions, tools, search,
-                        protection, launch, backup, assets, paths
-```
-
-Three decisions worth knowing:
-
-1. **The frontend never writes SQL.** It calls typed Tauri commands. Everything that must not be
-   bypassed — nesting rules, inherited protection and confirmation, tool resolution, URL
-   validation, the lock — lives in Rust where `cargo test` can reach it.
-2. **The hierarchy is one table.** `nodes` is an adjacency list with a `kind` discriminator and
-   `edges` carries order and pinning, so moving, sharing, duplicating, breadcrumbs and
-   inheritance are one generic algorithm. The nesting rules live in `allowed_children` — data,
-   not schema.
-3. **Programs are started with arguments, never a shell string**, and only from a detected or
-   explicitly added tool.
-
-More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/DATA_MODEL.md](docs/DATA_MODEL.md) ·
-[docs/BRAND.md](docs/BRAND.md) · [docs/CHECKLIST.md](docs/CHECKLIST.md) ·
-[docs/REDESIGN.md](docs/REDESIGN.md) (the 2.0 design record, in Italian).
+Pushing a `v*` tag runs `.github/workflows/release.yml`: it repeats the quality gates, builds both
+installers with `tauri-action`, and publishes them as a **draft pre-release**. Artifacts and the
+full procedure are described in [Release process](docs/RELEASE.md).
 
 ## Contributing
 
-Issues and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first — in
-particular the non-negotiable rules: no network calls, no telemetry, no hardcoded user data.
-Security reports go through [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md): it lists the
+constraints that define the project (no network calls, no telemetry, no hardcoded data, nothing
+that runs without the user asking) and the checks to run before pushing. Please also read the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Privacy and security
+
+No account, no cloud, no telemetry, no update pings. The clipboard is read only when you press the
+capture shortcut; paths are inspected only for what is on screen; `.exe`, `.bat` and `.ps1` files
+are never launched by "Open"; programs start with separate arguments, never through a shell.
+
+The database is **not encrypted**: the lock is a privacy lock that keeps protected content off the
+screen, not protection against someone with access to your files. Details in
+[Privacy and data](docs/PRIVACY.md); vulnerability reports in [SECURITY.md](SECURITY.md).
+
+## Status and roadmap
+
+Version 0.0.1 is the **first public beta**: the features above are implemented and covered by
+tests, but the application has not yet been through a full manual pass on a clean Windows install.
+Known gaps, kept up to date:
+
+- Windows 11 Snap Layouts do not appear on the custom maximize button (`Win+Z` works)
+- installers are unsigned
+- cover images are not included in backups
+- no automatic updates, by design
+- `archive_node`, `duplicate_node` and `reorder_workspace` exist in the backend without an
+  interface
+
+The list lives in [docs/README.md](docs/README.md#roadmap-and-open-points) and the manual test
+list in [docs/CHECKLIST.md](docs/CHECKLIST.md).
 
 ## License
 
 [MIT](LICENSE) © LlamaDesk contributors
+
+## Credits
+
+Built with [Tauri](https://tauri.app), [React](https://react.dev),
+[Tailwind CSS](https://tailwindcss.com), [Radix UI](https://www.radix-ui.com),
+[TanStack Query](https://tanstack.com/query), [Framer Motion](https://www.framer.com/motion/),
+[dnd kit](https://dndkit.com), [Lucide icons](https://lucide.dev), [SQLite](https://sqlite.org),
+[rusqlite](https://github.com/rusqlite/rusqlite), [ts-rs](https://github.com/Aleph-Alpha/ts-rs)
+and [RustCrypto's Argon2](https://github.com/RustCrypto/password-hashes).

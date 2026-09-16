@@ -105,7 +105,7 @@ const CATALOG: &[Candidate] = &[
     Candidate {
         id: "terminal:cmd",
         kind: ToolKind::Terminal,
-        name: "Prompt dei comandi",
+        name: "Command Prompt",
         locations: &[(Base::SystemRoot, r"System32\cmd.exe")],
         args: &["/K", "cd", "/d", "{path}"],
     },

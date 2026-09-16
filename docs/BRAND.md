@@ -1,73 +1,73 @@
-# Marchio LlamaDesk
+# Brand
 
-Concept **C — "Collo a L"** (decisione D10, `docs/REDESIGN.md` § 11).
+The symbol is a capital **L**: the upright is a llama's neck, the head and ears sit on top, and
+the foot is the desk. It says the name (L for LlamaDesk), the animal and the workplace with three
+shapes.
 
-Una L maiuscola: l'asta è il collo di una llama, in cima testa e orecchie, il piede è la
-scrivania. Dice il nome (L di LlamaDesk), l'animale e il luogo di lavoro con tre forme.
+<img src="assets/brand/app-icon.svg" width="96" alt="LlamaDesk app icon" />
 
-![Icona dell'app](brand/app-icon.svg)
+## One source
 
-## Fonte unica
+`src/components/brand/geometry.json` describes the symbol on a 512 grid as rounded rectangles
+with per-corner radii — where two shapes meet, the shared corner is square, so the outline stays
+continuous. Everything else is generated from it:
 
-`src/components/brand/geometry.json` descrive il simbolo su una griglia 512 come rettangoli
-con raggi per angolo. Da lì:
+| Use | Where |
+| --- | --- |
+| Interface (title bar, welcome screen) | `BrandMark`, `Wordmark`, `Logo` in `src/components/brand/BrandMark.tsx` |
+| Opening animation | `src/app/Opener.tsx` animates the individual parts |
+| Windows icons (`.ico` 16–256, PNG set) | `npm run icons` → `scripts/brand.mjs` + `tauri icon` |
+| Vector files | `docs/assets/brand/*.svg`, written by the same script |
 
-| Uso | Dove |
-|---|---|
-| Interfaccia (barra del titolo, benvenuto) | `BrandMark`, `Wordmark`, `Logo` in `src/components/brand/BrandMark.tsx` |
-| Animazione di apertura | `src/app/Opener.tsx` (anima le singole parti) |
-| Icone di Windows (`.ico` 16–256, PNG) | `npm run icons` → `scripts/brand.mjs` + `tauri icon` |
-| File vettoriali | `docs/brand/*.svg`, generati dallo stesso script |
+Changing the symbol means editing `geometry.json` and running `npm run icons`.
 
-Cambiare il simbolo significa cambiare `geometry.json` e rilanciare `npm run icons`.
+## The set
 
-## Sistema
+| Variant | File | When to use it |
+| --- | --- | --- |
+| App icon | [`assets/brand/app-icon.svg`](assets/brand/app-icon.svg) | Installer, taskbar, Start menu |
+| Symbol | [`assets/brand/symbol.svg`](assets/brand/symbol.svg) | On light backgrounds, 32 px and above |
+| Symbol, dark | [`assets/brand/symbol-dark.svg`](assets/brand/symbol-dark.svg) | On dark backgrounds |
+| Symbol, small | [`assets/brand/symbol-small.svg`](assets/brand/symbol-small.svg) | Up to 32 px: the ears merge with a notch |
+| Monochrome | [`assets/brand/symbol-mono.svg`](assets/brand/symbol-mono.svg) | Print, engraving, overlays |
+| Full logo | [`assets/brand/logo-light.svg`](assets/brand/logo-light.svg), [`assets/brand/logo-dark.svg`](assets/brand/logo-dark.svg) | Documents, screenshots, the web |
 
-| Variante | File | Quando |
-|---|---|---|
-| Icona dell'app | `brand/app-icon.svg` | Installer, barra delle applicazioni, Start |
-| Simbolo | `brand/symbol.svg` | Su fondi chiari, ≥ 32 px |
-| Simbolo scuro | `brand/symbol-dark.svg` | Su fondi scuri |
-| Simbolo piccolo | `brand/symbol-small.svg` | Fino a 32 px: orecchie unite da una tacca |
-| Monocromatico | `brand/symbol-mono.svg` | Stampa, incisioni, sovrapposizioni |
-| Logo completo | `brand/logo-light.svg`, `brand/logo-dark.svg` | Documenti, sito, schermate |
+The wordmark is "LlamaDesk" in Segoe UI Variable Display semibold, −2% letter-spacing, in the ink
+colour: the brand colour lives only in the desk.
 
-Il wordmark è "LlamaDesk" in Segoe UI Variable Display semibold, spaziatura −2%, nel colore
-dell'inchiostro: il colore del marchio vive solo nella scrivania.
+## Colours
 
-## Colori
+| Role | Light | Dark | On the tile |
+| --- | --- | --- | --- |
+| Ink | `#14191B` | `#E6EBEA` | `#EEF2F1` |
+| Titicaca (the desk) | `#1D7384` | `#5BB6C6` | `#4FB3C4` |
+| Graphite tile | — | — | `#262D31` → `#1B2023` |
 
-| Ruolo | Chiaro | Scuro | Su tessera |
-|---|---|---|---|
-| Inchiostro | `#14191B` | `#E6EBEA` | `#EEF2F1` |
-| Titicaca (scrivania) | `#1D7384` | `#5BB6C6` | `#4FB3C4` |
-| Tessera grafite | — | — | `#262D31` → `#1B2023` |
+Inside the app the accent is the colour of the workspace; Titicaca appears in the symbol and
+during the opening animation, then fades into the workspace colour.
 
-Dentro l'app l'accento è quello del workspace: Titicaca compare nel simbolo e durante
-l'apertura, poi sfuma nel colore del workspace.
+## Rules
 
-## Regole
+- Tile: corner radius 22.5% of the side; symbol at 80% (94% up to 32 px).
+- Clear space: half the width of the neck on every side.
+- Do not rotate it, skew it, separate the desk from the neck, or recolour the desk with a
+  workspace accent.
+- Below 16 px use the tile only, never the bare symbol.
 
-- Tessera: raggio 22,5% del lato; simbolo all'80% (94% fino a 32 px).
-- Area di rispetto: metà della larghezza del collo su ogni lato.
-- Non ruotare, non inclinare, non separare la scrivania dal collo, non cambiare il colore della
-  scrivania con l'accento di un workspace.
-- Sotto i 16 px usare solo la tessera, mai il simbolo nudo.
+## The opening animation
 
-## Apertura
+It plays only on a cold start, when the *Opening animation* setting is on, the app did not start
+in the tray, and Windows is not asking for reduced motion. The window itself appears only once the
+first frame is painted, so there is no white flash; if the frontend does not answer within three
+seconds, the backend shows the window anyway.
 
-Solo all'avvio a freddo, se "Animazione di apertura" è attiva, la finestra non parte nella tray
-e il sistema non chiede di ridurre il movimento. La finestra compare solo dopo il primo
-fotogramma dipinto (`window_ready`), quindi senza lampi; se il frontend non risponde entro
-3 secondi la mostra Rust.
+| Time | What happens |
+| --- | --- |
+| 0–220 ms | The desk extends from the left |
+| 120–380 ms | The neck rises |
+| 300–520 ms | The head grows out of the neck, then the two ears |
+| 420–640 ms | The name appears |
+| 650–950 ms | The name fades, the symbol flies to the title bar, the backdrop dissolves and the accent moves from Titicaca to the workspace colour |
 
-| Tempo | Cosa succede |
-|---|---|
-| 0–220 ms | La scrivania si stende da sinistra |
-| 120–380 ms | Il collo si alza |
-| 300–520 ms | La testa esce dal collo, poi le due orecchie |
-| 420–640 ms | Compare il nome |
-| 650–950 ms | Il nome sparisce, il simbolo vola verso la barra del titolo, il fondo dissolve e l'accento passa da Titicaca al colore del workspace |
-
-La shell si carica sotto nel frattempo: l'animazione non allunga l'avvio. Dalla palette,
-`> Rivedi l'animazione di apertura`.
+The shell loads underneath in the meantime, so the animation never delays startup. From the
+palette: `> Replay the opening animation`.

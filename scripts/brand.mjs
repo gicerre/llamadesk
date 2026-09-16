@@ -3,7 +3,7 @@
  * (la stessa geometria che React disegna): nessuna dipendenza, nessun
  * rasterizzatore esterno.
  *
- *   node scripts/brand.mjs          → src-tauri/icons/source.png (1024) e docs/brand/*.svg
+ *   node scripts/brand.mjs          → src-tauri/icons/source.png (1024) e docs/assets/brand/*.svg
  *   node scripts/brand.mjs --ico    → icon.ico e 32x32.png con la versione piccola
  *                                     sotto i 32px (da lanciare DOPO `tauri icon`)
  *
@@ -242,11 +242,11 @@ if (!isMain) {
   write('src-tauri/icons/32x32.png', images.find((image) => image.size === 32).png);
 } else {
   write('src-tauri/icons/source.png', encodePng(renderIcon(1024, false), 1024));
-  write('docs/brand/app-icon.svg', appIconSvg());
-  write('docs/brand/symbol.svg', svg(VIEW, VIEW, symbolPaths(geometry.regular, geometry.ink.light, geometry.brand.light)));
-  write('docs/brand/symbol-dark.svg', svg(VIEW, VIEW, symbolPaths(geometry.regular, geometry.ink.dark, geometry.brand.dark)));
-  write('docs/brand/symbol-small.svg', svg(VIEW, VIEW, symbolPaths(geometry.small, geometry.ink.light, geometry.brand.light)));
-  write('docs/brand/symbol-mono.svg', svg(VIEW, VIEW, symbolPaths(geometry.regular, '#000000', '#000000')));
-  write('docs/brand/logo-light.svg', logoSvg('light'));
-  write('docs/brand/logo-dark.svg', logoSvg('dark'));
+  write('docs/assets/brand/app-icon.svg', appIconSvg());
+  write('docs/assets/brand/symbol.svg', svg(VIEW, VIEW, symbolPaths(geometry.regular, geometry.ink.light, geometry.brand.light)));
+  write('docs/assets/brand/symbol-dark.svg', svg(VIEW, VIEW, symbolPaths(geometry.regular, geometry.ink.dark, geometry.brand.dark)));
+  write('docs/assets/brand/symbol-small.svg', svg(VIEW, VIEW, symbolPaths(geometry.small, geometry.ink.light, geometry.brand.light)));
+  write('docs/assets/brand/symbol-mono.svg', svg(VIEW, VIEW, symbolPaths(geometry.regular, '#000000', '#000000')));
+  write('docs/assets/brand/logo-light.svg', logoSvg('light'));
+  write('docs/assets/brand/logo-dark.svg', logoSvg('dark'));
 }

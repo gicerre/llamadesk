@@ -37,8 +37,8 @@ npm run dev          # app vera (Tauri + Vite)
 npm run dev:vite     # solo interfaccia nel browser, con la libreria d'esempio
 ```
 
-Nell'anteprima nel browser: `?vuoto` parte da zero, `?tema=scuro|chiaro` forza il tema, la
-password di blocco è `llama`. Serve per il disegno, non per provare ciò che tocca Windows.
+Nell'anteprima nel browser: `?vuoto` parte da zero, `?lingua=en|it` forza la lingua,
+`?tema=scuro|chiaro` forza il tema, la password di blocco è `llama`. Serve per il disegno, non per provare ciò che tocca Windows.
 
 Il prefisso per cargo in questa macchina: `export PATH="$USERPROFILE/.cargo/bin:$PATH"`.
 
@@ -145,11 +145,14 @@ controlla).
 
 | Domanda | File |
 |---|---|
+| Indice di tutta la documentazione | `docs/README.md` |
 | Perché è fatto così | `docs/REDESIGN.md` (decisioni, modello, piano, stato) |
 | Come sono organizzati i livelli | `docs/ARCHITECTURE.md` |
+| Come si lavora sul codice | `docs/DEVELOPMENT.md` |
 | Che cosa c'è nel database | `docs/DATA_MODEL.md` + `src-tauri/src/db/migrations/0003_schema_v2.sql` |
+| Che cosa vede chi usa l'app | `docs/USER_GUIDE.md`, `docs/GETTING_STARTED.md`, `docs/CONFIGURATION.md` |
 | Come si disegna il marchio | `docs/BRAND.md`, `src/components/brand/geometry.json` |
 | Che cosa resta da provare a mano | `docs/CHECKLIST.md` |
-| Come si pubblica una versione | `docs/RELEASE.md` |
+| Come si compila e si pubblica | `docs/BUILD.md`, `docs/RELEASE.md` |
 | Che cosa è cambiato per chi usa l'app | `CHANGELOG.md` |
 | Regole per chi contribuisce | `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` |

@@ -3,6 +3,10 @@
 Thanks for being here. LlamaDesk is a small, opinionated application — contributions are very
 welcome as long as they respect the constraints below.
 
+New here? [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) explains the repository layout, the commands
+and how a click travels from React to SQLite; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains
+why the parts are arranged this way.
+
 ## Non-negotiable rules
 
 These are the reasons the project exists. A pull request that breaks any of them will be closed,
@@ -40,7 +44,9 @@ npm run dev:vite     # UI only, in a browser, with the example library
 | change what a page looks like | `src/features/<area>/` |
 | add a shared control | `src/components/ui/` (presentation only) |
 | change wording | `src/locales/{it,en}.json` |
-| change the logo or icons | `src/components/brand/geometry.json`, then `npm run icons` |
+| change the logo or icons | `src/components/brand/geometry.json`, then `npm run icons` ([docs/BRAND.md](docs/BRAND.md)) |
+| understand the database | [docs/DATA_MODEL.md](docs/DATA_MODEL.md) |
+| publish a version | [docs/RELEASE.md](docs/RELEASE.md) |
 
 The browser preview must keep working: if you add a command, add its mock in
 `src/lib/mock/backend.ts`.

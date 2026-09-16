@@ -490,7 +490,7 @@ Scelte e limiti:
   `source.png`, poi `tauri icon`, poi un `icon.ico` proprio con la versione piccola a 16–32 px e
   la normale a 40–256; simbolo all'80% della tessera (94% nelle piccole) dopo la prova a
   16/24/32/48/64/128 px. Rimossi il vecchio generatore (glifo a nodi viola) e `squircle.mjs`.
-- **Logo system** in `docs/brand/` (icona, simbolo chiaro/scuro/piccolo/monocromatico, logo
+- **Logo system** in `docs/assets/brand/` (icona, simbolo chiaro/scuro/piccolo/monocromatico, logo
   chiaro/scuro) e guida in `docs/BRAND.md`.
 - **Nessun lampo**: la finestra resta nascosta finché il frontend non ha dipinto il primo
   fotogramma (`window_ready`); ripiego a 3 s; niente se si parte nella tray.

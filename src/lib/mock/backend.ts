@@ -20,7 +20,8 @@ import type { WorkspaceEntry } from '@/types/generated/WorkspaceEntry';
 
    Parte con dati d'esempio (l'esempio SpecialHub del documento di
    riprogettazione). Nell'indirizzo: `?vuoto` parte da un database vuoto, come
-   al primo avvio reale; `?tema=scuro` o `?tema=chiaro` forza il tema.
+   al primo avvio reale; `?tema=scuro` o `?tema=chiaro` forza il tema;
+   `?lingua=en` o `?lingua=it` forza la lingua (utile per le schermate).
    ========================================================================== */
 
 interface Edge {
@@ -103,7 +104,7 @@ state.tools = (
       'PowerShell 7',
       String.raw`C:\Program Files\PowerShell\7\pwsh.exe`,
     ],
-    ['terminal:cmd', 'terminal', 'Prompt dei comandi', String.raw`C:\Windows\System32\cmd.exe`],
+    ['terminal:cmd', 'terminal', 'Command Prompt', String.raw`C:\Windows\System32\cmd.exe`],
     [
       'ide:vscode',
       'ide',
@@ -566,6 +567,13 @@ function session(profileId: string) {
 /* ------------------------------------------------------------------ seed */
 
 function seed() {
+  // Parametri dell'anteprima: lingua e tema prima di creare qualsiasi cosa.
+  const query = new URLSearchParams(window.location.search);
+  const language = query.get('lingua');
+  if (language === 'en' || language === 'it') state.settings.language = language;
+  if (query.get('tema') === 'scuro') state.settings.theme = 'dark';
+  if (query.get('tema') === 'chiaro') state.settings.theme = 'light';
+
   const it = state.settings.language === 'it';
   const profile: Profile = {
     id: 'mock-profile',
@@ -583,9 +591,6 @@ function seed() {
   state.profiles.push(profile);
   state.settings.activeProfileId = profile.id;
 
-  const query = new URLSearchParams(window.location.search);
-  if (query.get('tema') === 'scuro') state.settings.theme = 'dark';
-  if (query.get('tema') === 'chiaro') state.settings.theme = 'light';
   if (query.has('vuoto')) return;
   state.firstRun = false;
 
@@ -716,9 +721,10 @@ type Handlers = { [K in CommandName]: (args: CommandArgs<K>) => CommandResult<K>
 const handlers: Handlers = {
   bootstrap: () => ({
     isFirstRun: state.firstRun,
-    appVersion: '0.1.0-preview',
+    appVersion: '0.0.1-preview',
     dbPath: '(anteprima nel browser — nessun database)',
-    systemLocale: navigator.language,
+    // Nell'anteprima la lingua di sistema segue `?lingua`, se c'e'.
+    systemLocale: state.settings.language,
     profiles: state.profiles,
     activeProfileId: state.settings.activeProfileId,
     settings: effectiveSettings(state.settings.activeProfileId),

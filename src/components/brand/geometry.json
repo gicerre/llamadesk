@@ -1,5 +1,5 @@
 {
-  "$comment": "Simbolo 'Collo a L' (D10) su griglia 512. Unica fonte per React, icone e SVG in docs/brand. Ogni forma e' un rettangolo con raggi per angolo [alto-sx, alto-dx, basso-dx, basso-sx]: dove due forme si toccano l'angolo e' vivo, cosi' il contorno resta continuo. 'part' serve all'animazione di apertura, 'tone' al colore.",
+  "$comment": "Simbolo 'Collo a L' (D10) su griglia 512. Unica fonte per React, icone e SVG in docs/assets/brand. Ogni forma e' un rettangolo con raggi per angolo [alto-sx, alto-dx, basso-dx, basso-sx]: dove due forme si toccano l'angolo e' vivo, cosi' il contorno resta continuo. 'part' serve all'animazione di apertura, 'tone' al colore.",
   "viewBox": 512,
   "brand": {
     "light": "#1D7384",
