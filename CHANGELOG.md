@@ -9,7 +9,7 @@ still change.
 
 Nothing yet.
 
-## [0.0.1] — first public beta
+## [0.0.1] — 2026-09-16 — first public beta
 
 The whole application was redesigned around a single idea: a **workspace launcher**, where
 things are grouped by project and opened with the right tool. The design record for this work is
