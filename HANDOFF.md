@@ -9,19 +9,21 @@
 
 ## 1. Stato in tre righe
 
-LlamaDesk 2.0 è **completa come funzioni**: la riprogettazione decisa in `docs/REDESIGN.md`
-(fasi 1–8) è stata realizzata e committata sul branch `redesign`. Compila, i test passano,
-l'app gira: database in `%APPDATA%\com.llamadesk.app`, libreria, azioni, palette, protezione,
-Avvio, backup, cover, primo avvio guidato. Manca la **prova sul campo nell'app installata**
-(`docs/CHECKLIST.md`) e la pubblicazione della prima beta `0.0.1`.
+LlamaDesk 2.0 è **pubblicata**: la riprogettazione decisa in `docs/REDESIGN.md` (fasi 1–8) è
+completa e la prima beta `v0.0.1` è scaricabile da GitHub Releases, con i due installer Windows e
+le impronte SHA-256. Compila, i test passano, l'app gira: database in
+`%APPDATA%\com.llamadesk.app`, libreria, azioni, palette, protezione, Avvio, backup, cover, primo
+avvio guidato. Manca la **prova sul campo nell'app installata** (`docs/CHECKLIST.md`): è da lì che
+riparte il lavoro.
 
 | | |
 |---|---|
-| Branch di lavoro | `develop` (allineato a `redesign`; la versione 1 è congelata su `main`, tag `legacy-v1`) |
-| Ultimo commit | documentazione per la beta pubblica |
-| Non committato | primo avvio guidato (profilo, tour, primo workspace) e avatar dei profili |
+| Branch | `main` (rilasci) e `develop` (lavoro), entrambi protetti da ruleset |
+| Come si contribuisce | Solo pull request: nessuno scrive direttamente su `main` o `develop` |
+| Ultima release | `v0.0.1`, pre-release pubblica del 16 settembre 2026, installer NSIS e MSI non firmati |
 | Test | 128 Rust, 45 frontend, tutti verdi |
 | Schema database | v4 (`0004_profile_avatar.sql`; la v2 è `0003_schema_v2.sql`), nessuna conversione dalla v1 |
+| Versione 1 | Congelata sul tag `legacy-v1`, nessuna conversione dei dati |
 
 ---
 
@@ -42,6 +44,12 @@ Nell'anteprima nel browser: `?vuoto` parte da zero, `?lingua=en|it` forza la lin
 `?tema=scuro|chiaro` forza il tema, la password di blocco è `llama`. Serve per il disegno, non per provare ciò che tocca Windows.
 
 Il prefisso per cargo in questa macchina: `export PATH="$USERPROFILE/.cargo/bin:$PATH"`.
+
+`main` e `develop` sono protetti: si lavora su un branch, si apre una pull request verso
+`develop` e la si fa passare dalla CI (`frontend`, `backend`, `privacy-guard`). Una versione si
+rilascia con una pull request da `develop` a `main` e poi un tag `v*`, che solo un amministratore
+può creare. Il percorso completo e' in `CONTRIBUTING.md`, la configurazione in
+`.github/rulesets/README.md`.
 
 ---
 
@@ -111,20 +119,23 @@ strutturali:
 
 1. **Checklist manuale nell'app installata** (`docs/CHECKLIST.md`): tutte le voci `[ ]`,
    soprattutto apertura reale di IDE/terminali/browser, cover, cattura rapida, backup e
-   ripristino, blocco alla tray, icone e animazione di apertura.
-2. **Prima beta pubblica `0.0.1`**: seguire `docs/RELEASE.md` — merge di `redesign` in `main`,
-   versione allineata nei tre file, tag `v0.0.1`, note dal `CHANGELOG.md`, checksum nella
-   release. Gli installer non sono firmati: dirlo chiaramente.
-3. **Correzioni che emergono dalla checklist**, una alla volta, con il test che serve.
-4. **Snap Layouts** (valutazione in `docs/REDESIGN.md` § 13): sottoclasse della finestra in Rust
+   ripristino, blocco alla tray, icone e animazione di apertura. Si prova con l'installer della
+   release, non con la build di sviluppo; per vedere il primo avvio guidato serve una macchina
+   (o un account) senza `%APPDATA%\com.llamadesk.app`.
+2. **Correzioni che emergono dalla checklist**, una alla volta, con il test che serve, e poi
+   `0.0.2` seguendo `docs/RELEASE.md`: versione allineata nei tre file, pull request su `main`,
+   tag `v0.0.2`. Il workflow controlla da sé che tag e versioni combacino e allega i checksum.
+3. **Snap Layouts** (valutazione in `docs/REDESIGN.md` § 13): sottoclasse della finestra in Rust
    che risponde `HTMAXBUTTON` a `WM_NCHITTEST` sopra il pulsante Ingrandisci.
-5. **Debiti noti, non urgenti**:
+4. **Debiti noti, non urgenti**:
    - le cover non entrano nel backup (stanno accanto al database);
    - la ricerca rilegge la libreria a ogni richiesta (30 ms su 3.400 nodi): se un giorno diventa
      lenta, serve un indice in memoria invalidato dalle scritture;
    - nessuna firma del codice: SmartScreen avvisa;
    - profilo senza password: vede i contenuti protetti come bloccati ma può impostarne una e
-     sbloccarli (i profili sono lenti della stessa persona, non utenti separati).
+     sbloccarli (i profili sono lenti della stessa persona, non utenti separati);
+   - le action di GitHub sono fissate a un commit: gli aggiornamenti vanno fatti a mano, oppure
+     con un `dependabot.yml` per `github-actions`, che non c'è ancora.
 
 ---
 
@@ -157,3 +168,4 @@ controlla).
 | Come si compila e si pubblica | `docs/BUILD.md`, `docs/RELEASE.md` |
 | Che cosa è cambiato per chi usa l'app | `CHANGELOG.md` |
 | Regole per chi contribuisce | `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` |
+| Come è protetto il repository | `.github/rulesets/README.md`, `.github/CODEOWNERS`, `scripts/apply-rulesets.ps1` |
