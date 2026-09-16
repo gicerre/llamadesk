@@ -77,9 +77,14 @@ model and interface were replaced entirely.
 
 - Windows-native feel: custom title bar, Mica on Windows 11, light/dark/system themes, two
   densities, an accent colour per workspace.
-- Cover images for workspaces and projects, with a focal point; 104 icons with search.
+- Cover images for workspaces and projects, with a focal point; 104 icons with search. Workspaces
+  and projects without an image get a cover built from their own colour.
 - Opening animation of the "L-neck" llama, and a window that appears only once the first frame is
-  painted — no white flash.
+  painted — no white flash. On the very first launch the animation runs slower, so it can be seen.
+- **First launch**: profile (name, avatar, colour and language, English by default), an optional
+  one-minute tour of five screens, and the first workspace with its icon, colour and cover. It is
+  shown once, and the workspace it creates is a real workspace.
+- Profiles have an avatar: an icon of your choice, or the initials of the name.
 - Italian and English, keyboard navigation with arrows between rows, and a skip link.
 
 ### Known limitations

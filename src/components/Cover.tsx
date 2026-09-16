@@ -50,6 +50,23 @@ export function Cover({
   );
 }
 
+/**
+ * Cover senza immagine: una fascia con la sfumatura del colore scelto (o
+ * dell'accento del workspace). E' la cover predefinita di workspace e progetti.
+ */
+export function AccentCover({ color, className }: { color?: string | null; className?: string }) {
+  const tint = color ?? 'var(--ld-accent-base)';
+  return (
+    <div
+      aria-hidden
+      className={cn('w-full', className)}
+      style={{
+        background: `linear-gradient(135deg, color-mix(in oklch, ${tint} 24%, var(--ld-canvas)), color-mix(in oklch, ${tint} 8%, var(--ld-canvas)) 62%, var(--ld-canvas))`,
+      }}
+    />
+  );
+}
+
 /** Anteprima in cui un clic sceglie il punto focale. */
 export function CoverFocus({
   node,

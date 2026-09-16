@@ -18,6 +18,7 @@ pub fn map(row: &Row<'_>) -> rusqlite::Result<Profile> {
         name: row.get("name")?,
         description: row.get("description")?,
         avatar_asset_id: row.get("avatar_asset_id")?,
+        avatar_icon: row.get("avatar_icon")?,
         color_main: row.get("color_main")?,
         color_secondary: row.get("color_secondary")?,
         has_lock: lock_hash.is_some(),
@@ -85,13 +86,14 @@ pub fn update(conn: &Connection, id: &str, patch: &ProfilePatch) -> Result<Profi
     conn.execute(
         "UPDATE profiles
             SET name = ?1, description = ?2, color_main = ?3, color_secondary = ?4,
-                lock_auto_minutes = ?5, updated_at = datetime('now')
-          WHERE id = ?6",
+                avatar_icon = ?5, lock_auto_minutes = ?6, updated_at = datetime('now')
+          WHERE id = ?7",
         params![
             name,
             text(&patch.description, current.description),
             text(&patch.color_main, current.color_main),
             text(&patch.color_secondary, current.color_secondary),
+            text(&patch.avatar_icon, current.avatar_icon),
             patch.lock_auto_minutes.unwrap_or(current.lock_auto_minutes),
             id,
         ],
@@ -162,6 +164,42 @@ mod tests {
     fn the_last_profile_cannot_be_deleted() {
         let (conn, only) = database();
         assert!(delete(&conn, &only).is_err());
+    }
+
+    #[test]
+    fn the_avatar_is_an_icon_or_nothing() {
+        let (conn, profile) = database();
+        assert_eq!(get(&conn, &profile).unwrap().avatar_icon, None);
+
+        let patch = ProfilePatch {
+            avatar_icon: Some(Some("lucide:rocket".into())),
+            ..ProfilePatch::default()
+        };
+        assert_eq!(
+            update(&conn, &profile, &patch)
+                .unwrap()
+                .avatar_icon
+                .as_deref(),
+            Some("lucide:rocket")
+        );
+
+        // Una modifica che non nomina l'avatar non lo tocca; `null` lo toglie.
+        let renamed = ProfilePatch {
+            name: Some("Lavoro".into()),
+            ..ProfilePatch::default()
+        };
+        assert_eq!(
+            update(&conn, &profile, &renamed)
+                .unwrap()
+                .avatar_icon
+                .as_deref(),
+            Some("lucide:rocket")
+        );
+        let cleared = ProfilePatch {
+            avatar_icon: Some(None),
+            ..ProfilePatch::default()
+        };
+        assert_eq!(update(&conn, &profile, &cleared).unwrap().avatar_icon, None);
     }
 
     #[test]

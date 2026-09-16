@@ -2,25 +2,32 @@ import { createElement, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover } from 'radix-ui';
 import { Search } from 'lucide-react';
-import { NodeIcon } from '@/components/NodeIcon';
 import { Button } from '@/components/ui/Button';
 import { inputClass } from '@/components/ui/fields';
 import { menuSurface } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
 import { fold } from '@/lib/fuzzy';
 import { ICONS } from '@/lib/icons';
-import type { Node } from '@/types/generated/Node';
 
 /**
- * Icona di un contenitore: le iniziali (predefinite) o una delle icone del set,
- * cercabili per parola ("banca", "viaggi", "code").
+ * Sceglie un'icona del set ("lucide:<nome>") o nessuna, cercandola per parola
+ * ("banca", "viaggi", "code"). Chi la usa disegna l'anteprima: la stessa icona
+ * vive su tessere diverse (workspace, progetto, profilo).
  */
 export function IconPicker({
-  node,
+  value,
   onChange,
+  preview,
+  label,
+  defaultLabel,
 }: {
-  node: Pick<Node, 'kind' | 'name' | 'icon' | 'colorMain'>;
+  value: string | null;
   onChange: (icon: string | null) => void;
+  /** Anteprima di un'icona (o delle iniziali, con `null`). */
+  preview: (icon: string | null) => React.ReactNode;
+  label?: string;
+  /** Nome della scelta senza icona ("Iniziali"). */
+  defaultLabel: string;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -45,18 +52,12 @@ export function IconPicker({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-ink-2 text-xs font-semibold">{t('inspector.icon')}</span>
+      {label && <span className="text-ink-2 text-xs font-semibold">{label}</span>}
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger asChild>
           <Button className="self-start">
-            <NodeIcon
-              kind={node.kind}
-              name={node.name}
-              icon={node.icon}
-              color={node.colorMain}
-              size="xs"
-            />
-            {node.icon ? t('icons.change') : t('icons.choose')}
+            {preview(value)}
+            {value ? t('icons.change') : t('icons.choose')}
           </Button>
         </Popover.Trigger>
         <Popover.Portal>
@@ -79,40 +80,34 @@ export function IconPicker({
             </label>
             <div
               role="listbox"
-              aria-label={t('inspector.icon')}
+              aria-label={label ?? t('inspector.icon')}
               className="grid max-h-64 grid-cols-7 gap-1 overflow-y-auto"
             >
               {words.length === 0 && (
                 <button
                   type="button"
                   role="option"
-                  aria-selected={!node.icon}
-                  title={t('inspector.iconDefault')}
-                  aria-label={t('inspector.iconDefault')}
-                  className={cell(!node.icon)}
+                  aria-selected={!value}
+                  title={defaultLabel}
+                  aria-label={defaultLabel}
+                  className={cell(!value)}
                   onClick={() => choose(null)}
                 >
-                  <NodeIcon
-                    kind={node.kind}
-                    name={node.name}
-                    icon={null}
-                    color={node.colorMain}
-                    size="xs"
-                  />
+                  {preview(null)}
                 </button>
               )}
               {matches.map((entry) => {
-                const value = `lucide:${entry.name}`;
+                const icon = `lucide:${entry.name}`;
                 return (
                   <button
                     key={entry.name}
                     type="button"
                     role="option"
-                    aria-selected={node.icon === value}
+                    aria-selected={value === icon}
                     title={entry.name}
                     aria-label={entry.name}
-                    className={cell(node.icon === value)}
-                    onClick={() => choose(value)}
+                    className={cell(value === icon)}
+                    onClick={() => choose(icon)}
                   >
                     {createElement(entry.icon, {
                       className: 'text-ink-2 size-[18px]',

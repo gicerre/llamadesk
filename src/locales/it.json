@@ -274,25 +274,73 @@
     "privacy": "Tutti i dati restano su questo computer. Nessun account, nessuna telemetria, nessuna connessione di rete.",
     "saveFailed": "L'impostazione non è stata salvata"
   },
-  "welcome": {
-    "title": "Il tuo ambiente digitale, organizzato e pronto da aprire.",
-    "lead": "Inizia con un workspace: un ambito della tua vita o del tuo lavoro, come Lavoro o Personale.",
-    "nameLabel": "Nome del primo workspace",
-    "nameHint": "Potrai aggiungerne altri e cambiare nome e colore quando vuoi.",
-    "submit": "Crea workspace",
-    "principles": {
-      "local": {
-        "title": "Locale",
-        "text": "Tutto resta su questo computer."
-      },
-      "private": {
-        "title": "Privato",
-        "text": "Nessun account, nessuna telemetria."
-      },
-      "yours": {
-        "title": "Tuo",
-        "text": "Nasce vuoto: la struttura la decidi tu."
+  "onboarding": {
+    "steps": {
+      "profile": "Passo 1 di 3: profilo",
+      "tour": "Passo 2 di 3: giro di presentazione",
+      "workspace": "Passo 3 di 3: primo workspace"
+    },
+    "profile": {
+      "title": "Benvenuto in LlamaDesk.",
+      "lead": "Tutto quello che imposti resta su questo computer. Cominciamo da te.",
+      "you": "Tu",
+      "nameLabel": "Il tuo nome",
+      "namePlaceholder": "Alex",
+      "avatarInitials": "Iniziali",
+      "avatarHint": "Scegli un'icona, oppure lascia le iniziali del tuo nome.",
+      "languageHint": "Si applica subito. Puoi cambiarla dalle impostazioni.",
+      "submit": "Continua"
+    },
+    "tour": {
+      "askTitle": "Vuoi vedere che cosa sa fare?",
+      "askLead": "Cinque schermate, un minuto. Puoi uscire quando vuoi.",
+      "start": "Fammi vedere",
+      "skip": "Salta",
+      "next": "Avanti",
+      "previous": "Indietro",
+      "finish": "Ho capito",
+      "slides": {
+        "workspaces": {
+          "title": "Un ambito alla volta",
+          "text": "I workspace tengono separati lavoro, vita privata e studio. Ne resta aperto uno per volta, e Ctrl con un numero passa da uno all'altro."
+        },
+        "projects": {
+          "title": "I progetti, e quello che contengono",
+          "text": "Un progetto tiene i sottoprogetti come schede e le sezioni che raccolgono link, cartelle e comandi. Una sezione si può segnare, e allora chiede prima di aprire."
+        },
+        "tools": {
+          "title": "Si apre con lo strumento giusto",
+          "text": "Una cartella si apre nel tuo editor, un indirizzo nel profilo del browser che hai scelto. L'Avvio apre tutto quello che serve al progetto, un passo dopo l'altro."
+        },
+        "palette": {
+          "title": "Tutto da tastiera",
+          "text": "Ctrl+K cerca in tutta la libreria e propone già l'azione: apri, terminale, cartella."
+        },
+        "safety": {
+          "title": "Niente si apre per sbaglio",
+          "text": "Quello che segni chiede prima conferma, e un'area protetta resta nascosta dietro una password finché non la sblocchi."
+        }
       }
+    },
+    "demo": {
+      "workspaceWork": "Lavoro",
+      "workspacePersonal": "Personale",
+      "workspaceStudy": "Studio",
+      "switch": "cambia workspace",
+      "openIn": "Apre in {{tool}}",
+      "launch": "apre tutto il progetto, in ordine",
+      "paletteHint": "Invio apre il primo risultato.",
+      "protectedTitle": "Area protetta",
+      "protectedText": "Nascosta finché non inserisci la password.",
+      "safetyHint": "Te lo chiede ogni volta, mai di nascosto."
+    },
+    "workspace": {
+      "title": "Il tuo primo workspace",
+      "titleAgain": "Crea un workspace",
+      "lead": "Un ambito del tuo lavoro o della tua vita: Lavoro, Personale, Studio. Potrai aggiungerne altri quando vuoi.",
+      "nameLabel": "Nome",
+      "descriptionPlaceholder": "Che cosa contiene (facoltativo)",
+      "submit": "Crea workspace"
     }
   },
   "errors": {
@@ -623,7 +671,10 @@
     "remove": "Togli",
     "focusHint": "Fai clic sull'anteprima per scegliere il punto da tenere sempre visibile.",
     "failed": "La cover non è stata cambiata",
-    "appOnly": "Le cover si scelgono nell'app installata."
+    "appOnly": "Le cover si scelgono nell'app installata.",
+    "accent": "Colore",
+    "image": "Immagine",
+    "accentOnly": "La cover segue il colore scelto. Le immagini si scelgono nel programma installato."
   },
   "icons": {
     "choose": "Scegli un'icona",

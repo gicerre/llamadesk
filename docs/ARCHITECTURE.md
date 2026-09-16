@@ -100,8 +100,8 @@ src/
   app/          App, router, BootstrapGate, ThemeController, WindowBridge, Opener
     shell/      AppShell, TitleBar, PathBar, WindowControls
     sidebar/    Sidebar, WorkspaceSwitcher, ProjectNav, ProfileMenu
-  features/     actions, create, inspector, launch, library, palette, project,
-                protection, resources, settings, welcome, workspace
+  features/     actions, create, inspector, launch, library, onboarding, palette,
+                project, protection, resources, settings, workspace
   components/   ui/ (Radix primitives, presentation only), NodeIcon, Cover, brand/
   lib/          ipc, queries, routes, motion, fuzzy, focusNavigation, viewport,
                 accelerators, icons, identity, pickers, i18n, mock/backend

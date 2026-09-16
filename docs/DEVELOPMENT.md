@@ -66,7 +66,7 @@ src/                          React 19 + TypeScript + Tailwind 4 + Framer Motion
 │  ├─ protection/             unlock form, lock dialogs, lock bridge
 │  ├─ resources/             resource rows, file glyphs, drop from Explorer
 │  ├─ settings/               settings page and its groups
-│  ├─ welcome/                first run
+│  ├─ onboarding/             first run: profile, tour, first workspace
 │  └─ workspace/              workspace home, root redirect
 ├─ lib/                       ipc, queries, routes, motion, fuzzy, focusNavigation, viewport,
 │                             accelerators, icons, identity, pickers, i18n, mock/backend

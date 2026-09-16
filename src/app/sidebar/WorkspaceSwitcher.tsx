@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ChevronsUpDown, Lock, Plus, Settings, UserRound } from 'lucide-react';
+import { ChevronsUpDown, Lock, Plus, Settings } from 'lucide-react';
 import { NodeIcon } from '@/components/NodeIcon';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import {
   Menu,
   MenuContent,
@@ -138,7 +139,7 @@ export function ProfileItems() {
         <MenuItem
           key={profile.id}
           selected={profile.id === activeProfileId}
-          icon={<UserRound />}
+          icon={<ProfileAvatar profile={profile} size="xs" />}
           onSelect={() => void switchTo(profile.id)}
         >
           {profile.name}

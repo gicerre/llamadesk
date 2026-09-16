@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Ellipsis } from 'lucide-react';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { Menu, MenuContent, MenuTrigger } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
-import { initials } from '@/lib/identity';
 import { useActiveProfile } from '@/stores/session';
 import { ProfileItems } from './WorkspaceSwitcher';
 
@@ -23,13 +23,7 @@ export function ProfileMenu({ collapsed }: { collapsed: boolean }) {
             collapsed ? 'justify-center' : 'px-1.5',
           )}
         >
-          <span
-            aria-hidden
-            className="bg-brand text-2xs dark:text-sunken flex size-6 shrink-0 items-center justify-center rounded-full font-bold text-white"
-            style={profile.colorMain ? { backgroundColor: profile.colorMain } : undefined}
-          >
-            {initials(profile.name)}
-          </span>
+          <ProfileAvatar profile={profile} size="sm" />
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1 truncate font-medium">{profile.name}</span>

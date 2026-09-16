@@ -12,15 +12,16 @@
 LlamaDesk 2.0 è **completa come funzioni**: la riprogettazione decisa in `docs/REDESIGN.md`
 (fasi 1–8) è stata realizzata e committata sul branch `redesign`. Compila, i test passano,
 l'app gira: database in `%APPDATA%\com.llamadesk.app`, libreria, azioni, palette, protezione,
-Avvio, backup, cover. Manca la **prova sul campo nell'app installata** (`docs/CHECKLIST.md`) e
-la pubblicazione della prima beta `0.0.1`.
+Avvio, backup, cover, primo avvio guidato. Manca la **prova sul campo nell'app installata**
+(`docs/CHECKLIST.md`) e la pubblicazione della prima beta `0.0.1`.
 
 | | |
 |---|---|
-| Branch di lavoro | `redesign` (la versione 1 è congelata su `main`, tag `legacy-v1`) |
-| Ultimo commit | fase 8 — personalizzazione e rifinitura |
-| Test | 127 Rust, 45 frontend, tutti verdi |
-| Schema database | v3 (`0003_schema_v2.sql`), nessuna conversione dalla v1 |
+| Branch di lavoro | `develop` (allineato a `redesign`; la versione 1 è congelata su `main`, tag `legacy-v1`) |
+| Ultimo commit | documentazione per la beta pubblica |
+| Non committato | primo avvio guidato (profilo, tour, primo workspace) e avatar dei profili |
+| Test | 128 Rust, 45 frontend, tutti verdi |
+| Schema database | v4 (`0004_profile_avatar.sql`; la v2 è `0003_schema_v2.sql`), nessuna conversione dalla v1 |
 
 ---
 

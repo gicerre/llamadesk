@@ -580,6 +580,7 @@ function seed() {
     name: it ? 'Personale' : 'Personal',
     description: null,
     avatarAssetId: null,
+    avatarIcon: null,
     colorMain: null,
     colorSecondary: null,
     hasLock: false,
@@ -772,6 +773,7 @@ const handlers: Handlers = {
     if (!profile) throw new Error('profilo non trovato');
     if (patch.name) profile.name = patch.name.trim();
     if (patch.colorMain !== undefined) profile.colorMain = patch.colorMain;
+    if (patch.avatarIcon !== undefined) profile.avatarIcon = patch.avatarIcon;
     if (patch.lockAutoMinutes !== undefined) profile.lockAutoMinutes = patch.lockAutoMinutes;
     return profile;
   },

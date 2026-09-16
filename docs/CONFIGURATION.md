@@ -12,7 +12,7 @@ Open **Settings** with `Ctrl+,`, from the profile menu, or from the tray icon.
 | Setting | Values | Notes |
 | --- | --- | --- |
 | Theme | System, Light, Dark | The window frame follows the app, not the system, when you force one |
-| Language | Italiano, English | Chosen from your Windows language on first run |
+| Language | Italiano, English | Chosen on the first launch, English by default; per profile |
 | Density | Comfortable, Compact | Compact fits more rows in the same window |
 
 The accent colour is not a setting: it is the colour of the workspace you are in.

@@ -15,6 +15,8 @@ import { useOpener } from '@/stores/opener';
 const MARK = 120;
 const BUILD_MS = 650;
 const FLY_MS = 300;
+/** Al primo avvio ogni tempo si allunga: l'apertura si guarda, non si subisce. */
+const SLOW = 1.8;
 const ease = [0.2, 0, 0, 1] as const;
 
 /** Da dove cresce ogni parte e quando (secondi). */
@@ -42,6 +44,10 @@ export function Opener() {
 function OpenerScene() {
   const phase = useOpener((state) => state.phase);
   const setPhase = useOpener((state) => state.setPhase);
+  const slow = useOpener((state) => state.slow);
+  const scale = slow ? SLOW : 1;
+  const buildMs = BUILD_MS * scale;
+  const flyMs = FLY_MS * scale;
   const [target, setTarget] = useState<Target | null>(null);
 
   useEffect(() => {
@@ -56,16 +62,16 @@ function OpenerScene() {
         });
       }
       setPhase('fly');
-    }, BUILD_MS);
-    const toDone = window.setTimeout(() => setPhase('done'), BUILD_MS + FLY_MS);
+    }, buildMs);
+    const toDone = window.setTimeout(() => setPhase('done'), buildMs + flyMs);
     return () => {
       window.clearTimeout(toFly);
       window.clearTimeout(toDone);
     };
-  }, [setPhase]);
+  }, [setPhase, buildMs, flyMs]);
 
   const flying = phase === 'fly';
-  const fly: Transition = { duration: FLY_MS / 1000, ease: [0.3, 0, 0, 1] };
+  const fly: Transition = { duration: flyMs / 1000, ease: [0.3, 0, 0, 1] };
 
   return (
     <motion.div
@@ -109,7 +115,7 @@ function OpenerScene() {
                 }}
                 initial={{ [axis]: 0 }}
                 animate={{ [axis]: 1 }}
-                transition={{ delay, duration: grow.duration, ease }}
+                transition={{ delay: delay * scale, duration: grow.duration * scale, ease }}
               />
             );
           })}
@@ -118,7 +124,9 @@ function OpenerScene() {
           className="font-display text-ink absolute top-full mt-3 text-2xl font-semibold tracking-[-0.02em] whitespace-nowrap"
           initial={{ opacity: 0, y: 4 }}
           animate={flying ? { opacity: 0, y: 0 } : { opacity: 1, y: 0 }}
-          transition={flying ? { duration: 0.1 } : { delay: 0.42, duration: 0.22, ease }}
+          transition={
+            flying ? { duration: 0.1 } : { delay: 0.42 * scale, duration: 0.22 * scale, ease }
+          }
         >
           LlamaDesk
         </motion.span>

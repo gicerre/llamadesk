@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowUp, Folder, GitBranch, Pin, Plus, Trash2, Unlink, X } from 'lucide-react';
+import { IconPicker } from '@/components/IconPicker';
 import { NodeIcon } from '@/components/NodeIcon';
 import { Button } from '@/components/ui/Button';
 import { ColorField, inputClass, Segmented, Switch } from '@/components/ui/fields';
@@ -35,7 +36,6 @@ import { isExecutable, primaryAction } from '../actions/registry';
 import { runAction } from '../actions/run';
 import { CoverField } from './CoverField';
 import { InlineField, PanelSection } from './fields';
-import { IconPicker } from './IconPicker';
 import { LaunchSection } from '../launch/LaunchSection';
 import { UnlockForm } from '../protection/UnlockForm';
 import { ProtectionSection } from './ProtectionSection';
@@ -492,7 +492,21 @@ function Appearance({
           )}
         </>
       )}
-      <IconPicker node={node} onChange={(icon) => apply({ icon })} />
+      <IconPicker
+        label={t('inspector.icon')}
+        defaultLabel={t('inspector.iconDefault')}
+        value={node.icon}
+        onChange={(icon) => apply({ icon })}
+        preview={(icon) => (
+          <NodeIcon
+            kind={node.kind}
+            name={node.name}
+            icon={icon}
+            color={node.colorMain}
+            size="xs"
+          />
+        )}
+      />
       {colored && <CoverField view={view} onSave={onSave} />}
     </PanelSection>
   );

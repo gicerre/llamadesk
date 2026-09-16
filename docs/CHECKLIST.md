@@ -9,9 +9,16 @@ nell'anteprima nel browser · **[ ]** da verificare.
 
 ## Avvio e finestra
 
-- [x] Primo avvio: database creato in `%APPDATA%\com.llamadesk.app`, pagina di benvenuto.
+- [x] Primo avvio: database creato in `%APPDATA%\com.llamadesk.app`, primo avvio guidato.
+- [~] Primo avvio, profilo: nome, avatar (icona o iniziali), colore, lingua in inglese come predefinita.
+- [~] Primo avvio, lingua: scegliendo Italiano il passo successivo e' gia' in italiano.
+- [~] Primo avvio, tour: si puo' saltare, si torna indietro, frecce e Esc funzionano.
+- [~] Primo avvio, workspace: nome, descrizione, icona, colore; l'accento e la cover cambiano subito.
+- [ ] Primo avvio, cover da immagine: scelta dal disco, copiata in `%APPDATA%\...\covers`.
+- [ ] Al secondo avvio il primo avvio guidato non compare piu' e si apre il workspace creato.
 - [ ] Nessuna finestra vuota o bianca prima che l'interfaccia compaia.
 - [ ] Animazione di apertura: scrivania, collo, testa, orecchie, nome, volo nella barra del titolo; meno di un secondo.
+- [ ] Al primo avvio l'animazione e' piu' lenta (circa il doppio) e si percepisce.
 - [ ] Con "Riduci animazioni" di Windows attivo l'animazione non parte.
 - [ ] Avvio con `--minimized` / "Avvia ridotto a icona": nessuna finestra, nessuna animazione.
 - [x] Mica sulla sidebar e sulla barra del titolo (Windows 11).

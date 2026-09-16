@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
+import { IconPicker } from '@/components/IconPicker';
 import { NodeIcon } from '@/components/NodeIcon';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { ColorField, Switch } from '@/components/ui/fields';
@@ -37,12 +39,28 @@ export function ProfilesSettings() {
     <Group title={t('profiles.title')}>
       {profiles.map((profile) => (
         <div key={profile.id} className="flex flex-wrap items-end gap-4 px-4 py-3">
+          <ProfileAvatar profile={profile} size="md" className="mb-0.5" />
           <div className="min-w-48 flex-1">
             <InlineField
               label={profile.id === active?.id ? t('profiles.nameActive') : t('profiles.name')}
               value={profile.name}
               required
               onCommit={(name) => save(profile.id, { name })}
+            />
+          </div>
+          <div className="min-w-0">
+            <IconPicker
+              label={t('inspector.icon')}
+              defaultLabel={t('onboarding.profile.avatarInitials')}
+              value={profile.avatarIcon}
+              onChange={(avatarIcon) =>
+                void save(profile.id, { avatarIcon }).catch((error) =>
+                  toastError(t('settings.saveFailed'), error),
+                )
+              }
+              preview={(candidate) => (
+                <ProfileAvatar profile={{ ...profile, avatarIcon: candidate }} size="xs" />
+              )}
             />
           </div>
           <div className="min-w-0">

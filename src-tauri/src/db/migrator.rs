@@ -23,11 +23,18 @@ pub struct Migration {
 /// Le versioni 1 e 2 appartenevano a LlamaDesk 1 (tag git `legacy-v1`): la 3
 /// le sostituisce con lo schema della riprogettazione. Un database nuovo parte
 /// direttamente dalla 3.
-pub const MIGRATIONS: &[Migration] = &[Migration {
-    version: 3,
-    name: "schema_v2",
-    sql: include_str!("migrations/0003_schema_v2.sql"),
-}];
+pub const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 3,
+        name: "schema_v2",
+        sql: include_str!("migrations/0003_schema_v2.sql"),
+    },
+    Migration {
+        version: 4,
+        name: "profile_avatar",
+        sql: include_str!("migrations/0004_profile_avatar.sql"),
+    },
+];
 
 pub fn current_version(conn: &Connection) -> Result<i32> {
     let version: i32 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
@@ -172,7 +179,7 @@ mod tests {
 
         run(&mut conn, Path::new("memory.db")).unwrap();
 
-        assert_eq!(current_version(&conn).unwrap(), 3);
+        assert_eq!(current_version(&conn).unwrap(), target_version());
         for legacy in ["containers", "applications", "links", "backgrounds"] {
             assert!(
                 !table_exists(&conn, legacy),

@@ -5,7 +5,7 @@ import { NotFoundPage } from '@/features/library/NotFoundPage';
 import { ProjectPage } from '@/features/project/ProjectPage';
 import { SectionPage } from '@/features/project/SectionPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
-import { WelcomePage } from '@/features/welcome/WelcomePage';
+import { OnboardingFlow } from '@/features/onboarding/OnboardingFlow';
 import { RootRedirect } from '@/features/workspace/RootRedirect';
 import { WorkspacePage } from '@/features/workspace/WorkspacePage';
 import { RootLayout } from './RootLayout';
@@ -18,7 +18,7 @@ export const router = createHashRouter([
     element: <RootLayout />,
     children: [
       { path: '/', element: <RootRedirect /> },
-      { path: '/benvenuto', element: <WelcomePage /> },
+      { path: '/benvenuto', element: <OnboardingFlow /> },
       {
         element: <AppShell />,
         children: [

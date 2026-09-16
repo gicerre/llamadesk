@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { api } from '@/lib/ipc';
-import { resolveLanguage, setLanguage } from '@/lib/i18n';
+import { DEFAULT_LANGUAGE, setLanguage } from '@/lib/i18n';
 import { useOpener } from './opener';
 import type { AppSettings } from '@/types/generated/AppSettings';
 import type { Profile } from '@/types/generated/Profile';
@@ -65,9 +65,10 @@ export const useSession = create<SessionState>((set, get) => ({
     try {
       const payload = await api.bootstrap();
       // Al primissimo avvio vale la lingua di sistema; poi quella scelta.
-      const language = payload.isFirstRun
-        ? resolveLanguage(payload.systemLocale)
-        : payload.settings.language;
+      // Al primo avvio si parte in inglese: la lingua la sceglie il profilo
+      // durante l'onboarding (la lingua di sistema resta il ripiego dei profili
+      // successivi).
+      const language = payload.isFirstRun ? DEFAULT_LANGUAGE : payload.settings.language;
       await setLanguage(language);
       const scopedKeys = await api.profileScopedKeys().catch(() => []);
 
@@ -76,7 +77,9 @@ export const useSession = create<SessionState>((set, get) => ({
       if (opener.phase === 'pending') {
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const play = payload.settings.openerAnimation && !payload.startedHidden && !reduced;
-        opener.setPhase(play ? 'build' : 'done');
+        // Al primissimo avvio l'apertura e' piu' distesa: e' la prima cosa che
+        // si vede dell'applicazione.
+        opener.setPhase(play ? 'build' : 'done', payload.isFirstRun);
       }
 
       set({

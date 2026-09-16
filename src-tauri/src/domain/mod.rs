@@ -201,6 +201,8 @@ pub struct Profile {
     pub name: String,
     pub description: Option<String>,
     pub avatar_asset_id: Option<String>,
+    /// Icona dell'avatar ("lucide:<nome>"); senza, restano le iniziali.
+    pub avatar_icon: Option<String>,
     pub color_main: Option<String>,
     pub color_secondary: Option<String>,
     /// La password non esce mai da Rust: la UI sa solo se esiste.
@@ -220,6 +222,9 @@ pub struct ProfilePatch {
     #[serde(deserialize_with = "nullable")]
     #[ts(optional)]
     pub description: Option<Option<String>>,
+    #[serde(deserialize_with = "nullable")]
+    #[ts(optional)]
+    pub avatar_icon: Option<Option<String>>,
     #[serde(deserialize_with = "nullable")]
     #[ts(optional)]
     pub color_main: Option<Option<String>>,

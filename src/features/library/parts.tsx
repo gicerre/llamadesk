@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, CircleAlert, Link2, Lock, ShieldAlert, Star } from 'lucide-react';
-import { Cover } from '@/components/Cover';
+import { AccentCover, Cover } from '@/components/Cover';
 import { NodeIcon } from '@/components/NodeIcon';
 import { Button } from '@/components/ui/Button';
 import { ErrorPanel, Skeleton } from '@/components/ui/feedback';
@@ -49,8 +49,15 @@ export function NodeHeader({ view, workspaceId, actions }: NodeHeaderProps) {
   const otherWorkspaces = view.workspaces.filter((crumb) => crumb.id !== workspaceId);
   const large = node.kind === 'workspace' || node.kind === 'project';
 
-  const cover = !view.locked && node.coverAssetId && (
-    <Cover node={node} className="-mx-7 -mt-6 mb-5 h-44 rounded-b-xl" />
+  // Cover: l'immagine scelta, oppure la sfumatura del colore del workspace o
+  // del progetto (i livelli che hanno un'identita' visiva propria).
+  const banner = 'pointer-events-none -mx-7 -mt-6 mb-5 h-44 rounded-b-xl';
+  const cover = view.locked ? null : node.coverAssetId ? (
+    <Cover node={node} className={banner} />
+  ) : (
+    (node.kind === 'workspace' || node.kind === 'project') && (
+      <AccentCover color={node.colorMain} className={cn(banner, 'h-28')} />
+    )
   );
 
   return (

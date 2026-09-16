@@ -4,13 +4,30 @@ Ten minutes, from an empty app to a project you can open with one click.
 
 ![Welcome screen](assets/screenshots/welcome.jpg)
 
-## 1. Create your first workspace
+## 1. The first launch
 
-The first launch asks for one thing: the name of a workspace. A workspace is an area of your life
-or work — *Work*, *Personal*, *Studies*. Pick a colour: it becomes the accent you see while you
-are inside it.
+The first time you open LlamaDesk it walks you through three short steps, and then never appears
+again.
 
-You can add more workspaces later, and rename or recolour any of them.
+**Your profile.** A name, an avatar (an icon of your choice, or the initials of your name), a
+colour and the language of the interface — English by default, Italiano if you prefer. The
+language applies straight away, and you can change all of it later in Settings › Profiles.
+
+**A one-minute tour.** Five screens on what the app does: workspaces, projects, opening things
+with the right tool, the command palette, and the two safeguards. You can skip it, and leave it
+at any point.
+
+![The tour](assets/screenshots/tour.jpg)
+
+**Your first workspace.** A workspace is an area of your life or work — *Work*, *Personal*,
+*Studies*. Give it a name, an optional description, an icon and a colour: the colour becomes both
+the accent you see while you are inside it and its cover. In the installed app you can pick an
+image as the cover instead.
+
+![Creating the first workspace](assets/screenshots/first-workspace.jpg)
+
+When you confirm, the workspace is created and the app opens on it. You can add more workspaces
+later, and rename or recolour any of them.
 
 ## 2. Create a project
 

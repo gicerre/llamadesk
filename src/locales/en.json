@@ -274,25 +274,73 @@
     "privacy": "All data stays on this computer. No account, no telemetry, no network connections.",
     "saveFailed": "The setting was not saved"
   },
-  "welcome": {
-    "title": "Your digital workspace, organized and ready to open.",
-    "lead": "Start with a workspace: an area of your life or work, like Work or Personal.",
-    "nameLabel": "Name of your first workspace",
-    "nameHint": "You can add more and change name and color whenever you like.",
-    "submit": "Create workspace",
-    "principles": {
-      "local": {
-        "title": "Local",
-        "text": "Everything stays on this computer."
-      },
-      "private": {
-        "title": "Private",
-        "text": "No account, no telemetry."
-      },
-      "yours": {
-        "title": "Yours",
-        "text": "It starts empty: you decide the structure."
+  "onboarding": {
+    "steps": {
+      "profile": "Step 1 of 3: profile",
+      "tour": "Step 2 of 3: tour",
+      "workspace": "Step 3 of 3: first workspace"
+    },
+    "profile": {
+      "title": "Welcome to LlamaDesk.",
+      "lead": "Everything you set up stays on this computer. Let's start with you.",
+      "you": "You",
+      "nameLabel": "Your name",
+      "namePlaceholder": "Alex",
+      "avatarInitials": "Initials",
+      "avatarHint": "Choose an icon, or keep the initials of your name.",
+      "languageHint": "Applied right away. You can change it later in Settings.",
+      "submit": "Continue"
+    },
+    "tour": {
+      "askTitle": "Want to see what it does?",
+      "askLead": "Five screens, one minute. You can leave at any point.",
+      "start": "Show me",
+      "skip": "Skip",
+      "next": "Next",
+      "previous": "Back",
+      "finish": "Done",
+      "slides": {
+        "workspaces": {
+          "title": "One area at a time",
+          "text": "Workspaces keep work, personal life and study apart. One is open at a time, and Ctrl with a number moves between them."
+        },
+        "projects": {
+          "title": "Projects, and what's inside them",
+          "text": "A project holds sub-projects as tabs and sections that group links, folders and commands. A section can be marked, and then it asks before opening."
+        },
+        "tools": {
+          "title": "Opens with the right tool",
+          "text": "A folder opens in your editor, an address in the browser profile you picked. Launch opens everything a project needs, one step after another."
+        },
+        "palette": {
+          "title": "Everything from the keyboard",
+          "text": "Ctrl+K searches the whole library and already offers the action: open, terminal, folder."
+        },
+        "safety": {
+          "title": "Nothing opens by mistake",
+          "text": "What you mark asks for confirmation first, and a protected area stays hidden behind a password until you unlock it."
+        }
       }
+    },
+    "demo": {
+      "workspaceWork": "Work",
+      "workspacePersonal": "Personal",
+      "workspaceStudy": "Study",
+      "switch": "switch workspace",
+      "openIn": "Opens in {{tool}}",
+      "launch": "opens the whole project, in order",
+      "paletteHint": "Enter opens the first result.",
+      "protectedTitle": "Protected area",
+      "protectedText": "Hidden until you enter the password.",
+      "safetyHint": "Asked every time, never silently."
+    },
+    "workspace": {
+      "title": "Your first workspace",
+      "titleAgain": "Create a workspace",
+      "lead": "An area of your work or your life: Work, Personal, Study. You can add more whenever you like.",
+      "nameLabel": "Name",
+      "descriptionPlaceholder": "What it holds (optional)",
+      "submit": "Create workspace"
     }
   },
   "errors": {
@@ -623,7 +671,10 @@
     "remove": "Remove",
     "focusHint": "Click the preview to pick the point that always stays visible.",
     "failed": "The cover was not changed",
-    "appOnly": "Covers are chosen in the installed app."
+    "appOnly": "Covers are chosen in the installed app.",
+    "accent": "Color",
+    "image": "Image",
+    "accentOnly": "The cover follows the chosen color. Images can be chosen in the installed app."
   },
   "icons": {
     "choose": "Choose an icon",

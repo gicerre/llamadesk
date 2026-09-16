@@ -249,9 +249,13 @@ A profile is a **lens on one library**, not a separate account. Each profile cho
 workspaces it sees and keeps its own favorites, recent list, appearance and lock password. The
 library itself is shared: a workspace hidden in one profile still exists for the others.
 
+A profile has a name, an avatar (an icon of your choice, or the initials of the name) and a
+colour, shown in the sidebar and in the switcher. The first profile is set up on the first
+launch, together with the language of the interface.
+
 Switch or create profiles from the workspace switcher or the profile menu at the bottom of the
-sidebar. Settings › Profiles handles renaming, colour, which workspaces the active profile sees,
-and deleting a profile (showing what would be deleted with it).
+sidebar. Settings › Profiles handles renaming, avatar, colour, which workspaces the active
+profile sees, and deleting a profile (showing what would be deleted with it).
 
 ## The tray and quick capture
 

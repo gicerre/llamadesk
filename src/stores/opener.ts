@@ -16,13 +16,16 @@ export type OpenerPhase =
 interface OpenerState {
   phase: OpenerPhase;
   run: number;
-  setPhase: (phase: OpenerPhase) => void;
+  /** Primo avvio: l'apertura dura di piu', perche' la si guarda davvero. */
+  slow: boolean;
+  setPhase: (phase: OpenerPhase, slow?: boolean) => void;
   replay: () => void;
 }
 
 export const useOpener = create<OpenerState>((set, get) => ({
   phase: 'pending',
   run: 0,
-  setPhase: (phase) => set({ phase }),
+  slow: false,
+  setPhase: (phase, slow) => set(slow === undefined ? { phase } : { phase, slow }),
   replay: () => set({ phase: 'build', run: get().run + 1 }),
 }));
